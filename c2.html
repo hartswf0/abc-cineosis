@@ -1223,17 +1223,17 @@ input[type=range]::-webkit-slider-runnable-track { height: 26px; }
     
     <div class="semiotic-triad">
       <div class="semiotic-node descriptive">
-        <div class="semiotic-title">🌍 DESCRIPTIVE (World)</div>
+        <div class="semiotic-title">DESCRIPTIVE (World)</div>
         <div class="semiotic-content" id="sem-descriptive">No descriptive state. Write an idea or script to populate.</div>
       </div>
       
       <div class="semiotic-node interpretive" style="margin-top:8px">
-        <div class="semiotic-title">🧠 INTERPRETIVE (Significance)</div>
+        <div class="semiotic-title">INTERPRETIVE (Significance)</div>
         <div class="semiotic-content" id="sem-interpretive">No interpretive context. Break into shots to map significance.</div>
       </div>
       
       <div class="semiotic-node operative" style="margin-top:8px">
-        <div class="semiotic-title">⚡ OPERATIVE (Action-Space)</div>
+        <div class="semiotic-title">OPERATIVE (Action-Space)</div>
         <div class="semiotic-content" id="sem-operative">No operations executed. Render BEFLIX frames to alter the action-space.</div>
       </div>
     </div>
@@ -1691,11 +1691,11 @@ function updateModelInfoCard() {
     else if (detail.provider === 'openai') colorVar = 'var(--g)';
     
     if (detail.tier === 'max') {
-      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--c); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">🧠 MAX REASONING</span>`;
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--c); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">MAX REASONING</span>`;
     } else if (detail.tier === 'balanced') {
-      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--b); color: var(--ink); font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">⚖️ BALANCED</span>`;
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--b); color: var(--ink); font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">BALANCED</span>`;
     } else if (detail.tier === 'lite') {
-      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--g); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">⚡ SPEED/COST</span>`;
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--g); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">SPEED/COST</span>`;
     }
     
     infoCard.style.borderLeft = `4px solid ${colorVar}`;
@@ -3127,21 +3127,21 @@ function renderChat() {
   if (!(S.log || []).length) {
     msgs.innerHTML = `
       <div class="welcome-card">
-        <div class="welcome-header">🎬 GET STARTED WITH CAUSALITY</div>
+        <div class="welcome-header">GET STARTED WITH CAUSALITY</div>
         <div class="welcome-section">
           <div class="welcome-sec-lbl">Step 1: Configuration</div>
           <div class="welcome-btn-grid">
-            <button class="welcome-btn pri" id="wel-set-key">🔑 SET API KEY</button>
-            <button class="welcome-btn" id="wel-view-help">📖 VIEW HELP GUIDE</button>
+            <button class="welcome-btn pri" id="wel-set-key">SET API KEY</button>
+            <button class="welcome-btn" id="wel-view-help">VIEW HELP GUIDE</button>
           </div>
         </div>
         <div class="welcome-section">
           <div class="welcome-sec-lbl">Step 2: AI Prompt Suggestions</div>
           <div style="display: flex; flex-direction: column; gap: 6px;">
-            <button class="welcome-prompt-btn" data-prompt="make a movie idea about a neon cyber noir heist">💡 "make a movie idea about a neon cyber noir heist"</button>
-            <button class="welcome-prompt-btn" data-prompt="write the script">✍️ "write the script"</button>
-            <button class="welcome-prompt-btn" data-prompt="break into shots">🎞️ "break into shots"</button>
-            <button class="welcome-prompt-btn" data-prompt="render all shots">⚡ "render all shots"</button>
+            <button class="welcome-prompt-btn" data-prompt="make a movie idea about a neon cyber noir heist">"make a movie idea about a neon cyber noir heist"</button>
+            <button class="welcome-prompt-btn" data-prompt="write the script">"write the script"</button>
+            <button class="welcome-prompt-btn" data-prompt="break into shots">"break into shots"</button>
+            <button class="welcome-prompt-btn" data-prompt="render all shots">"render all shots"</button>
           </div>
         </div>
       </div>

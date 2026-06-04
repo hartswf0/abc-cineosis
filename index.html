@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>ABC CINEOSIS · SYSTEM MAIN CONTROL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Oswald:wght@700&family=Share+Tech+Mono&display=swap');
 
     :root {
       --ink: #000000;
       --paper: #ffffff;
-      --soft: #f9f9f9;
+      --soft: #f4f4f0;
       --gray-light: #e0e0e0;
       --gray-medium: #888888;
       --gray-dark: #333333;
@@ -39,9 +40,9 @@
       display: flex;
     }
 
-    /* ── SIDEBAR NAVIGATION ── */
+    /* ── LEFT SIDEBAR ── */
     #sidebar {
-      width: 250px;
+      width: 260px;
       border-right: var(--bw2) solid var(--ink);
       display: flex;
       flex-direction: column;
@@ -62,27 +63,28 @@
 
     .logo-main {
       font-family: var(--font-display);
-      font-size: 40px;
+      font-size: 36px;
       font-weight: 700;
-      line-height: 0.9;
+      line-height: 0.95;
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
 
     .logo-sub {
       font-family: var(--font-display);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
+      color: var(--gray-light);
     }
 
     .nav-list {
       list-style: none;
-      padding: 20px 0;
+      padding: 15px 0;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
       flex-grow: 1;
     }
 
@@ -90,7 +92,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 20px;
+      padding: 12px 20px;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
@@ -117,7 +119,7 @@
 
     .sidebar-footer {
       border-top: var(--bw) solid var(--gray-light);
-      padding: 20px;
+      padding: 15px 20px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -125,7 +127,7 @@
 
     .status-title {
       font-family: var(--font-mono);
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 900;
       color: var(--gray-medium);
       text-transform: uppercase;
@@ -136,29 +138,37 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--ink);
     }
 
     .status-text {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--gray-medium);
       font-family: var(--font-mono);
     }
 
-    .system-version {
+    .cc-license-box {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 8px;
       color: var(--gray-medium);
-      margin-top: 10px;
+      line-height: 1.4;
+      border-top: 1px solid var(--gray-light);
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+
+    .cc-license-box a {
+      color: var(--ink);
+      text-decoration: underline;
     }
 
     /* ── MAIN CONTENT WINDOW ── */
@@ -177,6 +187,7 @@
       align-items: center;
       padding: 15px 40px;
       border-bottom: var(--bw) solid var(--gray-light);
+      flex-shrink: 0;
     }
 
     .control-left {
@@ -191,7 +202,7 @@
       display: flex;
       align-items: center;
       gap: 15px;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -216,7 +227,7 @@
       font-weight: 400;
     }
 
-    /* View Views Wrapper */
+    /* Views Wrapper */
     .views-wrapper {
       flex-grow: 1;
       overflow-y: auto;
@@ -225,7 +236,6 @@
       flex-direction: column;
     }
 
-    /* Standard tab view style */
     .tab-view {
       display: none;
       flex-direction: column;
@@ -239,7 +249,7 @@
 
     .page-title {
       font-family: var(--font-display);
-      font-size: 50px;
+      font-size: 48px;
       font-weight: 700;
       line-height: 0.95;
       letter-spacing: 0.01em;
@@ -300,7 +310,6 @@
       background-size: 14px;
     }
 
-    /* Project grid matrix styling */
     .project-grid-matrix {
       display: flex;
       flex-direction: column;
@@ -344,7 +353,7 @@
 
     .module-card:hover {
       border-color: var(--ink);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
     .module-card.offline {
@@ -368,15 +377,15 @@
     }
 
     .card-prefix-box {
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       background: var(--ink);
       color: var(--paper);
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--font-display);
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       margin-right: 12px;
       flex-shrink: 0;
@@ -451,7 +460,7 @@
       transform: translateX(2px);
     }
 
-    /* Info footer panel */
+    /* Alert footer banner */
     .info-footer-alert {
       border: var(--bw) solid var(--ink);
       padding: 16px 20px;
@@ -463,37 +472,37 @@
     }
 
     .info-icon-circle {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border: var(--bw) solid var(--ink);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
       flex-shrink: 0;
     }
 
     .info-alert-text {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 500;
       line-height: 1.4;
     }
 
-    /* ── GRID VIEW (Original POML stack layout) ── */
+    /* ── GRID VIEW (POML schematics) ── */
     #view-grid-view {
       display: none;
-      grid-template-columns: 320px 1fr 1fr;
+      grid-template-columns: 320px 1.5fr 1.2fr;
       gap: 15px;
       height: calc(100vh - 120px);
       min-height: 0;
     }
 
     .pane {
-      border: 4px solid var(--ink);
+      border: 3px solid var(--ink);
       display: flex;
       flex-direction: column;
       background-color: var(--paper);
@@ -502,12 +511,12 @@
     .pane-title {
       background-color: var(--ink);
       color: var(--paper);
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 900;
       padding: 8px 12px;
       text-transform: uppercase;
       letter-spacing: .1em;
-      border-bottom: 4px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
     }
     .pane-content {
       padding: 15px;
@@ -534,10 +543,10 @@
       margin-top: 8px;
     }
     .file-card {
-      border: 3px solid var(--ink);
+      border: 2px solid var(--ink);
       background-color: var(--paper);
       color: var(--ink);
-      padding: 12px;
+      padding: 10px;
       cursor: pointer;
       transition: background-color 0.05s, color 0.05s;
     }
@@ -546,12 +555,12 @@
       color: var(--paper);
     }
     .file-card h2 {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
     }
     .file-card p {
-      font-size: 10px;
+      font-size: 9px;
       margin-top: 4px;
       line-height: 1.3;
     }
@@ -579,14 +588,14 @@
       gap: 8px;
     }
     .schematic-box {
-      border: 3px solid var(--ink);
+      border: 2px solid var(--ink);
       background-color: var(--paper);
       color: var(--ink);
-      padding: 12px;
+      padding: 10px;
       text-align: center;
       font-weight: 900;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       display: flex;
       align-items: center;
@@ -598,7 +607,7 @@
       color: var(--paper);
     }
     .schematic-box.highlight {
-      box-shadow: inset 0 0 0 3px var(--paper);
+      box-shadow: inset 0 0 0 2px var(--paper);
     }
     .xml-container {
       display: flex;
@@ -606,10 +615,10 @@
       height: 100%;
     }
     .xml-line {
-      border-bottom: 2px solid var(--ink);
-      padding: 10px;
+      border-bottom: var(--bw) solid var(--ink);
+      padding: 8px 10px;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1.4;
       background-color: var(--paper);
       color: var(--ink);
@@ -625,17 +634,17 @@
     .action-container {
       margin-top: auto;
       padding-top: 10px;
-      border-top: 3px solid var(--ink);
+      border-top: 2px solid var(--ink);
     }
     .launch-btn {
       display: block;
       width: 100%;
       text-align: center;
-      border: 3px solid var(--ink);
+      border: 2px solid var(--ink);
       background-color: var(--ink);
       color: var(--paper);
-      padding: 12px;
-      font-size: 12px;
+      padding: 10px;
+      font-size: 11px;
       font-weight: 900;
       text-decoration: none;
       text-transform: uppercase;
@@ -648,48 +657,275 @@
       color: var(--ink);
     }
 
-    /* ── PLACEHOLDER TAB VIEW ── */
-    .placeholder-card {
-      border: var(--bw) solid var(--gray-light);
+    /* ── DETAILED VIEWS ── */
+    .dashboard-panel {
+      border: var(--bw2) solid var(--ink);
       background: var(--paper);
-      padding: 30px;
-      max-width: 600px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
       gap: 15px;
+      width: 100%;
+      box-shadow: 4px 4px 0 var(--ink);
     }
 
-    .placeholder-title {
+    .panel-header {
       font-family: var(--font-display);
       font-size: 24px;
+      font-weight: 700;
       text-transform: uppercase;
+      border-bottom: var(--bw2) solid var(--ink);
+      padding-bottom: 8px;
+      margin-bottom: 5px;
     }
 
-    .placeholder-text {
-      font-size: 12px;
-      line-height: 1.6;
+    .lbl {
+      font: 900 8px/1 var(--font-sans);
+      text-transform: uppercase;
+      letter-spacing: .1em;
       color: var(--gray-dark);
+      margin-bottom: 4px;
     }
 
-    .placeholder-code {
+    .inp {
+      width: 100%;
+      border: var(--bw2) solid var(--ink);
+      padding: 8px 10px;
+      font: 700 12px var(--font-mono);
+      background: var(--soft);
+      color: var(--ink);
+      transition: border-color .1s, background .1s;
+    }
+    
+    .inp:focus {
+      outline: 0;
+      background: var(--paper);
+      border-color: var(--ink);
+    }
+
+    .ta {
+      width: 100%;
+      border: var(--bw2) solid var(--ink);
+      padding: 10px;
+      font: 500 12px/1.5 var(--font-sans);
+      background: var(--soft);
+      color: var(--ink);
+      resize: vertical;
+      transition: border-color .1s, background .1s;
+    }
+    
+    .ta:focus {
+      outline: 0;
+      background: var(--paper);
+    }
+
+    /* Key Box & Settings styles */
+    .key-box {
+      border: var(--bw) solid transparent;
+      padding: 8px;
+      margin-bottom: 6px;
+      transition: border-color .15s, box-shadow .15s, opacity .15s;
+      opacity: 0.45;
+    }
+    .key-box.active-key-required {
+      border: var(--bw2) solid var(--ink);
+      box-shadow: 2px 2px 0 var(--ink);
+      background: var(--paper);
+      opacity: 1;
+    }
+    .key-box.active-key-required .inp {
+      background: var(--paper);
+    }
+
+    /* ── IFRAME VIEWER OVERLAY ── */
+    #iframe-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: var(--paper);
+      flex-direction: column;
+    }
+
+    .iframe-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      border-bottom: var(--bw2) solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
       font-family: var(--font-mono);
       font-size: 10px;
-      background: var(--soft);
-      padding: 12px;
-      border-left: 3px solid var(--ink);
-      white-space: pre-wrap;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .iframe-close-btn {
+      background: var(--paper);
+      color: var(--ink);
+      border: var(--bw) solid var(--ink);
+      padding: 5px 10px;
+      font-size: 9px;
+      font-weight: 900;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .iframe-close-btn:hover {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--paper);
+    }
+
+    /* Mobile CC footer (hidden on desktop) */
+    .mobile-footer {
+      display: none;
+    }
+
+    /* ── RESPONSIVE DESIGN (MOBILE ADAPTATIONS) ── */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+        overflow-y: auto;
+        height: auto;
+      }
+      
+      #app-container {
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+      }
+
+      /* Sidebar collapses to a top control block */
+      #sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: var(--bw2) solid var(--ink);
+      }
+
+      .logo-container {
+        padding: 12px 15px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
+
+      .logo-main {
+        font-size: 24px;
+      }
+
+      .logo-sub {
+        font-size: 10px;
+      }
+
+      .nav-list {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 6px 10px;
+        border-top: var(--bw) solid var(--gray-light);
+        gap: 4px;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .menu-item {
+        padding: 8px 12px;
+        font-size: 9px;
+        display: inline-flex;
+        gap: 6px;
+      }
+
+      .sidebar-footer {
+        display: none; /* Hide desktop sidebar footer */
+      }
+
+      .mobile-footer {
+        display: block !important;
+        border-top: var(--bw) solid var(--gray-light);
+        padding-top: 15px;
+        margin-top: 30px;
+        font-family: var(--font-mono);
+        font-size: 8px;
+        color: var(--gray-medium);
+        line-height: 1.4;
+      }
+
+      .mobile-footer a {
+        color: var(--ink);
+        text-decoration: underline;
+      }
+
+      /* Main content wrapper adjusts spacing */
+      #main-window {
+        height: auto;
+        overflow: visible;
+      }
+
+      .top-control-bar {
+        padding: 12px 15px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .control-right {
+        width: 100%;
+        justify-content: space-between;
+        font-size: 8px;
+      }
+
+      .views-wrapper {
+        padding: 15px;
+      }
+
+      .page-title {
+        font-size: 32px;
+      }
+
+      /* Project matrix card stacking on mobile */
+      .matrix-row {
+        grid-template-columns: 1fr;
+        border: var(--bw2) solid var(--ink);
+        padding: 12px;
+        gap: 8px;
+        background: var(--paper);
+        box-shadow: 2px 2px 0 var(--ink);
+      }
+
+      .matrix-row-num {
+        font-size: 14px;
+        border-bottom: var(--bw) solid var(--gray-light);
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+      }
+
+      /* Grid View stacking */
+      #view-grid-view {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      .pane {
+        height: 350px;
+        margin-bottom: 15px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <div id="app-container" style="display: flex; height: 100vh; width: 100vw; overflow: hidden;">
+  <div id="app-container" style="display: flex; height: 100vh; width: 100vw; overflow: hidden; width: 100%;">
     
     <!-- LEFT SIDEBAR -->
     <div id="sidebar">
       <div class="logo-container">
         <div class="logo-main">ABC</div>
-        <div class="logo-sub">Cineosis</div>
+        <div class="logo-sub">CINEOSIS</div>
       </div>
       
       <ul class="nav-list">
@@ -724,14 +960,18 @@
       </ul>
       
       <div class="sidebar-footer">
-        <div style="border-top: 1px solid var(--gray-light); margin-bottom: 12px;"></div>
         <div class="status-title">System Status</div>
         <div class="status-indicator">
-          <div class="status-dot"></div>
+          <div class="status-dot" style="background: #1a6b3a;"></div>
           Ready
         </div>
-        <div class="status-text">No Active Project</div>
-        <div class="system-version">v1.0.0</div>
+        <div class="status-text" id="sb-active-proj-lbl">No Active Project</div>
+        <div class="cc-license-box">
+          Licensed under CC BY 4.0 International.<br>
+          Dissertation Instrumentation Framework.<br>
+          Operative Description Protocol.<br>
+          <a href="#" onclick="showToast('Privacy & Terms: Local workspace isolation. No metrics collected.')" style="color: var(--ink); text-decoration: underline;">Privacy &amp; Terms</a>
+        </div>
       </div>
     </div>
     
@@ -742,8 +982,8 @@
       <div class="top-control-bar">
         <div class="control-left">System Main Control</div>
         <div class="control-right">
-          <div class="control-action" onclick="showToast('Search panel offline in local workspace.')">
-            Search 
+          <div class="control-action" onclick="showToast('Workspace search indexing offline.')">
+            Search
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </div>
           <div class="control-divider">|</div>
@@ -753,7 +993,7 @@
             v
           </div>
           <div class="control-divider">|</div>
-          <div class="control-action" onclick="showToast('Active license does not support multiple cloud projects.')">
+          <div class="control-action" onclick="showToast('Active license does not support cloud hosting.')">
             New Project +
           </div>
         </div>
@@ -773,7 +1013,7 @@
             <div class="grid-title">Project Grid</div>
             <div class="group-by-selector">
               Group By
-              <select class="group-dropdown" onchange="showToast('Grouping configuration updated.')">
+              <select class="group-dropdown" onchange="showToast('Grouping update queued.')">
                 <option value="sequence">Sequence</option>
                 <option value="alphabetic">Alphabetic</option>
                 <option value="updated">Date Updated</option>
@@ -786,7 +1026,7 @@
             <!-- Row 1 -->
             <div class="matrix-row">
               <div class="matrix-row-num">1</div>
-              <a class="module-card" href="a1.html" target="_blank">
+              <div class="module-card" onclick="launchModule('a1.html')">
                 <div class="card-prefix-box">A</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -796,8 +1036,8 @@
                   <div class="card-meta">Updated 2m ago</div>
                 </div>
                 <div class="card-chevron">&gt;</div>
-              </a>
-              <a class="module-card" href="b1.html" target="_blank">
+              </div>
+              <div class="module-card" onclick="launchModule('b1.html')">
                 <div class="card-prefix-box">B</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -807,8 +1047,8 @@
                   <div class="card-meta">Updated 2m ago</div>
                 </div>
                 <div class="card-chevron">&gt;</div>
-              </a>
-              <a class="module-card" href="c1.html" target="_blank">
+              </div>
+              <div class="module-card" onclick="launchModule('c1.html')">
                 <div class="card-prefix-box">C</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -818,7 +1058,7 @@
                   <div class="card-meta">Updated 2m ago</div>
                 </div>
                 <div class="card-chevron">&gt;</div>
-              </a>
+              </div>
             </div>
             
             <!-- Row 2 -->
@@ -835,7 +1075,7 @@
                 </div>
                 <div class="card-chevron">&gt;</div>
               </div>
-              <a class="module-card" href="b2.html" target="_blank">
+              <div class="module-card" onclick="launchModule('b2.html')">
                 <div class="card-prefix-box">B</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -845,8 +1085,8 @@
                   <div class="card-meta">Updated 1h ago</div>
                 </div>
                 <div class="card-chevron">&gt;</div>
-              </a>
-              <a class="module-card" href="c2.html" target="_blank">
+              </div>
+              <div class="module-card" onclick="launchModule('c2.html')">
                 <div class="card-prefix-box">C</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -856,7 +1096,7 @@
                   <div class="card-meta">Updated 1h ago</div>
                 </div>
                 <div class="card-chevron">&gt;</div>
-              </a>
+              </div>
             </div>
 
             <!-- Row 3 -->
@@ -944,7 +1184,7 @@
                   <div class="card-title-line">
                     <span class="card-id">...</span>
                   </div>
-                  <div class="card-desc" style="color: var(--gray-light);">Dashed slot</div>
+                  <div class="card-desc" style="color: var(--gray-light);">Future Slot</div>
                 </div>
                 <div class="card-chevron" style="color: var(--gray-light);">&gt;</div>
               </div>
@@ -954,7 +1194,7 @@
                   <div class="card-title-line">
                     <span class="card-id">...</span>
                   </div>
-                  <div class="card-desc" style="color: var(--gray-light);">Dashed slot</div>
+                  <div class="card-desc" style="color: var(--gray-light);">Future Slot</div>
                 </div>
                 <div class="card-chevron" style="color: var(--gray-light);">&gt;</div>
               </div>
@@ -964,7 +1204,7 @@
                   <div class="card-title-line">
                     <span class="card-id">...</span>
                   </div>
-                  <div class="card-desc" style="color: var(--gray-light);">Dashed slot</div>
+                  <div class="card-desc" style="color: var(--gray-light);">Future Slot</div>
                 </div>
                 <div class="card-chevron" style="color: var(--gray-light);">&gt;</div>
               </div>
@@ -978,13 +1218,22 @@
               ABC CINEOSIS: A says. B computes. C appears. Meaning happens in the crossing.
             </div>
           </div>
+          
+          <!-- Mobile CC footer -->
+          <div class="mobile-footer">
+            <p>System Status: Ready</p>
+            <p id="mb-active-proj-lbl">No Active Project</p>
+            <p style="margin-top: 6px;">Licensed under CC BY 4.0 International | Operative Description Protocol</p>
+            <p>Dissertation Instrumentation Framework</p>
+            <p><a href="#" onclick="showToast('Privacy & Terms: Local workspace isolation. No metrics collected.')" style="color: var(--ink); text-decoration: underline;">Privacy Policy &amp; Terms</a></p>
+          </div>
         </div>
 
-        <!-- GRID VIEW (ORIGINAL COMPILER TOOLS) -->
+        <!-- GRID VIEW (POML SCHEMATIC) -->
         <div class="tab-view" id="view-grid-view">
           <!-- FILE LIST PANEL (SPATIAL STACK) -->
           <div class="pane">
-            <div class="pane-title">🗂️ Workspace Stack (Ground Anchored)</div>
+            <div class="pane-title">Workspace Stack (Ground Anchored)</div>
             <div class="pane-content">
               <div class="stack-wrapper">
                 <div class="file-stack" id="file-stack">
@@ -996,23 +1245,19 @@
           </div>
 
           <!-- VIEWPORT PANELS -->
-          <div class="pane">
-            <div class="pane-title">🖥️ Viewport Schematic (Click Box)</div>
-            <div class="pane-content">
-              <div class="viewport-container" id="viewport-container">
-                <div class="schematic-grid" id="schematic-grid">
-                  <!-- Rendered dynamically -->
-                </div>
-                <div class="action-container">
-                  <a class="launch-btn" id="launch-button" href="#" target="_blank">Launch Module ↗</a>
-                </div>
-              </div>
+          <div class="pane" style="display: flex; flex-direction: column;">
+            <div class="pane-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <span id="viewport-pane-title">Viewport Module (Live)</span>
+              <button class="iframe-close-btn" onclick="launchActiveModule()" style="padding: 2px 6px; font-size: 8px; border: 1px solid var(--paper); background: transparent; color: var(--paper); cursor: pointer; transition: background 0.1s, color 0.1s;">Maximize [↗]</button>
+            </div>
+            <div class="pane-content" style="padding: 0; flex: 1; overflow: hidden; display: flex;">
+              <iframe id="grid-viewport-iframe" src="about:blank" style="width: 100%; height: 100%; border: none; background: var(--paper);"></iframe>
             </div>
           </div>
 
           <!-- CODE VIEW PANELS -->
           <div class="pane">
-            <div class="pane-title">📜 POML XML Logic (Click Line)</div>
+            <div class="pane-title">POML XML Logic (Click Line)</div>
             <div class="pane-content" style="padding: 0;">
               <div class="xml-container" id="xml-editor">
                 <!-- Rendered dynamically -->
@@ -1021,49 +1266,167 @@
           </div>
         </div>
 
-        <!-- PROJECTS VIEW PLACEHOLDER -->
+        <!-- PROJECTS VIEW (Fully Functional JSON Manager) -->
         <div class="tab-view" id="view-projects">
-          <div class="placeholder-card">
-            <h2 class="placeholder-title">Projects Archive</h2>
-            <p class="placeholder-text">Manage your active script configurations and storyboard packages. This tab lists all historical and exported timelines archived on this station.</p>
-            <div class="placeholder-code">No archived projects found in the current workspace.</div>
+          <div class="dashboard-panel">
+            <h2 class="panel-header">Workspace Project Manager</h2>
+            <p class="placeholder-text">Verify, backup, restore, or wipe your active workspace state. Story metrics are synced locally across all sheet prototypes.</p>
+            
+            <div style="border: 1px solid var(--gray-light); padding: 15px; background: var(--soft); display: flex; flex-direction: column; gap: 8px;">
+              <div><strong style="font-size: 10px;">PROJECT TITLE:</strong> <span id="proj-card-title" style="font-family: var(--font-mono); font-size: 11px;">none</span></div>
+              <div><strong style="font-size: 10px;">PREMISE:</strong> <span id="proj-card-premise" style="font-size: 11px;">none</span></div>
+              <div><strong style="font-size: 10px;">SHOTS IN TIMELINE:</strong> <span id="proj-card-shots" style="font-family: var(--font-mono); font-size: 11px;">0</span></div>
+            </div>
+            
+            <div style="margin-top: 10px;">
+              <div class="lbl">Modify Workspace Details</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                <div>
+                  <div class="lbl">Project Title</div>
+                  <input class="inp" id="proj-meta-title" type="text" placeholder="Active title...">
+                </div>
+                <div>
+                  <div class="lbl">Project Premise</div>
+                  <input class="inp" id="proj-meta-premise" type="text" placeholder="Active premise/logline...">
+                </div>
+              </div>
+              <button class="launch-btn" onclick="saveProjectMeta()" style="margin-bottom: 15px;">Update Metadata</button>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="launch-btn" onclick="exportProjectData()" style="flex: 1; min-width: 150px;">Export Project (.JSON) ↗</button>
+              <button class="launch-btn" onclick="triggerImportSelection()" style="flex: 1; min-width: 150px;">Import Project (.JSON)</button>
+              <button class="launch-btn" onclick="clearProjectState()" style="flex: 1; min-width: 150px; background: var(--soft); color: var(--ink);">Wipe Project State</button>
+            </div>
+            <input type="file" id="project-file-input" style="display: none;" onchange="importProjectData(event)">
           </div>
         </div>
 
-        <!-- SCRIPT VIEW PLACEHOLDER -->
+        <!-- SCRIPT VIEW (Functional Area Desk) -->
         <div class="tab-view" id="view-script">
-          <div class="placeholder-card">
-            <h2 class="placeholder-title">Script Outline</h2>
-            <p class="placeholder-text">Open script editor files to review raw dialogue scripts and scene descriptors. Auto-saving binds changes locally in your browser.</p>
-            <div class="placeholder-code">Active Script: None. Initialize a script module (e.g. b2.html) to begin editing.</div>
+          <div class="dashboard-panel">
+            <h2 class="panel-header">Screenplay Script Editor</h2>
+            <p class="placeholder-text">Edit the primary screenplay text in real-time. Any modifications will instantly update the build targets in modules.</p>
+            
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+              <div class="lbl">Screenplay Dialogue and Narrative Actions</div>
+              <span id="script-editor-wc" style="font-family: var(--font-mono); font-size: 9px; color: var(--gray-medium);">0 words</span>
+            </div>
+            
+            <textarea class="ta" id="script-editor-area" rows="16" placeholder="No script active. Begin writing your screenplay outline here..."></textarea>
+            
+            <button class="launch-btn" onclick="saveScriptText()">Save Screenplay Changes</button>
           </div>
         </div>
 
-        <!-- PREVIEW VIEW PLACEHOLDER -->
+        <!-- PREVIEW VIEW (Storyboard Browser) -->
         <div class="tab-view" id="view-preview">
-          <div class="placeholder-card">
-            <h2 class="placeholder-title">Render Preview</h2>
-            <p class="placeholder-text">Observe dot-matrix frames and compiled video layers before compiling the final sequence packages.</p>
-            <div class="placeholder-code">Compile active shots to enable dynamic workspace preview render pipelines.</div>
+          <div class="dashboard-panel">
+            <h2 class="panel-header">Cineosis Storyboard Browser</h2>
+            <p class="placeholder-text">Review the active compiled sequences and timeline slots. Generative frames compile using BEFLIX execution logic.</p>
+            
+            <div id="storyboard-preview-container" style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Storyboard elements will render here -->
+            </div>
           </div>
         </div>
 
-        <!-- EXPORTS VIEW PLACEHOLDER -->
+        <!-- EXPORTS VIEW (Package Compiler) -->
         <div class="tab-view" id="view-exports">
-          <div class="placeholder-card">
-            <h2 class="placeholder-title">Package Exports</h2>
-            <p class="placeholder-text">Export compiled WebM sequences, frame sheets, print flipbooks, and absolute POML schema representations of your stories.</p>
-            <div class="placeholder-code">No files queued for export. Run compilation in sheets first.</div>
+          <div class="dashboard-panel">
+            <h2 class="panel-header">Package Compiler &amp; Exports</h2>
+            <p class="placeholder-text">Compile structural text outputs, edit decision lists (EDL), or raw POML manifests from the active workspace.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div>
+                <h3 class="lbl" style="font-size: 10px; margin-bottom: 8px;">Text Compilation Package</h3>
+                <p class="placeholder-text" style="margin-bottom: 10px;">Export title, loglines, script outline, and active shot descriptors into a single research manifest.</p>
+                <button class="launch-btn" onclick="downloadExport('manifest')">Download Manifest (.TXT)</button>
+              </div>
+              <div>
+                <h3 class="lbl" style="font-size: 10px; margin-bottom: 8px;">POML Version 2.0 XML Schema</h3>
+                <p class="placeholder-text" style="margin-bottom: 10px;">Generate standard POML specification markup mapping active components to schematic targets.</p>
+                <button class="launch-btn" onclick="downloadExport('poml')">Download Schema (.XML)</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- SETTINGS VIEW PLACEHOLDER -->
+        <!-- SETTINGS VIEW (Global Master AI Dashboard) -->
         <div class="tab-view" id="view-settings">
-          <div class="placeholder-card">
-            <h2 class="placeholder-title">System Settings</h2>
-            <p class="placeholder-text">Configure workspace parameters, styling overrides, API routes, and base font configurations.</p>
-            <div class="placeholder-code">Terminal Session ID: local-cineosis-session-v1.0.0
-Node Runtime: Active</div>
+          <div class="dashboard-panel">
+            <h2 class="panel-header">Master AI Configurations</h2>
+            <p class="placeholder-text">Configure global keys and active models. Stored inside your browser's isolated localStorage and accessed by sheets.</p>
+            
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; width: 100%;">
+              <!-- Controls -->
+              <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                  <div class="lbl">Active Reasoning Model</div>
+                  <select class="group-dropdown" id="global-model-select" style="width: 100%; height: 36px; padding: 0 8px; font-weight: 700; border: var(--bw2) solid var(--ink);">
+                    <optgroup label="Google Gemini">
+                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview (Max Reasoning)</option>
+                      <option value="gemini-3.5-flash">Gemini 3.5 Flash (Balanced/Fast)</option>
+                      <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                      <option value="gemini-3.1-pro-preview-customtools">Gemini 3.1 Pro (Custom Tools)</option>
+                      <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                    </optgroup>
+                    <optgroup label="Anthropic Claude">
+                      <option value="claude-opus-4-8">Claude Opus 4.8 (Max Reasoning)</option>
+                      <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Balanced/Fast)</option>
+                      <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+                    </optgroup>
+                    <optgroup label="OpenAI">
+                      <option value="gpt-5.5-pro">GPT-5.5 Pro (Max Reasoning)</option>
+                      <option value="gpt-5.5">GPT-5.5 (Balanced/Fast)</option>
+                      <option value="gpt-5.4-pro">GPT-5.4 Pro</option>
+                      <option value="gpt-5.4">GPT-5.4</option>
+                      <option value="gpt-5.4-mini">GPT-5.4 Mini</option>
+                      <option value="gpt-5.4-nano">GPT-5.4 Nano</option>
+                      <option value="gpt-5.3-codex">GPT-5.3 Codex</option>
+                      <option value="o3-deep-research">o3 Deep Research</option>
+                      <option value="o4-mini-deep-research">o4 Mini Deep Research</option>
+                      <option value="computer-use-preview">Computer Use Preview</option>
+                    </optgroup>
+                  </select>
+                </div>
+                
+                <div class="key-box" id="global-gemini-box" style="margin-bottom: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div class="lbl" style="margin-bottom: 0;">Gemini API Key</div>
+                    <span class="key-status" id="global-status-gemini" style="font-size: 8px; font-weight: 900; text-transform: uppercase; font-family: var(--font-mono);"></span>
+                  </div>
+                  <input class="inp" id="global-api-gemini" type="password" placeholder="AIzaSy...">
+                </div>
+
+                <div class="key-box" id="global-claude-box" style="margin-bottom: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div class="lbl" style="margin-bottom: 0;">Claude API Key</div>
+                    <span class="key-status" id="global-status-claude" style="font-size: 8px; font-weight: 900; text-transform: uppercase; font-family: var(--font-mono);"></span>
+                  </div>
+                  <input class="inp" id="global-api-claude" type="password" placeholder="sk-ant-...">
+                </div>
+
+                <div class="key-box" id="global-openai-box" style="margin-bottom: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div class="lbl" style="margin-bottom: 0;">OpenAI API Key</div>
+                    <span class="key-status" id="global-status-openai" style="font-size: 8px; font-weight: 900; text-transform: uppercase; font-family: var(--font-mono);"></span>
+                  </div>
+                  <input class="inp" id="global-api-openai" type="password" placeholder="sk-proj-...">
+                </div>
+              </div>
+              
+              <!-- Info Card -->
+              <div style="display: flex; flex-direction: column; gap: 15px; height: 100%;">
+                <div class="lbl">Model Details</div>
+                <div id="global-model-info-card" style="border: var(--bw2) solid var(--ink); padding: 12px; font-size: 10px; line-height: 1.5; background: var(--paper); flex-grow: 1; min-height: 180px;"></div>
+                
+                <button class="launch-btn" id="btn-save-settings" onclick="saveGlobalSettings()" style="width: 100%;">Save Configurations</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1071,7 +1434,44 @@ Node Runtime: Active</div>
     </div>
   </div>
 
+  <!-- ── FULL VIEWPORT IFRAME OVERLAY ── -->
+  <div id="iframe-overlay">
+    <div class="iframe-header">
+      <span id="iframe-title-lbl">Active Viewport Module</span>
+      <button class="iframe-close-btn" onclick="closeModule()">Close View [X]</button>
+    </div>
+    <iframe id="viewport-iframe" src="about:blank" style="flex-grow: 1; border: none; width: 100%; height: 100%;"></iframe>
+  </div>
+
   <script>
+    // State keys
+    const SK = 'causality-v8';
+    
+    // Global models metadata
+    const MODEL_DETAILS = {
+      'gpt-5.5-pro': { provider: 'openai', tier: 'max', name: 'OpenAI gpt-5.5-pro', desc: 'Highest-intelligence OpenAI API option.', price: '$30.00 / $180.00', context: '1M / 128K' },
+      'gpt-5.5': { provider: 'openai', tier: 'balanced', name: 'OpenAI gpt-5.5', desc: 'Default flagship reasoning/coding.', price: '$5.00 / $30.00', context: '1M / 128K' },
+      'gpt-5.4-pro': { provider: 'openai', tier: 'max', name: 'OpenAI gpt-5.4-pro', desc: 'Pro 5.4-family option.', price: '$30.00 / $180.00', context: '1M / 128K' },
+      'gpt-5.4': { provider: 'openai', tier: 'balanced', name: 'OpenAI gpt-5.4', desc: 'Cheaper strong reasoning.', price: '$2.50 / $15.00', context: '1M / 128K' },
+      'gpt-5.4-mini': { provider: 'openai', tier: 'lite', name: 'OpenAI gpt-5.4-mini', desc: 'Low-cost, lower-latency reasoning.', price: '$0.75 / $4.50', context: '400K / 128K' },
+      'gpt-5.4-nano': { provider: 'openai', tier: 'lite', name: 'OpenAI gpt-5.4-nano', desc: 'Cheapest high-volume reasoning.', price: '$0.20 / $1.25', context: '400K / 128K' },
+      'gpt-5.3-codex': { provider: 'openai', tier: 'balanced', name: 'OpenAI gpt-5.3-codex', desc: 'Codex/coding specialist model.', price: '$1.75 / $14.00', context: '128K' },
+      'o3-deep-research': { provider: 'openai', tier: 'max', name: 'OpenAI o3-deep-research', desc: 'Batch-only deep research model.', price: '$5.00 / $20.00', context: '200K' },
+      'o4-mini-deep-research': { provider: 'openai', tier: 'lite', name: 'OpenAI o4-mini-deep-research', desc: 'Batch-only mini deep research.', price: '$1.00 / $4.00', context: '200K' },
+      'computer-use-preview': { provider: 'openai', tier: 'balanced', name: 'OpenAI computer-use-preview', desc: 'Agentic computer use preview.', price: '$1.50 / $6.00', context: '128K' },
+      'claude-opus-4-8': { provider: 'claude', tier: 'max', name: 'Claude Opus 4.8', desc: 'Most capable complex-reasoning / agentic-coding model.', price: '$5.00 / $25.00', context: '1M / 128K' },
+      'claude-sonnet-4-6': { provider: 'claude', tier: 'balanced', name: 'Claude Sonnet 4.6', desc: 'Best default speed/intelligence balance.', price: '$3.00 / $15.00', context: '1M / 64K' },
+      'claude-haiku-4-5': { provider: 'claude', tier: 'lite', name: 'Claude Haiku 4.5', desc: 'Fastest near-frontier reasoning model.', price: '$1.00 / $5.00', context: '200K / 64K' },
+      'gemini-3.1-pro-preview': { provider: 'gemini', tier: 'max', name: 'Gemini 3.1 Pro Preview', desc: 'Advanced intelligence for complex reasoning/agentic coding.', price: '$2.00 / $12.00', context: '1.04M / 65K' },
+      'gemini-3.1-pro-preview-customtools': { provider: 'gemini', tier: 'max', name: 'Gemini 3.1 Pro (Custom Tools)', desc: 'Gemini 3.1 Pro custom-tools endpoint.', price: '$2.00 / $12.00', context: '1.04M / 65K' },
+      'gemini-3.5-flash': { provider: 'gemini', tier: 'balanced', name: 'Gemini 3.5 Flash', desc: 'Stable high-performance agentic/coding model.', price: '$1.50 / $9.00', context: '1.04M / 65K' },
+      'gemini-3-flash-preview': { provider: 'gemini', tier: 'balanced', name: 'Gemini 3 Flash Preview', desc: 'Preview, frontier-class speed/cost model.', price: '$0.50 / $3.00', context: '1.04M / 65K' },
+      'gemini-3.1-flash-lite': { provider: 'gemini', tier: 'lite', name: 'Gemini 3.1 Flash Lite', desc: 'Stable low-cost Gemini 3.1 model.', price: '$0.25 / $1.50', context: '1.04M / 65K' },
+      'gemini-2.5-pro': { provider: 'gemini', tier: 'max', name: 'Gemini 2.5 Pro', desc: 'Older complex-reasoning/coding model.', price: '$1.25 / $10.00', context: '1M' },
+      'gemini-2.5-flash': { provider: 'gemini', tier: 'balanced', name: 'Gemini 2.5 Flash', desc: 'Hybrid reasoning and price-performance model.', price: '$0.30 / $2.50', context: '1M' },
+      'gemini-2.5-flash-lite': { provider: 'gemini', tier: 'lite', name: 'Gemini 2.5 Flash Lite', desc: 'Cheapest Gemini 2.5 family model.', price: '$0.10 / $0.40', context: '1M' }
+    };
+
     const modules = [
       {
         id: "a1",
@@ -1119,18 +1519,18 @@ Node Runtime: Active</div>
         path: "b2.html",
         description: "Build sheet with automated SCRIPT auto-saving and interactive Causal Chain status tooltips.",
         viewport: [
-          { type: "row", name: "KEY TRIGGER", target: "key-trigger" },
+          { type: "row", name: "KEY TRIGGER", target: "key-btn" },
           { type: "cols", boxes: [
-            { name: "SCRIPT INPUT", target: "script-textarea" },
-            { name: "AUTO-SAVE ENGINE", target: "persistence-engine" }
+            { name: "SCRIPT INPUT", target: "script-el" },
+            { name: "AUTO-SAVE ENGINE", target: "btn-save-proj" }
           ]},
-          { type: "row", name: "STATUS RAIL", target: "status-rail" }
+          { type: "row", name: "STATUS RAIL", target: "status-bar" }
         ],
         script: [
-          { id: "script-textarea", action: "Monitors text changes on script input and triggers auto-save" },
-          { id: "status-rail", action: "Updates script word counts and pips in status rails" },
-          { id: "persistence-engine", action: "Saves data automatically on every keystroke to local storage" },
-          { id: "key-trigger", action: "Key button opens status bar configuration modal" }
+          { id: "script-el", action: "Monitors text changes on script input and triggers auto-save" },
+          { id: "status-bar", action: "Updates script word counts and pips in status rails" },
+          { id: "btn-save-proj", action: "Saves data automatically on every keystroke to local storage" },
+          { id: "key-btn", action: "Key button opens status bar configuration modal" }
         ]
       },
       {
@@ -1160,35 +1560,35 @@ Node Runtime: Active</div>
         description: "Fully fortified interface featuring the live Attention-Tax Semiotic Triad Analyzer.",
         viewport: [
           { type: "cols", boxes: [
-            { name: "PREMISE", target: "descriptive-world" },
-            { name: "IMPLICATURE DEBT", target: "interpretive-significance" }
+            { name: "PREMISE", target: "sem-descriptive" },
+            { name: "IMPLICATURE DEBT", target: "sem-interpretive" }
           ]},
-          { type: "row", name: "SEMIOTICS TAB", target: "operative-action" },
-          { type: "row", name: "REALIGN BUTTON", target: "realign-horizons" }
+          { type: "row", name: "SEMIOTICS TAB", target: "sem-operative" },
+          { type: "row", name: "REALIGN BUTTON", target: "btn-realign-semiotics" }
         ],
         script: [
-          { id: "descriptive-world", action: "Maps the narrative world register: monitors active premise/title" },
-          { id: "interpretive-significance", action: "Evaluates token pressure (KV-cache) and implicature debt" },
-          { id: "operative-action", action: "Triggers BEFLIX rendering pipelines on the frames" },
-          { id: "realign-horizons", action: "AI evaluates narrative alignment via the Chat panel" }
+          { id: "sem-descriptive", action: "Maps the narrative world register: monitors active premise/title" },
+          { id: "sem-interpretive", action: "Evaluates token pressure (KV-cache) and implicature debt" },
+          { id: "sem-operative", action: "Triggers BEFLIX rendering pipelines on the frames" },
+          { id: "btn-realign-semiotics", action: "AI evaluates narrative alignment via the Chat panel" }
         ]
       }
     ];
 
     let currentModuleId = "c2";
+    let activeStory = { title: "", premise: "", script: "", shots: [] };
 
-    // Tab switching routing logic
+    // DOM Getter helper
+    function get(id) { return document.getElementById(id); }
+
+    // Tab routing logic
     function showTab(tabId) {
-      document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.remove('active');
-      });
-      const activeItem = document.getElementById('menu-' + tabId);
+      document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+      const activeItem = get('menu-' + tabId);
       if (activeItem) activeItem.classList.add('active');
 
-      document.querySelectorAll('.tab-view').forEach(view => {
-        view.style.display = 'none';
-      });
-      const activeView = document.getElementById('view-' + tabId);
+      document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
+      const activeView = get('view-' + tabId);
       if (activeView) {
         if (tabId === 'grid-view') {
           activeView.style.display = 'grid';
@@ -1196,93 +1596,510 @@ Node Runtime: Active</div>
           activeView.style.display = 'flex';
         }
       }
+
+      // Hook view loading refreshes
+      if (tabId === 'projects') loadProjectsTab();
+      if (tabId === 'script') loadScriptTab();
+      if (tabId === 'preview') loadPreviewTab();
+      if (tabId === 'settings') loadSettingsTab();
     }
+
+    // ── IFRAME VIEWER OVERLAY LOGIC ──
+    function launchModule(path) {
+      const overlay = get('iframe-overlay');
+      const iframe = get('viewport-iframe');
+      const label = get('iframe-title-lbl');
+      if (!overlay || !iframe) return;
+
+      label.textContent = `Interactive Viewport Module: ${path}`;
+      iframe.src = path;
+      overlay.style.display = 'flex';
+    }
+
+    function closeModule() {
+      const overlay = get('iframe-overlay');
+      const iframe = get('viewport-iframe');
+      if (!overlay || !iframe) return;
+
+      iframe.src = 'about:blank';
+      overlay.style.display = 'none';
+      
+      // Reload active project variables from storage on close to sync updates
+      loadProjectFromStorage();
+    }
+
+    function launchActiveModule() {
+      const mod = modules.find(m => m.id === currentModuleId);
+      if (mod) {
+        launchModule(mod.path);
+      }
+    }
+
+    // ── POML SCHEMATIC LOGIC ──
+    const SELECTOR_MAP = {
+      'status-monitor': '#status-bar, .status-bar, .sb-bar',
+      'premise-input': '#proj-title, #proj-idea, .premise-input',
+      'prompt-generator': '#wel-set-key, #chat-input, .chat-area, #wel-view-help, #chat-form',
+      'storyboard-canvas': '#cz, #canvas-wrap, .canvas-wrap, .storyboard, #storyboard-canvas',
+      'api-config': '#api-modal, .modal, .key-box, #api-save',
+      'model-select': '#model-btn, #active-model-btn, select',
+      'chat-stream': '#chat-log, .chat-log, .chat-history',
+      'error-fallback': '.error-overlay, #err-msg',
+      'key-trigger': '#key-btn, #wel-set-key',
+      'script-textarea': '#script-el, .script-area',
+      'status-rail': '#status-bar, .status-bar, .sb-bar',
+      'persistence-engine': '#btn-save-proj, #tab-d, #snav-d, #btn-save',
+      'tool-palette': '.tool-btn, .palette, #tool-select',
+      'stamp-tool': '#btn-stamp, .stamp-tool, #t-text',
+      'canvas-grid': '#cz, #canvas-wrap, .canvas-wrap',
+      'timeline-frames': '.timeline, .timeline-frames, #tl-scroll',
+      'descriptive-world': '.descriptive, #sem-descriptive',
+      'interpretive-significance': '.interpretive, #sem-interpretive',
+      'operative-action': '.operative, #sem-operative',
+      'realign-horizons': '#btn-realign-semiotics',
+      
+      // Exact element IDs mapping fallback
+      'key-btn': '#key-btn',
+      'script-el': '#script-el',
+      'btn-save-proj': '#btn-save-proj',
+      'status-bar': '.status-bar, #status-bar',
+      'sem-descriptive': '#sem-descriptive, .descriptive',
+      'sem-interpretive': '#sem-interpretive, .interpretive',
+      'sem-operative': '#sem-operative, .operative',
+      'btn-realign-semiotics': '#btn-realign-semiotics'
+    };
 
     function selectModule(id) {
       currentModuleId = id;
-      
       document.querySelectorAll('.file-card').forEach(card => card.classList.remove('active'));
-      const activeCard = document.getElementById(`card-${id}`);
+      const activeCard = get(`card-${id}`);
       if (activeCard) activeCard.classList.add('active');
 
       const mod = modules.find(m => m.id === id);
       if (!mod) return;
 
-      const btn = document.getElementById('launch-button');
-      btn.href = mod.path;
-      btn.textContent = `Launch ${mod.name} ↗`;
-
-      const grid = document.getElementById('schematic-grid');
-      grid.innerHTML = '';
-      mod.viewport.forEach(item => {
-        if (item.type === "row") {
-          const rowEl = document.createElement('div');
-          rowEl.className = 'schematic-row';
-          rowEl.innerHTML = `<div class="schematic-box" id="box-${item.target}" onclick="highlightBinding('${item.target}')">${item.name}</div>`;
-          grid.appendChild(rowEl);
-        } else if (item.type === "cols") {
-          const colsEl = document.createElement('div');
-          colsEl.className = 'schematic-cols-2';
-          colsEl.innerHTML = item.boxes.map(box => `
-            <div class="schematic-box" id="box-${box.target}" onclick="highlightBinding('${box.target}')">${box.name}</div>
-          `).join('');
-          grid.appendChild(colsEl);
+      const iframe = get('grid-viewport-iframe');
+      if (iframe) {
+        const targetSrc = mod.path;
+        if (!iframe.src.endsWith(targetSrc)) {
+          iframe.src = targetSrc;
         }
-      });
+      }
 
-      const xml = document.getElementById('xml-editor');
-      xml.innerHTML = `
-        <div style="padding: 10px; border-bottom: 2px solid var(--ink); font-weight: 900; font-size: 12px; background-color: var(--ink); color: var(--paper);">
-          &lt;poml version="2.0"&gt;
-        </div>
-      `;
-      mod.script.forEach((line, index) => {
-        const stepNum = index + 1;
-        const lineEl = document.createElement('div');
-        lineEl.className = 'xml-line';
-        lineEl.id = `line-${line.id}`;
-        lineEl.onclick = () => highlightBinding(line.id);
-        
-        lineEl.innerHTML = `&lt;<span class="tag-blue">execution</span> <span class="attr-name">step</span>="${stepNum}" <span class="attr-name">target</span>="${line.id}"&gt;\n  ${line.action}\n&lt;/<span class="tag-blue">execution</span>&gt;`;
-        xml.appendChild(lineEl);
-      });
-      xml.innerHTML += `
-        <div style="padding: 10px; font-weight: 900; font-size: 12px; background-color: var(--ink); color: var(--paper);">
-          &lt;/poml&gt;
-        </div>
-      `;
+      const paneTitle = get('viewport-pane-title');
+      if (paneTitle) {
+        paneTitle.textContent = `Viewport Module: ${mod.name} (Live)`;
+      }
+
+      const xml = get('xml-editor');
+      if (xml) {
+        xml.innerHTML = `
+          <div style="padding: 10px; border-bottom: var(--bw2) solid var(--ink); font-weight: 900; font-size: 10px; background-color: var(--ink); color: var(--paper); font-family: var(--font-mono);">
+            &lt;poml version="2.0"&gt;
+          </div>
+        `;
+        mod.script.forEach((line, index) => {
+          const stepNum = index + 1;
+          const lineEl = document.createElement('div');
+          lineEl.className = 'xml-line';
+          lineEl.id = `line-${line.id}`;
+          lineEl.onclick = () => highlightIframeElement(line.id);
+          
+          lineEl.innerHTML = `&lt;<span class="tag-blue">execution</span> <span class="attr-name">step</span>="${stepNum}" <span class="attr-name">target</span>="${line.id}"&gt;\n  ${line.action}\n&lt;/<span class="tag-blue">execution</span>&gt;`;
+          xml.appendChild(lineEl);
+        });
+        xml.innerHTML += `
+          <div style="padding: 10px; font-weight: 900; font-size: 10px; background-color: var(--ink); color: var(--paper); font-family: var(--font-mono);">
+            &lt;/poml&gt;
+          </div>
+        `;
+      }
     }
 
-    function highlightBinding(targetId) {
-      document.querySelectorAll('.schematic-box').forEach(box => box.classList.remove('highlight'));
+    function highlightIframeElement(targetId) {
       document.querySelectorAll('.xml-line').forEach(line => line.classList.remove('highlight'));
-
-      const boxEl = document.getElementById(`box-${targetId}`);
-      if (boxEl) boxEl.classList.add('highlight');
-
-      const lineEl = document.getElementById(`line-${targetId}`);
+      const lineEl = get(`line-${targetId}`);
       if (lineEl) {
         lineEl.classList.add('highlight');
         lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
+
+      const iframe = get('grid-viewport-iframe');
+      if (iframe && iframe.contentDocument) {
+        try {
+          // Clear previous highlights
+          const doc = iframe.contentDocument;
+          const prev = doc.querySelectorAll('.iframe-highlight');
+          prev.forEach(el => {
+            el.style.outline = el.dataset.prevOutline || '';
+            el.classList.remove('iframe-highlight');
+          });
+
+          // Resolve selector
+          const selector = SELECTOR_MAP[targetId] || `#${targetId}`;
+          const targetEl = doc.querySelector(selector);
+          
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            targetEl.dataset.prevOutline = targetEl.style.outline || '';
+            targetEl.style.outline = '3px double #000000';
+            targetEl.classList.add('iframe-highlight');
+            setTimeout(() => {
+              if (targetEl.classList.contains('iframe-highlight')) {
+                targetEl.style.outline = targetEl.dataset.prevOutline || '';
+                targetEl.classList.remove('iframe-highlight');
+              }
+            }, 2500);
+          }
+        } catch (e) {
+          console.warn("Could not highlight element inside iframe:", e);
+        }
+      }
     }
 
     function renderStack() {
-      const stack = document.getElementById('file-stack');
-      stack.innerHTML = modules.map(m => `
-        <div class="file-card" id="card-${m.id}" onclick="selectModule('${m.id}')">
-          <h2>${m.name}</h2>
-          <p>${m.description}</p>
-        </div>
-      `).join('');
+      const stack = get('file-stack');
+      if (stack) {
+        stack.innerHTML = modules.map(m => `
+          <div class="file-card" id="card-${m.id}" onclick="selectModule('${m.id}')">
+            <h2>${m.name}</h2>
+            <p>${m.description}</p>
+          </div>
+        `).join('');
+      }
     }
 
-    // Dynamic offline module warning toasts
+    // ── WORKSPACE STATE STORAGE MANAGER ──
+    function loadProjectFromStorage() {
+      try {
+        const stored = localStorage.getItem(SK);
+        if (stored) {
+          activeStory = JSON.parse(stored);
+        } else {
+          activeStory = { title: "Untitled Film", premise: "A says. B computes. C appears.", script: "", shots: [] };
+        }
+      } catch(e) {
+        activeStory = { title: "Untitled Film", premise: "A says. B computes. C appears.", script: "", shots: [] };
+      }
+      
+      // Update label indicators
+      const activeProjName = activeStory.title || "Untitled Film";
+      const lblDesktop = get('sb-active-proj-lbl');
+      const lblMobile = get('mb-active-proj-lbl');
+      if (lblDesktop) lblDesktop.textContent = activeProjName;
+      if (lblMobile) lblMobile.textContent = `Active Project: ${activeProjName}`;
+    }
+
+    function saveProjectToStorage() {
+      localStorage.setItem(SK, JSON.stringify(activeStory));
+      loadProjectFromStorage();
+    }
+
+    // PROJECTS tab
+    function loadProjectsTab() {
+      loadProjectFromStorage();
+      const txtTitle = get('proj-meta-title');
+      const txtPremise = get('proj-meta-premise');
+      if (txtTitle) txtTitle.value = activeStory.title || "";
+      if (txtPremise) txtPremise.value = activeStory.premise || "";
+
+      const lblCardTitle = get('proj-card-title');
+      const lblCardPremise = get('proj-card-premise');
+      const lblCardShots = get('proj-card-shots');
+
+      if (lblCardTitle) lblCardTitle.textContent = activeStory.title || "Untitled Film";
+      if (lblCardPremise) lblCardPremise.textContent = activeStory.premise || "none";
+      if (lblCardShots) lblCardShots.textContent = (activeStory.shots || []).length;
+    }
+
+    function saveProjectMeta() {
+      const txtTitle = get('proj-meta-title');
+      const txtPremise = get('proj-meta-premise');
+      if (txtTitle && txtPremise) {
+        activeStory.title = txtTitle.value.trim() || "Untitled Film";
+        activeStory.premise = txtPremise.value.trim() || "";
+        saveProjectToStorage();
+        loadProjectsTab();
+        showToast("Project metadata updated successfully.");
+      }
+    }
+
+    function clearProjectState() {
+      if (confirm("Are you sure you want to wipe the active project state? This deletes localStorage data.")) {
+        localStorage.removeItem(SK);
+        loadProjectFromStorage();
+        loadProjectsTab();
+        showToast("Project state wiped clean.");
+      }
+    }
+
+    function exportProjectData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeStory));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${activeStory.title || 'film'}-workspace.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Workspace exported successfully.");
+    }
+
+    function triggerImportSelection() {
+      const input = get('project-file-input');
+      if (input) input.click();
+    }
+
+    function importProjectData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && typeof parsed === 'object') {
+            activeStory = parsed;
+            saveProjectToStorage();
+            loadProjectsTab();
+            showToast("Workspace imported successfully.");
+          } else {
+            showToast("Error: Invalid JSON project schema.");
+          }
+        } catch(err) {
+          showToast("Error: File read failure.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // SCRIPT tab
+    function loadScriptTab() {
+      loadProjectFromStorage();
+      const ta = get('script-editor-area');
+      if (ta) {
+        ta.value = activeStory.script || "";
+        updateScriptWordCount(ta.value);
+      }
+    }
+
+    function saveScriptText() {
+      const ta = get('script-editor-area');
+      if (ta) {
+        activeStory.script = ta.value;
+        saveProjectToStorage();
+        showToast("Screenplay saved successfully.");
+      }
+    }
+
+    function updateScriptWordCount(text) {
+      const lbl = get('script-editor-wc');
+      if (!lbl) return;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      lbl.textContent = `${words} words`;
+    }
+
+    // PREVIEW tab
+    function loadPreviewTab() {
+      loadProjectFromStorage();
+      const container = get('storyboard-preview-container');
+      if (!container) return;
+
+      const shots = activeStory.shots || [];
+      if (!shots.length) {
+        container.innerHTML = `
+          <div style="border: var(--bw2) solid var(--ink); padding: 30px; background: var(--soft); text-align: center; font-family: var(--font-mono); font-size: 11px;">
+            NO SHOTS IN TIMELINE
+            <p style="font-size: 9px; color: var(--gray-medium); margin-top: 6px;">Open a process sheet module (like b2.html or c2.html) to write script, break into shots, and compile sequence targets.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = shots.map((shot, index) => {
+        const stepNum = index + 1;
+        const bfxCode = shot.beflix ? shot.beflix.trim() : '';
+        const bfxLines = bfxCode ? bfxCode.split('\n').slice(0, 5).join('\n') : '';
+        const lineCount = bfxCode ? bfxCode.split('\n').length : 0;
+        
+        return `
+          <div style="border: var(--bw2) solid var(--ink); padding: 15px; background: var(--paper); display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; box-shadow: 4px 4px 0 var(--ink); margin-bottom: 15px;">
+            <!-- Left side: metadata & description -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-family: var(--font-mono); font-size: 9px; font-weight: 900; background: var(--ink); color: var(--paper); padding: 3px 8px; text-transform: uppercase;">Shot ${String(stepNum).padStart(2, '0')}</span>
+                <span style="font-family: var(--font-mono); font-size: 8px; font-weight: 700; text-transform: uppercase; color: var(--gray-medium);">${shot.type || 'SHOT'}</span>
+                <span style="font-size: 8px; font-weight: 900; color: ${shot.rendered ? 'var(--ink)' : 'var(--gray-medium)'}; text-transform: uppercase;">
+                  ${shot.rendered ? '✓ Rendered' : '○ Pending'}
+                </span>
+              </div>
+              <div style="font-family: var(--font-sans); font-size: 12px; font-weight: 900; text-transform: uppercase; margin-top: 4px;">${shot.title || 'Untitled Action Beat'}</div>
+              <div style="font-family: var(--font-sans); font-size: 10px; color: var(--gray-dark); line-height: 1.4; margin-top: 2px;">${shot.desc || 'No descriptor details.'}</div>
+              ${shot.bfxHint ? `<div style="font-family: var(--font-mono); font-size: 8px; color: var(--gray-medium); margin-top: 4px;">Hint: ${shot.bfxHint}</div>` : ''}
+            </div>
+            <!-- Right side: BEFLIX micro-console -->
+            <div style="border: var(--bw2) solid var(--ink); background: var(--soft); padding: 10px; font-family: var(--font-mono); font-size: 8px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; min-height: 100px;">
+              <div>
+                <div style="font-weight: 900; color: var(--ink); border-bottom: var(--bw) solid var(--ink); padding-bottom: 4px; margin-bottom: 6px; text-transform: uppercase; font-size: 8px;">BEFLIX Logic Assembly</div>
+                <pre style="margin: 0; white-space: pre-wrap; font-size: 8px; line-height: 1.3; max-height: 80px; overflow: hidden; color: var(--ink); font-family: var(--font-mono);">${bfxCode ? bfxLines : 'NO ASSEMBLY CODE GENERATED\nUse the chat models inside c2.html to compile scripts into motion commands.'}</pre>
+              </div>
+              <div style="font-size: 8px; color: var(--gray-medium); border-top: var(--bw) solid var(--gray-light); padding-top: 4px; text-align: right; text-transform: uppercase; font-weight: 700; margin-top: 6px;">
+                ${bfxCode ? `${lineCount} instructions` : '0 instructions'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // EXPORTS tab
+    function downloadExport(type) {
+      loadProjectFromStorage();
+      let filename = "";
+      let content = "";
+
+      if (type === 'manifest') {
+        filename = `${activeStory.title || 'film'}-manifest.txt`;
+        content = `ABC CINEOSIS MANIFEST PACKAGE\n\n` +
+                  `Title: ${activeStory.title || 'Untitled'}\n` +
+                  `Premise: ${activeStory.premise || 'none'}\n\n` +
+                  `Script:\n${activeStory.script || 'none'}\n\n` +
+                  `Shots parsed: ${(activeStory.shots || []).length}\n`;
+        (activeStory.shots || []).forEach((s, i) => {
+          content += `\n[Shot ${i+1}] Type: ${s.type} | Title: ${s.title}\nDescription: ${s.desc}\n`;
+        });
+      } else if (type === 'poml') {
+        filename = `${activeStory.title || 'film'}-schema.xml`;
+        content = `<poml version="2.0">\n  <meta>\n    <title>${activeStory.title || 'Untitled'}</title>\n    <intent>${activeStory.premise || 'none'}</intent>\n  </meta>\n  <sequence>\n`;
+        (activeStory.shots || []).forEach((s, i) => {
+          content += `    <execution step="${i+1}" target="shot-${i+1}">\n      <type>${s.type}</type>\n      <desc>${s.desc}</desc>\n    </execution>\n`;
+        });
+        content += `  </sequence>\n</poml>`;
+      }
+
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.href = URL.createObjectURL(blob);
+      downloadAnchor.download = filename;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast(`${type.toUpperCase()} package generated and downloaded.`);
+    }
+
+    // SETTINGS tab
+    function loadSettingsTab() {
+      const activeModel = localStorage.getItem('cau_active_model') || 'claude-sonnet-4-6';
+      const geminiKey = localStorage.getItem('cau_gemini_key') || '';
+      const claudeKey = localStorage.getItem('cau_claude_key') || '';
+      const openaiKey = localStorage.getItem('cau_openai_key') || '';
+
+      const selModel = get('global-model-select');
+      const inGemini = get('global-api-gemini');
+      const inClaude = get('global-api-claude');
+      const inOpenai = get('global-api-openai');
+
+      if (selModel) selModel.value = activeModel;
+      if (inGemini) inGemini.value = geminiKey;
+      if (inClaude) inClaude.value = claudeKey;
+      if (inOpenai) inOpenai.value = openaiKey;
+
+      updateGlobalModelCard();
+      updateGlobalKeyStatus();
+    }
+
+    function updateGlobalKeyStatus() {
+      ['gemini', 'claude', 'openai'].forEach(p => {
+        const input = get('global-api-' + p);
+        const statusEl = get('global-status-' + p);
+        if (input && statusEl) {
+          if (input.value.trim()) {
+            statusEl.innerHTML = `<span style="color: #1a6b3a;">✓ Saved</span>`;
+          } else {
+            statusEl.innerHTML = `<span style="color: #e60000;">✗ Not Set</span>`;
+          }
+        }
+      });
+    }
+
+    function updateGlobalModelCard() {
+      const modelSelect = get('global-model-select');
+      const infoCard = get('global-model-info-card');
+      if (!modelSelect || !infoCard) return;
+      const modelId = modelSelect.value;
+      const detail = MODEL_DETAILS[modelId];
+      if (detail) {
+        let colorVar = 'var(--ink)';
+        let tierBadge = '';
+        
+        if (detail.provider === 'gemini') colorVar = 'var(--a)';
+        else if (detail.provider === 'claude') colorVar = 'var(--b)';
+        else if (detail.provider === 'openai') colorVar = 'var(--g)';
+        
+        if (detail.tier === 'max') {
+          tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: #e60000; color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">MAX REASONING</span>`;
+        } else if (detail.tier === 'balanced') {
+          tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: #c8a800; color: var(--ink); font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">BALANCED</span>`;
+        } else if (detail.tier === 'lite') {
+          tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: #1a6b3a; color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">SPEED/COST</span>`;
+        }
+        
+        infoCard.style.borderLeft = `4px solid ${colorVar}`;
+        infoCard.style.paddingLeft = '8px';
+        
+        infoCard.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-family: var(--font-mono);">
+            <span style="font-weight:900; text-transform:uppercase; font-size:10px;">${detail.name}</span>
+            ${tierBadge}
+          </div>
+          <div style="margin-bottom:6px; font-weight:500; font-size:9px; color:#666;">${detail.desc}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:8px; border-top: 1px solid var(--ink); padding-top: 4px; font-family: var(--font-mono);">
+            <div><strong>PRICE PER 1M (IN/OUT):</strong><br>${detail.price}</div>
+            <div><strong>CONTEXT / MAX OUTPUT:</strong><br>${detail.context}</div>
+          </div>
+        `;
+        
+        get('global-gemini-box')?.classList.remove('active-key-required');
+        get('global-claude-box')?.classList.remove('active-key-required');
+        get('global-openai-box')?.classList.remove('active-key-required');
+
+        if (detail.provider === 'gemini') {
+          get('global-gemini-box')?.classList.add('active-key-required');
+        } else if (detail.provider === 'claude') {
+          get('global-claude-box')?.classList.add('active-key-required');
+        } else if (detail.provider === 'openai') {
+          get('global-openai-box')?.classList.add('active-key-required');
+        }
+      }
+    }
+
+    function saveGlobalSettings() {
+      const selModel = get('global-model-select');
+      const inGemini = get('global-api-gemini');
+      const inClaude = get('global-api-claude');
+      const inOpenai = get('global-api-openai');
+
+      if (selModel && inGemini && inClaude && inOpenai) {
+        const m = selModel.value;
+        const g = inGemini.value.trim();
+        const c = inClaude.value.trim();
+        const o = inOpenai.value.trim();
+
+        localStorage.setItem('cau_active_model', m);
+        localStorage.setItem('cau_gemini_key', g);
+        localStorage.setItem('cau_claude_key', c);
+        localStorage.setItem('cau_openai_key', o);
+
+        updateGlobalKeyStatus();
+        showToast("API system configurations updated globally.");
+      }
+    }
+
     function triggerOfflineModule(modId) {
       showToast(`SYSTEM NOTICE: Module [${modId}] is offline in this installation.`);
     }
 
-    // Custom monochrome toast warnings
+    // Dynamic warning toast
     function showToast(message) {
       const existing = document.querySelector('.custom-toast');
       if (existing) existing.remove();
@@ -1308,12 +2125,34 @@ Node Runtime: Active</div>
         toast.style.opacity = '0';
         toast.style.transition = 'opacity 0.3s ease';
         setTimeout(() => toast.remove(), 300);
-      }, 2800);
+      }, 2500);
     }
 
-    // Initialize
-    renderStack();
-    selectModule("c2");
+    // Initialize listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      loadProjectFromStorage();
+      renderStack();
+      selectModule("c2");
+
+      const ta = get('script-editor-area');
+      if (ta) {
+        ta.addEventListener('input', (e) => {
+          updateScriptWordCount(e.target.value);
+        });
+      }
+
+      const globalModel = get('global-model-select');
+      if (globalModel) {
+        globalModel.addEventListener('change', updateGlobalModelCard);
+      }
+
+      ['gemini', 'claude', 'openai'].forEach(p => {
+        const inp = get('global-api-' + p);
+        if (inp) {
+          inp.addEventListener('input', updateGlobalKeyStatus);
+        }
+      });
+    });
   </script>
 </body>
 </html>

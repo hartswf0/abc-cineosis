@@ -1533,11 +1533,11 @@ function updateModelInfoCard() {
     else if (detail.provider === 'openai') colorVar = 'var(--g)';
     
     if (detail.tier === 'max') {
-      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--c); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">🧠 MAX REASONING</span>`;
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--c); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">MAX REASONING</span>`;
     } else if (detail.tier === 'balanced') {
-      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--b); color: var(--ink); font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">⚖️ BALANCED</span>`;
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--b); color: var(--ink); font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">BALANCED</span>`;
     } else if (detail.tier === 'lite') {
-      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--g); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">⚡ SPEED/COST</span>`;
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--g); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">SPEED/COST</span>`;
     }
     
     infoCard.style.borderLeft = `4px solid ${colorVar}`;

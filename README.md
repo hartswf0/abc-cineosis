@@ -14,7 +14,7 @@ The term **ABC** (originally spelled *abece* in Middle English) literally derive
 
 ### Cineosis
 **Cineosis** is not a standard English word or traditional medical term, but rather a modern academic neologism (a newly coined word).
-* **Origin**: It was coined in 2011 by film philosopher S. Dunat in the essay *"A Deleuzian Cineosis: Cinematic Semiosis and Syntheses of Time"* (Dunat, 2011).
+* **Origin**: It was coined in 2011 by film philosopher David Deamer in the essay *"A Deleuzian Cineosis: Cinematic Semiosis and Syntheses of Time"* (Deamer, 2011).
 * **Meaning**: It is a portmanteau blending the words **cinema** (or cinematic) and **semiosis** (the process of signs and meaning-making). In the context of Gilles Deleuze's film philosophy, "cineosis" describes the underlying structure of how cinema creates signs and meaning out of movement and time.
 
 ---
@@ -176,4 +176,4 @@ The [c2.html](file:///Users/gaia/ABC-CINEOSIS/c2.html) workspace module implemen
 ---
 
 ## References
-Dunat, S. (2011). A Deleuzian Cineosis: Cinematic Semiosis and Syntheses of Time. *Deleuze Studies*, *5*(2), 226–248. [https://doi.org/10.3366/dls.2011.0026](https://doi.org/10.3366/dls.2011.0026)
+Deamer, D. (2011). A Deleuzian Cineosis: Cinematic Semiosis and Syntheses of Time. *Deleuze Studies*, *5*(3), 358–382. [https://doi.org/10.3366/dls.2011.0026](https://doi.org/10.3366/dls.2011.0026)
