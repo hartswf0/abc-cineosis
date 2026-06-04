@@ -1,0 +1,4850 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <title>CAUSALITY · GEMINI PRO</title>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+    <style>
+        :root {
+            --bg: #f4f4f0;
+            --ink: #000000;
+            --paper: #ffffff;
+            --soft: #ebebeb;
+            --a: #0033cc;
+            /* cobalt - navigation / info */
+            --b: #c8a800;
+            /* amber - build / warning */
+            --c: #e60000;
+            /* crimson - action / danger */
+            --g: #1a6b3a;
+            /* emerald - success / rendered */
+
+            --bw: 2px;
+            --bw3: 3px;
+            --sh: 4px 4px 0 #000;
+            --sh-sm: 2px 2px 0 #000;
+            --font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --tap: 48px;
+
+            --sb-h: 44px;
+            --tab-h: 54px;
+            --tl-h: 84px;
+            --safe-b: env(safe-area-inset-bottom, 0px);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 0 !important;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100dvh;
+            overflow: hidden;
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: var(--sans);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        svg {
+            stroke-width: 3px;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+        }
+
+        #sb {
+            flex: 0 0 var(--sb-h);
+            display: flex;
+            align-items: stretch;
+            background: var(--ink);
+            color: var(--paper);
+            border-bottom: 2px solid #1a1a1a;
+            z-index: 60;
+        }
+
+        .reel-svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .reel-rotor {
+            transform-origin: 11px 11px;
+        }
+
+        .reel-rotor.spinning {
+            animation: reel-spin 3s linear infinite;
+        }
+
+        @keyframes reel-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #stage-rail {
+            display: flex;
+            align-items: stretch;
+            flex: 1;
+            border-left: 1px solid #222;
+            border-right: 1px solid #222;
+        }
+
+        .stage-pip {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #444;
+            cursor: pointer;
+            border-right: 1px solid #1a1a1a;
+            transition: background .12s, color .12s;
+            position: relative;
+        }
+
+        .stage-pip:last-child {
+            border-right: 0;
+        }
+
+        .stage-pip.done {
+            color: #888;
+        }
+
+        .stage-pip.done::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #444;
+        }
+
+        .stage-pip.active {
+            background: var(--paper);
+            color: var(--ink);
+        }
+
+        .sb-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            padding: 0 8px;
+            border-right: 1px solid #222;
+            flex-shrink: 0;
+        }
+
+        .sb-lbl {
+            font: 900 6px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: #555;
+        }
+
+        .sb-val {
+            font: 900 12px/1 var(--font);
+            color: var(--paper);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .fps-wrap {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .fps-btn {
+            width: 20px;
+            height: 20px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: var(--paper);
+            font-size: 14px;
+            font-weight: 900;
+            display: grid;
+            place-items: center;
+            transition: background .08s;
+        }
+
+        .fps-btn:active {
+            background: #444;
+        }
+
+        #key-btn {
+            flex-shrink: 0;
+            align-self: stretch;
+            padding: 0 10px;
+            background: transparent;
+            border: 0;
+            border-left: 1px solid #1a1a1a;
+            color: #666;
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        #key-btn.active {
+            color: var(--b);
+        }
+
+        #play-btn {
+            flex-shrink: 0;
+            width: 72px;
+            align-self: stretch;
+            background: var(--c);
+            border: 0;
+            border-left: 2px solid #800;
+            color: var(--paper);
+            font: 900 10px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        #play-btn.playing {
+            background: #1a1a1a;
+            border-left-color: #333;
+        }
+
+        #play-btn:active {
+            filter: brightness(.8);
+        }
+
+        #cz {
+            flex: 1 1 0%;
+            position: relative;
+            overflow: hidden;
+            background: #e0deda;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #canvas-wrap {
+            position: relative;
+            z-index: 10;
+            border: 2px solid #888;
+            background: var(--paper);
+            box-shadow: 0 2px 16px rgba(0, 0, 0, .15);
+        }
+
+        #cvs {
+            image-rendering: pixelated;
+            display: block;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        #net {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .15s;
+            image-rendering: pixelated;
+            z-index: 20;
+        }
+
+        #net.on {
+            opacity: .55;
+        }
+
+        #draw-tb {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            display: none;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0, 0, 0, .92);
+            border: 1.5px solid #555;
+            padding: 5px 10px;
+        }
+
+        #draw-tb.on {
+            display: flex;
+        }
+
+        .dt-btn {
+            height: 32px;
+            min-width: 42px;
+            border: 1.5px solid #555;
+            background: transparent;
+            color: var(--paper);
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            padding: 0 8px;
+        }
+
+        .dt-btn.on {
+            background: var(--paper);
+            color: var(--ink);
+            border-color: var(--paper);
+        }
+
+        .dt-sep {
+            width: 1px;
+            height: 22px;
+            background: #444;
+            flex-shrink: 0;
+        }
+
+        .dt-swatch {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #555;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color .1s, transform .1s;
+        }
+
+        .dt-swatch.on {
+            border: 2.5px solid var(--paper);
+            transform: scale(1.18);
+        }
+
+        #grid-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 30;
+            background: rgba(0, 0, 0, .75);
+            color: var(--paper);
+            border: 1.5px solid #555;
+            font: 900 8px/1 var(--font);
+            padding: 5px 9px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        #play-ov {
+            position: absolute;
+            inset: 0;
+            z-index: 25;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .15s;
+        }
+
+        #play-ov.vis {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #play-ov-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, .78);
+            border: 3px solid rgba(255, 255, 255, .9);
+            color: var(--paper);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform .08s, background .08s;
+        }
+
+        #play-ov-btn:active {
+            transform: scale(.9);
+            background: rgba(230, 0, 0, .85);
+        }
+
+        #cam-feed {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            background: var(--ink);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        #cam-vid {
+            max-width: 100%;
+            max-height: calc(100% - 80px);
+            object-fit: contain;
+            border: 2px solid #444;
+        }
+
+        #tl {
+            flex: 0 0 var(--tl-h);
+            background: var(--bg);
+            border-top: var(--bw3) solid var(--ink);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 40;
+        }
+
+        #tlc {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-bottom: 2px solid var(--ink);
+            flex-shrink: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        #tlc::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tl-btn {
+            background: var(--paper);
+            color: var(--ink);
+            border: var(--bw) solid var(--ink);
+            padding: 4px 8px;
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            box-shadow: var(--sh-sm);
+            flex-shrink: 0;
+            min-height: 26px;
+            transition: transform .05s, box-shadow .05s;
+        }
+
+        .tl-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .tl-btn.active {
+            background: var(--a);
+            color: var(--paper);
+            border-color: var(--a);
+        }
+
+        .tl-div {
+            width: 1px;
+            height: 16px;
+            background: var(--ink);
+            flex-shrink: 0;
+        }
+
+        #tl-info {
+            margin-left: auto;
+            font: 900 7px/1 var(--font);
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            white-space: nowrap;
+        }
+
+        #tl-strip {
+            flex: 1;
+            display: flex;
+            gap: 4px;
+            padding: 5px 8px;
+            overflow-x: auto;
+            align-items: center;
+            scrollbar-width: none;
+            overscroll-behavior-x: contain;
+        }
+
+        #tl-strip::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tl-frame {
+            position: relative;
+            flex: 0 0 58px;
+            height: 36px;
+            border: var(--bw3) solid var(--ink);
+            background: #1a1a1a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color .1s;
+        }
+
+        .tl-frame.cur {
+            border-left: 4px solid var(--c);
+        }
+
+        .tl-frame.sel {
+            box-shadow: inset 0 0 0 2px var(--c), 0 0 6px rgba(230, 0, 0, .5);
+        }
+
+        .tl-frame.clip-boundary {
+            border-left: 3px solid var(--b);
+        }
+
+        .tl-thumb {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: pixelated;
+            opacity: .5;
+            z-index: 1;
+        }
+
+        .tl-num {
+            position: relative;
+            z-index: 2;
+            color: var(--paper);
+            font: 900 9px/1 var(--font);
+            text-shadow: 1px 1px 0 var(--ink);
+            pointer-events: none;
+        }
+
+        .tl-clip-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+            border: 2px dashed #444;
+            height: calc(100% - 8px);
+            min-width: 100px;
+            margin: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tl-clip-toggle {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 11px;
+            color: #999;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        #tl-empty {
+            font: 900 9px/1 var(--font);
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        #tl-ctx-menu {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            min-width: 160px;
+            background: rgba(15, 15, 15, .95);
+            border: 1px solid #333;
+            padding: 5px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .5);
+        }
+
+        .ctx-item {
+            display: block;
+            width: 100%;
+            padding: 6px 12px;
+            border: none;
+            background: none;
+            color: #ddd;
+            font: 900 9px var(--font);
+            text-align: left;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .ctx-item:hover {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+        }
+
+        .ctx-sep {
+            height: 1px;
+            background: #333;
+            margin: 4px 0;
+        }
+
+        .ctx-colors {
+            display: flex;
+            gap: 4px;
+            padding: 4px 12px;
+            justify-content: space-between;
+        }
+
+        .ctx-color-btn {
+            width: 14px;
+            height: 14px;
+            border: 0;
+            cursor: pointer;
+        }
+
+        #tabs {
+            flex: 0 0 calc(var(--tab-h) + var(--safe-b));
+            display: flex;
+            border-top: var(--bw3) solid var(--ink);
+            background: var(--paper);
+            z-index: 60;
+            padding-bottom: var(--safe-b);
+        }
+
+        .tab {
+            flex: 1;
+            height: var(--tab-h);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            background: var(--paper);
+            color: #bbb;
+            border: 0;
+            border-right: var(--bw) solid var(--ink);
+            transition: background .12s, color .12s;
+            position: relative;
+        }
+
+        .tab:last-child {
+            border-right: 0;
+            flex: 0 0 48px;
+        }
+
+        .tab-ltr {
+            font-size: 17px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .tab.on-a {
+            background: var(--a);
+            color: var(--paper);
+        }
+
+        .tab.on-b {
+            background: var(--b);
+            color: var(--ink);
+        }
+
+        .tab.on-c {
+            background: var(--c);
+            color: var(--paper);
+        }
+
+        .tab.on-d {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        @media (min-width: 768px) {
+            #app {
+                flex-direction: row;
+            }
+
+            #tabs {
+                display: none;
+            }
+
+            .sheet {
+                left: 50px;
+                right: auto;
+                bottom: 0;
+                top: var(--sb-h);
+                max-height: none;
+                width: 340px;
+                border-top: 0;
+                border-left: 0;
+                border-bottom: 0;
+                border-right: var(--bw3) solid var(--ink);
+                transform: translateX(-100%) !important;
+            }
+
+            .sheet.on {
+                transform: translateX(0) !important;
+                visibility: visible;
+            }
+
+            #side-nav {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 767px) {
+            #side-nav {
+                display: none;
+            }
+        }
+
+        #side-nav {
+            position: fixed;
+            left: 0;
+            top: var(--sb-h);
+            bottom: 0;
+            width: 50px;
+            background: var(--paper);
+            border-right: var(--bw3) solid var(--ink);
+            flex-direction: column;
+            z-index: 65;
+        }
+
+        .snav {
+            width: 100%;
+            flex: 1;
+            border: 0;
+            border-bottom: var(--bw) solid var(--ink);
+            background: var(--paper);
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            cursor: pointer;
+            color: #bbb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .snav:last-child {
+            border-bottom: 0;
+        }
+
+        .snav-ltr {
+            font-size: 17px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .snav.on-a {
+            background: var(--a);
+            color: var(--paper);
+        }
+
+        .snav.on-b {
+            background: var(--b);
+            color: var(--ink);
+        }
+
+        .snav.on-c {
+            background: var(--c);
+            color: var(--paper);
+        }
+
+        .snav.on-d {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        #backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            pointer-events: none;
+            z-index: 70;
+            transition: background .22s;
+        }
+
+        #backdrop.on {
+            background: rgba(0, 0, 0, .6);
+            pointer-events: all;
+        }
+
+        .sheet {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: calc(var(--tab-h) + var(--safe-b));
+            max-height: 85dvh;
+            background: var(--paper);
+            border-top: var(--bw3) solid var(--ink);
+            border-left: var(--bw3) solid var(--ink);
+            border-right: var(--bw3) solid var(--ink);
+            z-index: 80;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(calc(100% + 80px));
+            transition: transform .28s cubic-bezier(.25, 1, .5, 1), visibility 0s .28s;
+            visibility: hidden;
+            overflow: hidden;
+        }
+
+        .sheet.on {
+            transform: translateY(0);
+            visibility: visible;
+            transition: transform .28s cubic-bezier(.25, 1, .5, 1), visibility 0s 0s;
+        }
+
+        .sh-hd {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 14px 8px;
+            border-bottom: var(--bw3) solid var(--ink);
+            background: var(--soft);
+        }
+
+        .sh-title {
+            font: 900 10px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .12em;
+        }
+
+        .sh-x {
+            background: none;
+            border: 0;
+            font-size: 20px;
+            font-weight: 900;
+            padding: 0;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        .sh-tabs {
+            flex-shrink: 0;
+            display: flex;
+            border-bottom: var(--bw3) solid var(--ink);
+        }
+
+        .sh-tab {
+            flex: 1;
+            min-height: 34px;
+            border: 0;
+            border-right: var(--bw) solid var(--ink);
+            background: var(--soft);
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sh-tab:last-child {
+            border-right: 0;
+        }
+
+        .sh-tab.on {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .sh-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sh-body.no-pad {
+            padding: 0;
+            gap: 0;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: var(--tap);
+            border: var(--bw3) solid var(--ink);
+            background: var(--paper);
+            color: var(--ink);
+            padding: 9px 12px;
+            font: 900 9px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            box-shadow: var(--sh-sm);
+            width: 100%;
+            flex-shrink: 0;
+            transition: transform .06s, box-shadow .06s, background .07s;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .btn:disabled {
+            opacity: .3;
+            pointer-events: none;
+        }
+
+        .btn.pri {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .btn.a {
+            background: var(--a);
+            color: var(--paper);
+            border-color: var(--a);
+        }
+
+        .btn.b {
+            background: var(--b);
+            color: var(--ink);
+            border-color: var(--b);
+        }
+
+        .btn.c {
+            background: var(--c);
+            color: var(--paper);
+            border-color: var(--c);
+        }
+
+        .btn.g {
+            background: var(--g);
+            color: var(--paper);
+            border-color: var(--g);
+        }
+
+        .btn.sm {
+            min-height: 30px;
+            padding: 4px 8px;
+            font-size: 7px;
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        .btn.sm:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 7px;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        .lbl {
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .sep-lbl {
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: #999;
+            padding: 3px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .inp {
+            width: 100%;
+            border: var(--bw3) solid var(--ink);
+            padding: 9px 10px;
+            font: 700 12px/1.2 var(--font);
+            background: var(--soft);
+            color: var(--ink);
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .inp:focus {
+            outline: 0;
+            border-color: var(--a);
+            background: var(--paper);
+        }
+
+        .ta {
+            width: 100%;
+            border: var(--bw3) solid var(--ink);
+            padding: 9px 10px;
+            font: 600 12px/1.5 var(--sans);
+            background: var(--soft);
+            color: var(--ink);
+            resize: none;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .ta:focus {
+            outline: 0;
+            border-color: var(--a);
+            background: var(--paper);
+        }
+
+        .sel-input {
+            width: 100%;
+            height: 36px;
+            border: var(--bw3) solid var(--ink);
+            padding: 0 8px;
+            font: 900 10px/1 var(--font);
+            background: var(--paper);
+            color: var(--ink);
+        }
+
+        .dep-chain {
+            display: flex;
+            height: 32px;
+            border: var(--bw) solid var(--ink);
+            overflow: hidden;
+            background: var(--soft);
+            flex-shrink: 0;
+        }
+
+        .dep-node {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border-right: var(--bw) solid var(--ink);
+            font: 900 6px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #bbb;
+            position: relative;
+        }
+
+        .dep-node:last-child {
+            border-right: 0;
+        }
+
+        .dep-node b {
+            font-size: 8px;
+            font-family: var(--font);
+        }
+
+        .dep-node.lit {
+            background: var(--paper);
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .dep-node.lit::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--ink);
+        }
+
+        .dep-arrow {
+            width: 12px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font: 900 9px/1 var(--font);
+            color: #ccc;
+            border-right: var(--bw) solid var(--ink);
+        }
+
+        #chat-msgs {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            padding: 9px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            min-height: 80px;
+        }
+
+        .bubble {
+            border: var(--bw) solid var(--ink);
+            padding: 7px 10px;
+            max-width: 96%;
+            animation: bubin .15s ease;
+        }
+
+        @keyframes bubin {
+            from {
+                opacity: 0;
+                transform: translateY(3px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .bubble.me {
+            margin-left: auto;
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .bubble.ai {
+            margin-right: auto;
+            background: var(--paper);
+        }
+
+        .bubble.err {
+            border-color: var(--c);
+        }
+
+        .bubble.err .bwho {
+            color: var(--c);
+            opacity: 1;
+        }
+
+        .bwho {
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: 4px;
+            opacity: .4;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bubble.me .bwho {
+            color: #aaa;
+            opacity: .55;
+        }
+
+        .bubble p {
+            margin: 0;
+            font-size: 11px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .composer {
+            flex-shrink: 0;
+            border-top: var(--bw3) solid var(--ink);
+            display: grid;
+            grid-template-columns: 1fr auto;
+        }
+
+        .composer input {
+            border: 0;
+            border-right: var(--bw) solid var(--ink);
+            padding: 0 12px;
+            height: var(--tap);
+            font: 500 13px/1 var(--sans);
+            color: var(--ink);
+            background: var(--soft);
+            min-width: 0;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .composer input:focus {
+            outline: 0;
+            background: var(--paper);
+        }
+
+        .composer input::placeholder {
+            color: #aaa;
+        }
+
+        .send-btn {
+            width: var(--tap);
+            height: var(--tap);
+            border: 0;
+            background: var(--ink);
+            color: var(--paper);
+            font: 900 15px/1 var(--font);
+            display: grid;
+            place-items: center;
+        }
+
+        .send-btn:disabled {
+            background: #888;
+        }
+
+        #bfx-bar {
+            flex-shrink: 0;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #111;
+            border-top: 1px solid #222;
+        }
+
+        #bfx-bar.on {
+            display: flex;
+        }
+
+        .bfx-lbl {
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: #555;
+        }
+
+        .bfx-track {
+            flex: 1;
+            height: 4px;
+            background: #222;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .bfx-fill {
+            height: 100%;
+            background: var(--b);
+            transition: width .2s;
+        }
+
+        .bfx-pct {
+            font: 900 9px/1 var(--font);
+            color: var(--b);
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .fact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: var(--bw) solid var(--ink);
+            flex-shrink: 0;
+        }
+
+        .fact {
+            padding: 7px 10px;
+            border-right: var(--bw) solid var(--ink);
+            border-bottom: var(--bw) solid var(--ink);
+        }
+
+        .fact:nth-child(2n) {
+            border-right: 0;
+        }
+
+        .fact:nth-last-child(-n+2) {
+            border-bottom: 0;
+        }
+
+        .fact b {
+            display: block;
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            margin-bottom: 4px;
+            opacity: .45;
+        }
+
+        .fact span {
+            font: 700 11px/1.2 var(--sans);
+        }
+
+        .shot-list {
+            display: flex;
+            flex-direction: column;
+            border: var(--bw3) solid var(--ink);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .shot-card {
+            display: grid;
+            grid-template-columns: 32px 1fr;
+            border-bottom: var(--bw) solid var(--ink);
+            background: var(--paper);
+            animation: bubin .14s ease;
+        }
+
+        .shot-card:last-child {
+            border-bottom: 0;
+        }
+
+        .shot-card.sel {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .shot-card.sel .shot-fld input,
+        .shot-card.sel .shot-fld textarea,
+        .shot-card.sel .shot-fld select {
+            background: #111;
+            color: var(--paper);
+            border-color: #333;
+        }
+
+        .shot-n {
+            display: grid;
+            place-items: center;
+            border-right: var(--bw) solid var(--ink);
+            font: 900 10px/1 var(--font);
+        }
+
+        .shot-card.sel .shot-n {
+            border-right-color: #333;
+        }
+
+        .shot-card-body {
+            padding: 7px 9px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .shot-flds {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .shot-fld input,
+        .shot-fld textarea,
+        .shot-fld select {
+            width: 100%;
+            border: var(--bw) solid var(--ink);
+            background: var(--soft);
+            color: var(--ink);
+            padding: 5px 7px;
+            font: 700 10px/1.3 var(--font);
+        }
+
+        .shot-fld textarea {
+            min-height: 38px;
+            resize: vertical;
+        }
+
+        .bfx-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+        }
+
+        .bfx-dot {
+            width: 6px;
+            height: 6px;
+            border: 1px solid currentColor;
+        }
+
+        .bfx-status.none {
+            color: #bbb;
+        }
+
+        .bfx-status.generating {
+            color: var(--b);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .bfx-status.has-code {
+            color: var(--a);
+        }
+
+        .bfx-status.rendered {
+            color: var(--g);
+        }
+
+        .bfx-status.err {
+            color: var(--c);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .4;
+            }
+        }
+
+        .bfx-status.generating .bfx-dot {
+            background: var(--b);
+        }
+
+        .bfx-status.rendered .bfx-dot {
+            background: var(--g);
+        }
+
+        .bfx-status.err .bfx-dot {
+            background: var(--c);
+        }
+
+        .shot-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .shot-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .script-area {
+            width: 100%;
+            min-height: 180px;
+            border: var(--bw3) solid var(--ink);
+            padding: 12px;
+            font: 11px/1.85 var(--font);
+            background: var(--paper);
+            color: var(--ink);
+            resize: vertical;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .word-bar {
+            height: 3px;
+            background: var(--soft);
+            border: var(--bw) solid var(--ink);
+            border-top: 0;
+            overflow: hidden;
+        }
+
+        .word-fill {
+            height: 100%;
+            background: var(--ink);
+            transition: width .3s;
+        }
+
+        .script-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .script-meta span {
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            color: #999;
+        }
+
+        .script-meta .warn {
+            color: var(--c);
+        }
+
+        .ink-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .ink-sw {
+            width: 42px;
+            height: 42px;
+            border: var(--bw3) solid var(--ink);
+            cursor: pointer;
+            box-shadow: var(--sh-sm);
+            transition: transform .05s, box-shadow .05s;
+        }
+
+        .ink-sw.on {
+            outline: 3px solid var(--ink);
+            outline-offset: 3px;
+            transform: translate(3px, 3px);
+            box-shadow: none;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            border: 2px solid var(--ink);
+            height: 26px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 26px;
+            width: 26px;
+            background: var(--ink);
+            border: 0;
+            cursor: pointer;
+        }
+
+        .exp-list {
+            border: var(--bw3) solid var(--ink);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .exp-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            border-bottom: var(--bw) solid var(--ink);
+            padding: 9px 11px;
+            font: 800 10px/1.3 var(--font);
+        }
+
+        .exp-item:last-child {
+            border-bottom: 0;
+        }
+
+        .exp-item.done {
+            background: var(--soft);
+        }
+
+        .exp-chk {
+            width: 16px;
+            height: 16px;
+            border: var(--bw) solid var(--ink);
+            display: grid;
+            place-items: center;
+            font: 900 9px/1 var(--font);
+        }
+
+        .exp-item.done .exp-chk {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .state-bar {
+            display: flex;
+            align-items: stretch;
+            height: 28px;
+            border-bottom: var(--bw) solid var(--ink);
+            flex-shrink: 0;
+        }
+
+        .state-lbl {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 9px;
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            border-right: var(--bw) solid var(--ink);
+            color: #666;
+        }
+
+        .snodes {
+            flex: 1;
+            display: flex;
+        }
+
+        .snode {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            border-right: 1px solid #eee;
+            font: 900 6px/1 var(--font);
+            text-transform: uppercase;
+            color: #ccc;
+        }
+
+        .snode:last-child {
+            border-right: 0;
+        }
+
+        .snode.lit {
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        .snode.lit:hover {
+            background: var(--soft);
+        }
+
+        .snd {
+            width: 5px;
+            height: 5px;
+            border: 1px solid currentColor;
+        }
+
+        .snode.lit .snd {
+            background: var(--ink);
+        }
+
+        .chip-bar {
+            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 7px 10px;
+            border-bottom: var(--bw) solid var(--ink);
+            background: var(--soft);
+        }
+
+        .chip {
+            border: var(--bw) solid var(--ink);
+            background: var(--paper);
+            color: var(--ink);
+            padding: 4px 8px;
+            font: 900 7px/1 var(--font);
+            text-transform: uppercase;
+            min-height: 0;
+            box-shadow: var(--sh-sm);
+            transition: transform .05s, box-shadow .05s;
+        }
+
+        .chip:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        #bfx-modal {
+            position: fixed;
+            inset: 0;
+            background: var(--ink);
+            z-index: 300;
+            display: none;
+            flex-direction: column;
+        }
+
+        #bfx-modal.on {
+            display: flex;
+        }
+
+        #bfx-modal-hd {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 2px solid #222;
+            flex-shrink: 0;
+            background: var(--ink);
+        }
+
+        #bfx-modal-title {
+            font: 900 11px/1 var(--font);
+            text-transform: uppercase;
+            color: var(--paper);
+            flex: 1;
+        }
+
+        .bfx-modal-btn {
+            padding: 6px 12px;
+            border: 1.5px solid #444;
+            background: transparent;
+            color: var(--paper);
+            font: 900 8px/1 var(--font);
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .bfx-modal-btn.run {
+            background: var(--g);
+            border-color: var(--g);
+        }
+
+        .bfx-modal-btn.regen {
+            background: var(--b);
+            color: var(--ink);
+            border-color: var(--b);
+        }
+
+        .bfx-modal-btn.close {
+            color: #666;
+        }
+
+        #bfx-editor {
+            flex: 1;
+            resize: none;
+            padding: 14px;
+            margin: 0;
+            font: 12px/1.7 var(--font);
+            background: #111;
+            color: #e0e0e0;
+            border: 0;
+            outline: 0;
+            spellcheck: false;
+            user-select: text;
+            -webkit-user-select: text;
+            overflow-y: auto;
+        }
+
+        #bfx-modal-foot {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-top: 1px solid #222;
+            flex-shrink: 0;
+            background: #0a0a0a;
+        }
+
+        #bfx-line-count {
+            font: 900 8px/1 var(--font);
+            color: #444;
+            text-transform: uppercase;
+        }
+
+        #bfx-err-line {
+            font: 900 8px/1 var(--font);
+            color: var(--c);
+            text-transform: uppercase;
+            flex: 1;
+        }
+
+        #bfx-ref-toggle {
+            font: 900 7px/1 var(--font);
+            color: #444;
+            background: transparent;
+            border: 0;
+            text-decoration: underline;
+            text-transform: uppercase;
+        }
+
+        #bfx-ref {
+            display: none;
+            padding: 10px 14px;
+            border-top: 1px solid #111;
+            font: 10px/1.65 var(--font);
+            color: #666;
+            background: #0a0a0a;
+            flex-shrink: 0;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        #bfx-ref.on {
+            display: block;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .72);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal.on {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--paper);
+            width: min(440px, 100vw);
+            border-top: var(--bw3) solid var(--ink);
+            border-left: var(--bw3) solid var(--ink);
+            border-right: var(--bw3) solid var(--ink);
+            padding: 18px;
+            box-shadow: 0 -4px 0 var(--ink);
+            animation: slideup .22s cubic-bezier(.25, 1, .5, 1);
+        }
+
+        @keyframes slideup {
+            from {
+                transform: translateY(16px);
+                opacity: 0;
+            }
+
+            to {
+                transform: none;
+                opacity: 1;
+            }
+        }
+
+        .modal-box h3 {
+            margin: 0 0 6px;
+            font: 900 11px/1 var(--font);
+            text-transform: uppercase;
+        }
+
+        .modal-box p {
+            font-size: 11px;
+            line-height: 1.55;
+            margin: 0 0 12px;
+            color: #555;
+        }
+
+        #toast {
+            position: fixed;
+            top: calc(var(--sb-h) + 8px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-6px);
+            background: var(--paper);
+            color: var(--ink);
+            font: 900 10px/1 var(--font);
+            padding: 9px 16px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            text-transform: uppercase;
+            border: var(--bw3) solid var(--ink);
+            box-shadow: 4px 4px 0 var(--ink);
+            white-space: nowrap;
+            transition: opacity .14s, transform .14s;
+        }
+
+        #toast.on {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #toast.err {
+            background: var(--c);
+            color: var(--paper);
+            border-color: var(--c);
+        }
+
+        #lock {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .93);
+            z-index: 9000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s;
+        }
+
+        #lock.on {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #lock-msg {
+            font: 900 11px/1 var(--font);
+            text-transform: uppercase;
+            color: var(--paper);
+            margin-top: 14px;
+        }
+
+        #lock-n {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--c);
+            margin-top: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #flipbook-modal {
+            position: fixed;
+            inset: 0;
+            background: #d8d8d2;
+            z-index: 99999;
+            display: none;
+            flex-direction: row;
+            color: #000;
+            font-family: var(--sans);
+        }
+
+        #flipbook-modal.on {
+            display: flex;
+        }
+
+        #fb-sidebar {
+            width: 320px;
+            background: var(--bg);
+            border-right: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        #fb-sidebar .header-title {
+            background: #000;
+            color: #fff;
+            padding: 14px 16px;
+            font-size: 12px;
+            font-family: var(--font);
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        #fb-sidebar .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        #fb-sidebar .control-group {
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 12px;
+        }
+
+        #fb-sidebar .label {
+            font-size: 8px;
+            text-transform: uppercase;
+            font-weight: 900;
+            color: #666;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        #fb-sidebar select,
+        #fb-sidebar input {
+            width: 100%;
+            background: #fff;
+            border: 2px solid #000;
+            padding: 6px;
+            font: 900 11px var(--font);
+            outline: none;
+        }
+
+        #fb-sidebar .stats-banner {
+            background: #e1e1d8;
+            border: 2px solid #000;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        #fb-sidebar table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #fb-sidebar td {
+            font: 900 10px var(--font);
+            padding: 2px 0;
+        }
+
+        #fb-sidebar td:last-child {
+            text-align: right;
+            color: var(--c);
+        }
+
+        #fb-preview-pane {
+            flex: 1;
+            background: #d8d8d2;
+            overflow-y: auto;
+            padding: 30px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .fb-zoom-wrapper {
+            transform-origin: top center;
+            transition: transform 0.2s ease;
+        }
+
+        #fb-pages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .fb-a4-page {
+            background: #fff;
+            width: 210mm;
+            height: 297mm;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border: 2px solid #000;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: grid;
+            padding: 10mm;
+        }
+
+        .fb-a4-page.paper-letter {
+            width: 215.9mm;
+            height: 279.4mm;
+        }
+
+        .fb-a4-page.landscape-page {
+            width: 297mm;
+            height: 210mm;
+        }
+
+        .fb-a4-page.paper-letter.landscape-page {
+            width: 279.4mm;
+            height: 215.9mm;
+        }
+
+        .fb-flip-card {
+            border: 1px dashed #999;
+            position: relative;
+            box-sizing: border-box;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .fb-binding-safe-zone {
+            background: #fdfdfa;
+            border-right: 1.5px dashed #ccc;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            padding: 4px 2px;
+            position: relative;
+        }
+
+        .fb-binding-safe-zone.top-bind {
+            width: 100%;
+            height: 10mm;
+            border-right: none;
+            border-bottom: 1.5px dashed #ccc;
+            flex-direction: row;
+        }
+
+        .fb-staple-mark {
+            width: 8px;
+            height: 2px;
+            background: #777;
+        }
+
+        .fb-hole-mark {
+            width: 5px;
+            height: 5px;
+            border-radius: 50% !important;
+            border: 1px solid #777;
+        }
+
+        .fb-card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fb-frame-img-container {
+            flex: 1;
+            background: #fff;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .fb-frame-img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .fb-card-meta {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 10;
+            opacity: 0.45;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 1px 4px;
+            border: 0.5px solid #aaa;
+        }
+
+        .fb-card-meta .idx {
+            font: 900 8px var(--font);
+            color: #000;
+        }
+
+        @media print {
+            @page {
+                margin: 0;
+            }
+
+            body>*:not(#flipbook-modal) {
+                display: none !important;
+            }
+
+            #flipbook-modal {
+                position: relative !important;
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                background: none !important;
+            }
+
+            #fb-sidebar {
+                display: none !important;
+            }
+
+            #fb-preview-pane {
+                display: block !important;
+                width: 100% !important;
+                padding: 0 !important;
+                background: none !important;
+            }
+
+            .fb-zoom-wrapper {
+                transform: none !important;
+                width: 100% !important;
+            }
+
+            .fb-a4-page {
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                border: none !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- STATUS BAR -->
+        <header id="sb">
+            <div class="sb-cell" style="padding:0 9px;">
+                <svg class="reel-svg" viewBox="0 0 22 22" fill="none" id="reel-svg">
+                    <g class="reel-rotor" id="reel-rotor">
+                        <circle cx="11" cy="11" r="9" stroke="#fff" stroke-width="1" stroke-opacity=".2" fill="none" />
+                        <circle cx="11" cy="11" r="3.5" fill="#fff" fill-opacity=".4" />
+                        <circle cx="11" cy="2" r="1.5" fill="#fff" />
+                        <circle cx="11" cy="20" r="1.5" fill="#fff" />
+                        <circle cx="2" cy="11" r="1.5" fill="#fff" />
+                        <circle cx="20" cy="11" r="1.5" fill="#fff" />
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Stage rail: progress spine -->
+            <div id="stage-rail">
+                <div class="stage-pip active" data-stage="idea">IDEA</div>
+                <div class="stage-pip" data-stage="script">SCRIPT</div>
+                <div class="stage-pip" data-stage="shots">SHOTS</div>
+                <div class="stage-pip" data-stage="board">BOARD</div>
+                <div class="stage-pip" data-stage="export">OUT</div>
+            </div>
+
+            <div class="sb-cell">
+                <span class="sb-lbl">FRAME</span>
+                <span class="sb-val" id="sb-frame">00/00</span>
+            </div>
+
+            <div class="sb-cell" style="flex-direction:row;gap:4px">
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <span class="sb-lbl">FPS</span>
+                    <div class="fps-wrap">
+                        <button class="fps-btn" id="fps-dn">-</button>
+                        <span class="sb-val" id="sb-fps" style="min-width:20px;text-align:center">12</span>
+                        <button class="fps-btn" id="fps-up">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="key-btn">KEY</button>
+
+            <button id="play-btn">
+                <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor" id="play-ico">
+                    <polygon points="0,0 11,6.5 0,13" />
+                </svg>
+                <span id="play-lbl">PLAY</span>
+            </button>
+        </header>
+
+        <!-- CANVAS ZONE -->
+        <div id="cz">
+            <button id="grid-btn">GRID: OFF</button>
+
+            <div id="draw-tb">
+                <button class="dt-btn on" id="dtt-pen">PEN</button>
+                <button class="dt-btn" id="dtt-rect">BOX</button>
+                <button class="dt-btn" id="dtt-erase">ERASE</button>
+                <div class="dt-sep"></div>
+                <div id="dt-swatches" style="display:flex;gap:4px;align-items:center"></div>
+            </div>
+
+            <div id="canvas-wrap">
+                <canvas id="cvs"></canvas>
+                <canvas id="net"></canvas>
+            </div>
+
+            <div id="play-ov">
+                <button id="play-ov-btn">
+                    <svg width="22" height="26" viewBox="0 0 22 26" fill="white">
+                        <polygon points="0,0 22,13 0,26" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="cam-feed">
+                <video id="cam-vid" autoplay playsinline muted></video>
+                <div style="display:flex;gap:10px;margin-top:10px">
+                    <button class="btn c" id="btn-rec" style="max-width:120px;min-height:40px">RECORD</button>
+                    <button class="btn" id="btn-cam-abort" style="max-width:100px;min-height:40px">ABORT</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div id="tl">
+            <div id="tlc">
+                <button class="tl-btn" id="tl-prev">&lt;</button>
+                <button class="tl-btn" id="tl-next">&gt;</button>
+                <div class="tl-div"></div>
+                <button class="tl-btn" id="tl-blk">+BLK</button>
+                <button class="tl-btn" id="tl-dup">+CPY</button>
+                <button class="tl-btn" id="tl-del" style="color:var(--c)">DEL</button>
+                <div class="tl-div"></div>
+                <button class="tl-btn" id="tl-undo">UNDO</button>
+                <button class="tl-btn" id="tl-sel">SEL</button>
+                <button class="tl-btn" id="tl-clr">CLR SEL</button>
+                <span id="tl-info"></span>
+            </div>
+            <div id="tl-strip">
+                <span id="tl-empty">NO FRAMES — generate shots or add blank</span>
+            </div>
+        </div>
+
+        <!-- TAB BAR -->
+        <nav id="tabs">
+            <button class="tab" id="tab-a"><span class="tab-ltr">A</span>SHOTS<div class="tab-badge"></div></button>
+            <button class="tab" id="tab-b"><span class="tab-ltr">B</span>BUILD</button>
+            <button class="tab" id="tab-c"><span class="tab-ltr">C</span>COLOR<div class="tab-badge" id="ink-badge"
+                    style="background:#000"></div></button>
+            <button class="tab" id="tab-d"><span class="tab-ltr">D</span>SAVE</button>
+            <button class="tab" id="tab-help" style="flex:0 0 48px"><span class="tab-ltr">?</span>HELP</button>
+        </nav>
+
+    </div>
+
+    <!-- SIDE NAV (Desktop) -->
+    <nav id="side-nav">
+        <button class="snav" id="snav-a"><span class="snav-ltr">A</span>SHOTS</button>
+        <button class="snav" id="snav-b"><span class="snav-ltr">B</span>BUILD</button>
+        <button class="snav" id="snav-c"><span class="snav-ltr">C</span>COLOR</button>
+        <button class="snav" id="snav-d"><span class="snav-ltr">D</span>SAVE</button>
+    </nav>
+
+    <div id="backdrop"></div>
+
+    <!-- SHEET A: SHOTS & MEDIA -->
+    <div class="sheet" id="sheet-a">
+        <div class="sh-hd">
+            <span class="sh-title" style="color:var(--a)">A · SHOTS &amp; MEDIA</span>
+            <button class="sh-x" id="sh-a-x">×</button>
+        </div>
+        <div class="sh-tabs">
+            <button class="sh-tab on" data-stab="a-shots">SHOTS</button>
+            <button class="sh-tab" data-stab="a-media">MEDIA</button>
+            <button class="sh-tab" data-stab="a-info">INFO</button>
+        </div>
+
+        <!-- SHOTS panel -->
+        <div class="sh-body" id="a-shots">
+            <div class="dep-chain" id="dep-chain">
+                <div class="dep-node" id="dn-idea"><b>01</b>IDEA</div>
+                <div class="dep-arrow">›</div>
+                <div class="dep-node" id="dn-script"><b>02</b>SCRIPT</div>
+                <div class="dep-arrow">›</div>
+                <div class="dep-node" id="dn-shots"><b>03</b>SHOTS</div>
+                <div class="dep-arrow">›</div>
+                <div class="dep-node" id="dn-board"><b>04</b>BOARD</div>
+                <div class="dep-arrow">›</div>
+                <div class="dep-node" id="dn-out"><b>05</b>OUT</div>
+            </div>
+
+            <div class="fact-grid">
+                <div class="fact"><b>Premise</b><span id="f-premise">None</span></div>
+                <div class="fact"><b>Script</b> <span id="f-script">No script</span></div>
+                <div class="fact"><b>Shots</b> <span id="f-shots">0</span></div>
+                <div class="fact"><b>Frames</b> <span id="f-frames">0</span></div>
+            </div>
+
+            <div class="shot-list" id="shot-list">
+                <div style="padding:11px;font:11px/1.5 var(--font);color:#aaa">
+                    No shots yet. Open Build → Chat and ask to "break into shots".
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn a" id="btn-render-all">RENDER ALL SHOTS</button>
+                <button class="btn sm" id="btn-add-shot" style="min-height:var(--tap)">+ SHOT</button>
+            </div>
+        </div>
+
+        <!-- MEDIA panel -->
+        <div class="sh-body" id="a-media" style="display:none">
+            <button class="btn" id="btn-load-clips">LOAD CLIPS / IMAGES</button>
+            <button class="btn" id="btn-camera">CAMERA</button>
+            <button class="btn" id="btn-leader">FILM LEADER</button>
+            <div class="sep-lbl" style="margin-top:4px">PROCESS MODE</div>
+            <select class="sel-input" id="proc-mode">
+                <option value="posterize" selected>POSTERIZE</option>
+                <option value="threshold">THRESHOLD</option>
+                <option value="edge">EDGE DETECT</option>
+                <option value="halftone">HALFTONE</option>
+                <option value="raw">RAW</option>
+            </select>
+            <button class="btn" id="btn-reprocess">REPROCESS ALL FRAMES</button>
+            <input type="file" id="file-in" accept="image/*,video/*" multiple style="display:none">
+        </div>
+
+        <!-- INFO panel -->
+        <div class="sh-body" id="a-info" style="display:none">
+            <div>
+                <div class="lbl">PROJECT TITLE</div><input class="inp" id="proj-title" placeholder="UNTITLED PROJECT"
+                    autocomplete="off">
+            </div>
+            <div>
+                <div class="lbl">IDEA / LOGLINE</div><textarea class="ta" id="proj-idea" rows="4"
+                    placeholder="Describe your film..."></textarea>
+            </div>
+            <button class="btn pri" id="btn-save-proj">SAVE PROJECT</button>
+            <div class="sep-lbl">DANGER</div>
+            <button class="btn c" id="btn-reset" style="opacity:.6;font-size:8px">RESET PROJECT</button>
+        </div>
+    </div>
+
+    <!-- SHEET B: BUILD / CHAT -->
+    <div class="sheet" id="sheet-b">
+        <div class="sh-hd">
+            <span class="sh-title" style="color:var(--b)">B · BUILD</span>
+            <button class="sh-x" id="sh-b-x">×</button>
+        </div>
+        <div class="sh-tabs">
+            <button class="sh-tab on" data-stab="b-chat">CHAT</button>
+            <button class="sh-tab" data-stab="b-script">SCRIPT</button>
+        </div>
+
+        <!-- CHAT panel -->
+        <div class="sh-body no-pad" id="b-chat" style="display:flex;flex-direction:column">
+            <div class="state-bar">
+                <span class="state-lbl">STATE</span>
+                <div class="snodes">
+                    <div class="snode" id="sn-idea">
+                        <div class="snd"></div>IDEA
+                    </div>
+                    <div class="snode" id="sn-script">
+                        <div class="snd"></div>SCRIPT
+                    </div>
+                    <div class="snode" id="sn-shots">
+                        <div class="snd"></div>SHOTS
+                    </div>
+                    <div class="snode" id="sn-board">
+                        <div class="snd"></div>BOARD
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chips -->
+            <div class="chip-bar">
+                <button class="chip" data-cmd="make a movie idea">IDEA</button>
+                <button class="chip" data-cmd="write the script">SCRIPT</button>
+                <button class="chip" data-cmd="break into shots">SHOTS</button>
+                <button class="chip" data-cmd="render all shots to canvas">RENDER</button>
+                <button class="chip" data-cmd="make it darker">DARKER</button>
+                <button class="chip" data-cmd="add a plot twist">TWIST</button>
+                <button class="chip" data-cmd="make it funnier">FUNNIER</button>
+                <button class="chip" data-cmd="finish the package">FINISH</button>
+            </div>
+
+            <div id="chat-msgs"></div>
+
+            <div id="bfx-bar">
+                <span class="bfx-lbl" id="bfx-bar-lbl">RENDERING</span>
+                <div class="bfx-track">
+                    <div class="bfx-fill" id="bfx-fill" style="width:0%"></div>
+                </div>
+                <span class="bfx-pct" id="bfx-pct">0%</span>
+            </div>
+
+            <form class="composer" id="composer" autocomplete="off">
+                <input id="chat-in" placeholder="Describe what you want..." autocomplete="off">
+                <button class="send-btn" id="send-btn" type="submit">→</button>
+            </form>
+        </div>
+
+        <!-- SCRIPT panel -->
+        <div class="sh-body" id="b-script" style="display:none">
+            <div class="script-meta">
+                <span id="wc-lbl">0 words</span>
+                <span id="wc-warn" class="warn"></span>
+            </div>
+            <textarea class="script-area" id="script-el" rows="16" spellcheck="true"
+                placeholder="No script yet. Generate one via Chat or type here."></textarea>
+            <div class="word-bar">
+                <div class="word-fill" id="word-fill" style="width:0%"></div>
+            </div>
+            <div class="btn-row" style="margin-top:7px">
+                <button class="btn pri" id="btn-save-script">SAVE SCRIPT</button>
+                <button class="btn" id="btn-push-shots">→ SHOTS</button>
+                <button class="btn" id="btn-simpler">SIMPLER</button>
+            </div>
+        </div>
+    </div>
+    <!-- SHEET C: COLOR / DRAW -->
+    <div class="sheet" id="sheet-c">
+        <div class="sh-hd">
+            <span class="sh-title" style="color:var(--c)">C · COLOR &amp; DRAW</span>
+            <button class="sh-x" id="sh-c-x">×</button>
+        </div>
+        <div class="sh-body">
+            <div class="lbl">TOOLS</div>
+            <div class="btn-row">
+                <button class="btn on" id="tool-pen">PEN</button>
+                <button class="btn" id="tool-rect">BOX</button>
+                <button class="btn" id="tool-erase">ERASE</button>
+            </div>
+            <button class="btn pri" id="btn-wipe">WIPE FRAME INK</button>
+            <div class="lbl" style="margin-top:4px;">PALETTE</div>
+            <div class="ink-grid" id="c-swatches"></div>
+            <div class="lbl" style="margin-top:4px;">BRUSH SIZE</div>
+            <input type="range" id="brush-sz" min="1" max="24" value="5">
+
+            <div class="sep-lbl">TEXT STAMP</div>
+            <textarea class="ta" id="t-text" rows="2">CAUSALITY</textarea>
+            <div class="btn-row">
+                <div style="flex:1">
+                    <div class="lbl">SIZE</div>
+                    <select class="sel-input" id="t-size">
+                        <option value="8">SM 8</option>
+                        <option value="14" selected>MD 14</option>
+                        <option value="22">LG 22</option>
+                        <option value="36">XL 36</option>
+                        <option value="54">XXL 54</option>
+                    </select>
+                </div>
+                <div style="flex:1">
+                    <div class="lbl">INK</div>
+                    <select class="sel-input" id="t-ink">
+                        <option value="7" selected>MAX 7</option>
+                        <option value="5">5</option>
+                        <option value="3">3</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn" id="btn-stamp">STAMP TEXT</button>
+                <button class="btn" id="btn-preview-txt">PREVIEW</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHEET D: SAVE & EXPORT -->
+    <div class="sheet" id="sheet-d">
+        <div class="sh-hd">
+            <span class="sh-title">D · SAVE / EXPORT</span>
+            <button class="sh-x" id="sh-d-x">×</button>
+        </div>
+        <div class="sh-body">
+            <div class="exp-list" id="exp-list"></div>
+            <div class="sep-lbl">EXPORT VIDEO (A/V Preserved)</div>
+            <div class="btn-row">
+                <button class="btn" id="btn-webm">WEBM</button>
+                <button class="btn" id="btn-mp4">MP4</button>
+                <button class="btn" id="btn-gif">GIF</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn" id="btn-png">FRAME PNG</button>
+                <button class="btn" id="btn-sheet">CONTACT SHEET</button>
+            </div>
+            <div class="btn-row" style="margin-top: 4px;">
+                <button class="btn c" id="btn-flipbook"
+                    style="border-color: var(--c); color: var(--paper); background: var(--c);">PRINT FLIPBOOK
+                    (A4)</button>
+            </div>
+            <div class="sep-lbl">EXPORT STORY</div>
+            <div class="btn-row">
+                <button class="btn" id="btn-copy-all">COPY ALL</button>
+                <button class="btn" id="btn-dl-txt">DOWNLOAD .TXT</button>
+            </div>
+            <div class="sep-lbl">BEFLIX CODE</div>
+            <div class="btn-row">
+                <button class="btn a" id="btn-dl-code">DOWNLOAD CODE</button>
+                <button class="btn" id="btn-load-code">LOAD CODE</button>
+            </div>
+            <div class="sep-lbl">TIMELINE OPS</div>
+            <div class="btn-row">
+                <button class="btn" id="btn-dup-range">DUPLICATE SEL</button>
+                <button class="btn" id="btn-rev-range">REVERSE SEL</button>
+            </div>
+            <input id="code-in" type="file" accept=".txt,.bfx" style="display:none">
+        </div>
+    </div>
+
+    <!-- BEFLIX CODE EDITOR MODAL -->
+    <div id="bfx-modal">
+        <div id="bfx-modal-hd">
+            <span id="bfx-modal-title">BEFLIX EDITOR</span>
+            <button class="bfx-modal-btn run" id="bfx-run">RUN</button>
+            <button class="bfx-modal-btn regen" id="bfx-regen">REGEN</button>
+            <button class="bfx-modal-btn close" id="bfx-close">CLOSE</button>
+        </div>
+        <textarea id="bfx-editor" spellcheck="false"></textarea>
+        <div id="bfx-modal-foot">
+            <span id="bfx-line-count">0 LINES</span>
+            <span id="bfx-err-line"></span>
+            <button id="bfx-ref-toggle">REFERENCE</button>
+        </div>
+        <div id="bfx-ref">
+            CLR v — Fill entire grid with intensity v (0=white, 7=black)
+            PNT x y w h v — Paint rectangle at (x,y) width w height h value v
+            LIN x1 y1 x2 y2 v — Draw line between two points at value v
+            REC n — Record current state as n frames (1–15 per beat)
+            SHF dx dy n — Shift all pixels by (dx,dy) and record n frames
+
+            Grid: 128 columns (x=0..127) × 96 rows (y=0..95). Origin = top-left.
+            Intensity: 0=white, 1=faint, 3=mid, 5=dark, 7=black.
+            Target: 40–120 total frames per shot. Start with CLR, layer PNT, use LIN for details.
+            Lines beginning with C or ; are comments and are ignored.
+        </div>
+    </div>
+
+    <!-- API KEY MODAL (GEMINI CANVAS PRO) -->
+    <div class="modal" id="m-api">
+        <div class="modal-box">
+            <h3>Google Gemini API Key</h3>
+            <p>Stored in localStorage only. Sent directly to Google Generative Language endpoints.<br>
+                Get one at <a href="https://aistudio.google.com" target="_blank" rel="noopener"
+                    style="color:var(--a)">aistudio.google.com</a></p>
+            <input class="inp" id="api-in" type="password" placeholder="AIzaSy..." style="margin-bottom:10px">
+            <div class="btn-row">
+                <button class="btn" id="api-cancel">CANCEL</button>
+                <button class="btn pri" id="api-save">SAVE KEY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div class="modal" id="m-help" style="align-items:center">
+        <div class="modal-box" style="max-height:88dvh;overflow-y:auto;border:var(--bw3) solid var(--ink)">
+            <h3>CAUSALITY · GEMINI PRO</h3>
+            <p style="user-select:text;-webkit-user-select:text;font-size:12px;line-height:1.7">
+                <b>B → CHAT:</b> Talk to Gemini. "make an idea" → "write script" → "break into shots" → "render shots".
+                Add your Gemini key via KEY button for full AI. Works in local mode without a key.<br><br>
+                <b>B → SCRIPT:</b> Edit the script directly. Save and push to shots.<br><br>
+                <b>A → SHOTS:</b> Tap RENDER on any shot to generate + animate it individually. Tap RENDER ALL to
+                process all shots in sequence. Tap EDIT on a shot to open the full BEFLIX code editor.<br><br>
+                <b>BEFLIX EDITOR:</b> Full code editor per shot. RUN executes the current code. REGEN asks Gemini to
+                write new BEFLIX for this shot.<br><br>
+                <b>C → COLOR:</b> Draw on canvas. Pen, box, erase. 8 ink levels. Text stamp.<br><br>
+                <b>D → SAVE:</b> Export WebM, MP4, GIF, PNG, contact sheet, and standard A4 Print Flipbooks.<br><br>
+                <b>TIMELINE / EDL:</b> Long-press a frame to start selection range. Shift+Arrow keys. Right click on
+                frames for structural annotation/collapsing.<br><br>
+                <b>Keys:</b> Space=play, ←/→=step, 1-4=tabs, Cmd+Z=undo, Esc=close.
+            </p>
+            <button class="btn pri" id="help-x">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- FLIPBOOK PRINT PREVIEW ENGINE -->
+    <div id="flipbook-modal">
+        <div id="fb-sidebar">
+            <div class="header-title">
+                CAUSALITY<span>FLIP</span>
+            </div>
+            <div class="scroll-content">
+                <div class="stats-banner">
+                    <table>
+                        <tr>
+                            <td>Total Frames:</td>
+                            <td id="fb-stat-frames">0</td>
+                        </tr>
+                        <tr>
+                            <td>Sheets Count:</td>
+                            <td id="fb-stat-pages">0</td>
+                        </tr>
+                        <tr>
+                            <td>Cards / Pg:</td>
+                            <td id="fb-stat-cards">0</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="control-group">
+                    <span class="label">Grid Layout Preset</span>
+                    <select id="fb-grid-preset">
+                        <option value="3x6">3x6 Grid (18 cards/pg)</option>
+                        <option value="3x5" selected>3x5 Grid (15 cards/pg)</option>
+                        <option value="3x4">3x4 Grid (12 cards/pg)</option>
+                        <option value="2x4">2x4 Grid (8 cards/pg)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <span class="label">Binding Margins</span>
+                    <select id="fb-bind-side">
+                        <option value="left">Left Spine Margin (Horizontal Flip)</option>
+                        <option value="top">Top Spine Margin (Vertical Flip)</option>
+                        <option value="none">Zero Margins</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <span class="label">Print Binding Assist Guides</span>
+                    <select id="fb-bind-assist">
+                        <option value="staples">Staple Marks Only</option>
+                        <option value="holes">Punch Hole Marks Only</option>
+                        <option value="both" selected>Both Guides</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <span class="label">Spine Width</span>
+                    <select id="fb-bind-size">
+                        <option value="12">12mm Spine</option>
+                        <option value="16" selected>16mm Spine (Recommended)</option>
+                        <option value="20">20mm Extra Spine</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <span class="label">Flow Pagination</span>
+                    <select id="fb-pag-mode">
+                        <option value="sequential" selected>Sequential Order Grid</option>
+                        <option value="stack-cut">Stack-and-Cut Optimised</option>
+                    </select>
+                </div>
+                <div class="control-group" style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="fb-primitives-toggle"
+                        style="width:18px; height:18px; margin:0; cursor:pointer;">
+                    <label for="fb-primitives-toggle"
+                        style="font-size:9px; font-weight:900; text-transform:uppercase;">Visual Primitives
+                        Overlay</label>
+                </div>
+                <div class="control-group">
+                    <span class="label">Sheet Size</span>
+                    <select id="fb-paper-size">
+                        <option value="a4" selected>A4 Standard Sheet (210x297mm)</option>
+                        <option value="letter">US Letter (216x279mm)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <span class="label">Sheet Orientation</span>
+                    <select id="fb-orientation">
+                        <option value="portrait" selected>Portrait</option>
+                        <option value="landscape">Landscape</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <span class="label">Zoom Level</span>
+                    <select id="fb-zoom-level">
+                        <option value="0.5">50% Scale</option>
+                        <option value="0.6" selected>60% Scale</option>
+                        <option value="1.0">100% Full View</option>
+                    </select>
+                </div>
+                <button class="btn pri" id="fb-btn-print">PRINT NOW</button>
+                <button class="btn" id="fb-btn-close">CLOSE</button>
+            </div>
+        </div>
+        <div id="fb-preview-pane">
+            <div class="fb-zoom-wrapper" id="fb-zoom-wrapper">
+                <div id="fb-pages-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+    <div id="lock">
+        <div id="lock-msg">LOADING</div>
+        <div id="lock-n">0</div>
+    </div>
+
+    <!-- Timeline context menu -->
+    <div id="tl-ctx-menu">
+        <div id="ctx-label" style="padding:6px 12px;font:900 8px var(--font);color:#888;text-transform:uppercase;">FRAME
+            1</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-colors">
+            <button class="ctx-color-btn" style="background:#ff4444" data-action="col" data-col="#ff4444"></button>
+            <button class="ctx-color-btn" style="background:#44aaff" data-action="col" data-col="#44aaff"></button>
+            <button class="ctx-color-btn" style="background:#ffea44" data-action="col" data-col="#ffea44"></button>
+            <button class="ctx-color-btn" style="background:#44ff77" data-action="col" data-col="#44ff77"></button>
+            <button class="ctx-color-btn"
+                style="background:transparent; border:1px dashed #666; color:#999;font-size:10px;line-height:14px;"
+                data-action="col" data-col="none">✕</button>
+        </div>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item" data-action="goto">▶ GO TO FRAME</button>
+        <button class="ctx-item" data-action="boundary">✂ TOGGLE BOUNDARY</button>
+        <button class="ctx-item" data-action="collapse">⛶ TOGGLE COLLAPSE</button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item" data-action="duplicate">⧉ DUPLICATE</button>
+        <button class="ctx-item" data-action="delete" style="color:#ff4444;">✕ DELETE</button>
+    </div>
+
+    <script>
+        'use strict';
+        const SK = 'causality-gemini-v1';
+        const LOG_MAX = 30;
+        const SHOTS_MAX = 12;
+        const FRAMES_MAX = 600;
+        const SHOT_FRAMES = 120;
+        const UNDO_MAX = 25;
+        const FETCH_MS = 20000;
+        const WORD_MAX = 2500;
+        const W = 640, H = 480;
+        const GC = 128, GR = 96;
+        const BS = 5;
+
+        const STAGES = Object.freeze(['idea', 'script', 'shots', 'board', 'export']);
+        const SHOT_TYPES = Object.freeze(['WIDE', 'INSERT', 'MEDIUM', 'CLOSE', 'OTS', 'POV', 'TWO-SHOT', 'SHOT']);
+
+        const SHOT_TYPE_DESC = {
+            WIDE: 'Full scene establishing shot',
+            INSERT: 'Close detail, object, or reaction',
+            MEDIUM: 'Waist-up, conversational distance',
+            CLOSE: 'Face or single object, dominant in frame',
+            OTS: 'Over-the-shoulder perspective',
+            POV: 'Character point-of-view',
+            'TWO-SHOT': 'Both characters together in frame',
+            SHOT: 'Generic single shot'
+        };
+
+        const get = id => document.getElementById(id);
+        const setP = (id, prop, val) => { const el = get(id); if (el) el[prop] = val; };
+        const setT = (id, text) => setP(id, 'textContent', text);
+        const setH = (id, html) => setP(id, 'innerHTML', html);
+        const esc = s => String(s).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+        const jc = v => JSON.parse(JSON.stringify(v));
+        const nowTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const uid = () => (crypto?.randomUUID?.()) ?? ('id' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+        const slugify = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'film';
+        const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+        const safe = fn => { try { return fn(); } catch (_) { return null; } };
+
+        const BASE_STORY = Object.freeze({
+            stage: 'idea',
+            title: '',
+            idea: '',
+            premise: '',
+            script: '',
+            shots: [],
+            prompts: [],
+            boardReady: false,
+            pkgReady: false,
+            log: [],
+            selShotId: null
+        });
+
+        function loadStory() {
+            try {
+                const raw = localStorage.getItem(SK);
+                if (!raw) return jc(BASE_STORY);
+                const d = JSON.parse(raw);
+                return {
+                    ...jc(BASE_STORY),
+                    ...d,
+                    shots: Array.isArray(d.shots) ? d.shots.slice(0, SHOTS_MAX) : [],
+                    prompts: Array.isArray(d.prompts) ? d.prompts : [],
+                    log: Array.isArray(d.log) ? d.log.slice(-LOG_MAX) : [],
+                };
+            } catch (e) {
+                return jc(BASE_STORY);
+            }
+        }
+
+        function enforceInvariants() {
+            if (S.log.length > LOG_MAX) S.log = S.log.slice(-LOG_MAX);
+            if (S.shots.length > SHOTS_MAX) S.shots = S.shots.slice(0, SHOTS_MAX);
+            if (!STAGES.includes(S.stage)) S.stage = 'idea';
+            if (S.selShotId && !S.shots.find(s => s.id === S.selShotId)) S.selShotId = null;
+        }
+
+        let S = loadStory();
+        let KEY = safe(() => localStorage.getItem('gemini_key')) || '';
+
+        let _saveTimer = null;
+        function schedSave() {
+            clearTimeout(_saveTimer);
+            _saveTimer = setTimeout(flushSave, 800);
+        }
+        function flushSave() {
+            enforceInvariants();
+            try {
+                safe(() => { const el = get('proj-title'); if (el && document.activeElement !== el) S.title = el.value || S.title; });
+                safe(() => { const el = get('proj-idea'); if (el && document.activeElement !== el) S.idea = el.value || S.idea; });
+                localStorage.setItem(SK, JSON.stringify(S));
+            } catch (e) {
+                showToast('Save failed: ' + e.message, true);
+            }
+        }
+
+        const A = {
+            frames: [],
+            cur: 0,
+            playing: false,
+            tool: 'pen',
+            ink: 7,
+            sz: 5,
+            showGrid: false,
+            showOnion: false,
+            dragging: false,
+            p0: [0, 0],
+            p1: [0, 0],
+            activeSheet: null,
+            selStart: -1,
+            selEnd: -1,
+            selMode: false,
+            audioBlob: null,
+            audioDuration: 0,
+        };
+
+        let BASE_FPS = 12;
+        let _playRAF = null;
+        let _lastT = 0;
+        let _undoStack = [];
+        let CVS, CTX, COMP, CCTX;
+        let _bfxModalShotId = null;
+
+        let _audioCtx = null;
+        function initAudio() {
+            if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (_audioCtx.state === 'suspended') _audioCtx.resume();
+        }
+        function playTone(freq, type, dur, vol) {
+            if (!_audioCtx || _audioCtx.state === 'suspended') return;
+            try {
+                const o = _audioCtx.createOscillator();
+                const g = _audioCtx.createGain();
+                o.type = type;
+                o.frequency.setValueAtTime(freq, _audioCtx.currentTime);
+                g.gain.setValueAtTime(vol, _audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + dur);
+                o.connect(g); g.connect(_audioCtx.destination);
+                o.start(); o.stop(_audioCtx.currentTime + dur);
+            } catch (_) { }
+        }
+        function hap(d) { if (navigator.vibrate) try { navigator.vibrate(d); } catch (_) { } }
+        function tick() { playTone(800, 'square', 0.015, 0.05); hap(5); }
+        function clack() { playTone(300, 'triangle', 0.04, 0.1); hap(15); }
+        function thud() { playTone(100, 'sine', 0.1, 0.2); hap(30); }
+
+        function showToast(msg, isErr = false, dur = 1500) {
+            const el = get('toast'); if (!el) return;
+            el.textContent = msg;
+            el.classList.toggle('err', isErr);
+            el.classList.add('on');
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => el.classList.remove('on'), dur);
+        }
+
+        function lockSys(msg, n = 0) {
+            const l = get('lock'); if (!l) return;
+            l.classList.add('on');
+            setT('lock-msg', msg);
+            setT('lock-n', n);
+            get('reel-rotor')?.classList.add('spinning');
+        }
+        function unlockSys() {
+            get('lock')?.classList.remove('on');
+            get('reel-rotor')?.classList.remove('spinning');
+        }
+        function setLockN(n) { setT('lock-n', n); }
+
+        const INKS = [
+            { id: 0, hex: '#ffffff', rgb: [0, 0, 0, 0] },
+            { id: 1, hex: '#dddddd', rgb: [0, 0, 0, 40] },
+            { id: 2, hex: '#bbbbbb', rgb: [0, 0, 0, 80] },
+            { id: 3, hex: '#999999', rgb: [0, 0, 0, 120] },
+            { id: 4, hex: '#777777', rgb: [0, 0, 0, 160] },
+            { id: 5, hex: '#555555', rgb: [0, 0, 0, 200] },
+            { id: 6, hex: '#333333', rgb: [0, 0, 0, 230] },
+            { id: 7, hex: '#000000', rgb: [0, 0, 0, 255] },
+        ];
+        const DOT_STAMPS = [];
+
+        function buildDotStamps() {
+            const maxR = BS * 0.45;
+            for (let v = 0; v < 8; v++) {
+                const c = document.createElement('canvas');
+                c.width = BS; c.height = BS;
+                if (v > 0) {
+                    const dc = c.getContext('2d');
+                    const r = maxR * (v / 7);
+                    dc.fillStyle = '#000';
+                    dc.beginPath();
+                    dc.arc(BS / 2, BS / 2, Math.max(0.4, r), 0, Math.PI * 2);
+                    dc.fill();
+                }
+                DOT_STAMPS[v] = c;
+            }
+        }
+        function alphaToLevel(a) {
+            if (a < 16) return 0;
+            if (a < 55) return 1;
+            if (a < 95) return 2;
+            if (a < 135) return 3;
+            if (a < 175) return 4;
+            if (a < 210) return 5;
+            if (a < 240) return 6;
+            return 7;
+        }
+
+        function blankLayer() { return new Uint8ClampedArray(W * H * 4); }
+        function makeFrame(shotId = null) {
+            return { src: null, sl: blankLayer(), hl: blankLayer(), clipBoundary: false, shotId, colorTag: null, collapsed: false };
+        }
+        function copyFrame(f) {
+            return {
+                src: f.src,
+                sl: new Uint8ClampedArray(f.sl),
+                hl: new Uint8ClampedArray(f.hl),
+                clipBoundary: !!f.clipBoundary,
+                shotId: f.shotId || null,
+                colorTag: f.colorTag || null,
+                collapsed: !!f.collapsed
+            };
+        }
+
+        function addFrame(isInit = false) {
+            if (A.frames.length >= FRAMES_MAX) { showToast('Frame cap reached', true); return; }
+            if (!isInit) clack();
+            A.frames.push(makeFrame());
+            if (!isInit) { A.cur = A.frames.length - 1; rebuildTimeline(); renderCanvas(); updateSB(); }
+        }
+        function dupFrame() {
+            if (!A.frames.length) return;
+            if (A.frames.length >= FRAMES_MAX) { showToast('Frame cap reached', true); return; }
+            pushUndo('dup frame');
+            A.frames.splice(A.cur + 1, 0, copyFrame(A.frames[A.cur]));
+            A.cur++;
+            rebuildTimeline(); renderCanvas(); updateSB();
+            showToast('FRAME COPIED');
+        }
+        function stepFrame(dir) {
+            if (A.playing || !A.frames.length) return;
+            A.cur = (A.cur + dir + A.frames.length) % A.frames.length;
+            rebuildTimeline(); renderCanvas(); updateSB();
+        }
+        function getSelRange() {
+            if (A.selStart < 0) return null;
+            const from = Math.min(A.selStart, A.selEnd);
+            const to = Math.max(A.selStart, A.selEnd);
+            return { from, to, count: to - from + 1 };
+        }
+        function enterSelMode() {
+            A.selMode = true;
+            A.selStart = A.cur;
+            A.selEnd = A.cur;
+            get('tl-sel')?.classList.add('active');
+            rebuildTimeline();
+            showToast('SEL MODE — tap frames to extend');
+        }
+        function clearSel() {
+            A.selMode = false;
+            A.selStart = -1;
+            A.selEnd = -1;
+            get('tl-sel')?.classList.remove('active');
+            rebuildTimeline();
+        }
+        function deleteSelected() {
+            const r = getSelRange();
+            if (!r) { showToast('SELECT RANGE FIRST', true); return; }
+            pushUndo('del ' + r.count + ' frames');
+            A.frames.splice(r.from, r.count);
+            if (!A.frames.length) addFrame(true);
+            A.cur = clamp(A.cur, 0, A.frames.length - 1);
+            clearSel(); renderCanvas(); rebuildTimeline(); updateSB();
+            showToast(r.count + ' FRAMES DELETED');
+        }
+        function dupSelRange() {
+            const r = getSelRange();
+            if (!r) { showToast('SELECT RANGE FIRST', true); return; }
+            if (A.frames.length + r.count > FRAMES_MAX) { showToast('Would exceed frame cap', true); return; }
+            pushUndo('dup range');
+            const dupes = A.frames.slice(r.from, r.to + 1).map(copyFrame);
+            A.frames.splice(r.to + 1, 0, ...dupes);
+            clearSel(); rebuildTimeline(); updateSB();
+            showToast(dupes.length + ' FRAMES DUPED');
+        }
+        function reverseSelRange() {
+            const r = getSelRange();
+            if (!r || r.count < 2) { showToast('SELECT 2+ FRAMES', true); return; }
+            pushUndo('rev range');
+            const sub = A.frames.slice(r.from, r.to + 1).reverse();
+            A.frames.splice(r.from, r.count, ...sub);
+            clearSel(); rebuildTimeline(); updateSB();
+            showToast(r.count + ' FRAMES REVERSED');
+        }
+
+        function pushUndo(label) {
+            if (A.frames.length > 120) return;
+            try {
+                _undoStack.push({ label, cur: A.cur, frames: A.frames.map(copyFrame) });
+                if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+            } catch (_) {
+                _undoStack = _undoStack.slice(-5);
+            }
+        }
+        function popUndo() {
+            if (!_undoStack.length) { showToast('NOTHING TO UNDO', true); return; }
+            clack();
+            const snap = _undoStack.pop();
+            A.frames = snap.frames.map(copyFrame);
+            A.cur = clamp(snap.cur, 0, A.frames.length - 1);
+            if (!A.frames.length) addFrame(true);
+            renderCanvas(); rebuildTimeline(); updateSB();
+            showToast('UNDO: ' + snap.label.toUpperCase());
+        }
+
+        function scaleWorkspace() {
+            const zone = get('cz');
+            const wrap = get('canvas-wrap');
+            if (!zone || !CVS || zone.clientWidth === 0) return;
+            const pad = 10;
+            const sc = Math.min((zone.clientWidth - pad) / W, (zone.clientHeight - pad) / H);
+            CVS.style.width = (W * sc) + 'px';
+            CVS.style.height = (H * sc) + 'px';
+            CVS.width = W; CVS.height = H;
+            wrap.style.width = (W * sc) + 'px';
+            wrap.style.height = (H * sc) + 'px';
+            renderCanvas();
+        }
+
+        function renderCanvas() {
+            if (!CVS || !A.frames.length) { CTX?.clearRect(0, 0, W, H); return; }
+            const f = A.frames[A.cur];
+            renderDotFrame(f, COMP);
+
+            if (A.dragging && A.tool === 'rect') {
+                const live = blankLayer();
+                plotRect(live, A.p0[0], A.p0[1], A.p1[0], A.p1[1], INKS[A.ink].rgb, A.sz);
+                for (let gy = 0; gy < GR; gy++) {
+                    for (let gx = 0; gx < GC; gx++) {
+                        const sx = gx * BS + Math.floor(BS / 2);
+                        const sy = gy * BS + Math.floor(BS / 2);
+                        const si = (sy * W + sx) * 4;
+                        const val = alphaToLevel(live[si + 3]);
+                        if (val > 0 && DOT_STAMPS[val]) CCTX.drawImage(DOT_STAMPS[val], gx * BS, gy * BS);
+                    }
+                }
+            }
+            CTX.clearRect(0, 0, W, H);
+            CTX.drawImage(COMP, 0, 0);
+            if (A.showOnion && A.cur > 0) _drawOnion();
+        }
+
+        function renderDotFrame(f, target) {
+            const tc = target.getContext('2d');
+            tc.fillStyle = '#fff'; tc.fillRect(0, 0, W, H);
+            tc.strokeStyle = 'rgba(0,0,0,.05)'; tc.lineWidth = 0.5;
+            for (let gy = 0; gy < GR; gy++) {
+                const py = gy * BS + BS * 0.5;
+                tc.beginPath(); tc.moveTo(0, py); tc.lineTo(W, py); tc.stroke();
+            }
+
+            let srcGrid = null;
+            if (f.src) {
+                const tmp = document.createElement('canvas'); tmp.width = GC; tmp.height = GR;
+                const tx = tmp.getContext('2d'); tx.imageSmoothingEnabled = true;
+                tx.drawImage(f.src, 0, 0, GC, GR);
+                const px = tx.getImageData(0, 0, GC, GR).data;
+                srcGrid = new Uint8Array(GR * GC);
+                for (let i = 0; i < GR * GC; i++) {
+                    const pi = i * 4;
+                    const lum = px[pi] * 0.299 + px[pi + 1] * 0.587 + px[pi + 2] * 0.114;
+                    srcGrid[i] = clamp(Math.round((255 - lum) / 255 * 7), 0, 7);
+                }
+            }
+
+            for (let gy = 0; gy < GR; gy++) {
+                for (let gx = 0; gx < GC; gx++) {
+                    const sx = gx * BS + Math.floor(BS / 2);
+                    const sy = gy * BS + Math.floor(BS / 2);
+                    const si = (sy * W + sx) * 4;
+                    let val = 0;
+                    const ha = f.hl[si + 3];
+                    if (ha >= 16) {
+                        val = alphaToLevel(ha);
+                    } else {
+                        const sa = f.sl[si + 3];
+                        if (sa >= 16) val = alphaToLevel(sa);
+                        else if (srcGrid) val = srcGrid[gy * GC + gx];
+                    }
+                    if (val > 0 && DOT_STAMPS[val]) tc.drawImage(DOT_STAMPS[val], gx * BS, gy * BS);
+                }
+            }
+        }
+
+        function _drawOnion() {
+            const net = get('net'); if (!net) return;
+            net.width = W; net.height = H;
+            const gc = net.getContext('2d'); gc.clearRect(0, 0, W, H);
+            const pf = A.frames[A.cur - 1]; if (!pf) return;
+            gc.globalAlpha = 0.18;
+            if (pf.src) gc.drawImage(pf.src, 0, 0, W, H);
+            const hd = new ImageData(new Uint8ClampedArray(pf.hl), W, H);
+            const tc = document.createElement('canvas'); tc.width = W; tc.height = H;
+            tc.getContext('2d').putImageData(hd, 0, 0);
+            gc.drawImage(tc, 0, 0);
+            gc.globalAlpha = 1;
+        }
+
+        function drawGrid() {
+            const net = get('net'); if (!net) return;
+            net.width = W; net.height = H;
+            const gc = net.getContext('2d'); gc.clearRect(0, 0, W, H);
+            gc.strokeStyle = 'rgba(0,0,0,.06)'; gc.lineWidth = 0.5;
+            for (let gx = 0; gx <= GC; gx++) { const px = gx * BS; gc.beginPath(); gc.moveTo(px, 0); gc.lineTo(px, H); gc.stroke(); }
+            for (let gy = 0; gy <= GR; gy++) { const py = gy * BS; gc.beginPath(); gc.moveTo(0, py); gc.lineTo(W, py); gc.stroke(); }
+            gc.strokeStyle = 'rgba(0,0,0,.18)';
+            for (let gx = 0; gx <= GC; gx += 16) { const px = gx * BS; gc.beginPath(); gc.moveTo(px, 0); gc.lineTo(px, H); gc.stroke(); }
+            for (let gy = 0; gy <= GR; gy += 16) { const py = gy * BS; gc.beginPath(); gc.moveTo(0, py); gc.lineTo(W, py); gc.stroke(); }
+        }
+
+        function bpx(arr, x, y, c) {
+            if (x < 0 || x >= W || y < 0 || y >= H) return;
+            const i = (y * W + x) * 4;
+            if (c[3] === 0) { arr[i] = arr[i + 1] = arr[i + 2] = arr[i + 3] = 0; return; }
+            arr[i] = c[0]; arr[i + 1] = c[1]; arr[i + 2] = c[2]; arr[i + 3] = c[3];
+        }
+        function plotBlk(arr, x, y, c, r) {
+            const rad = r / 2;
+            for (let iy = -Math.ceil(rad); iy <= Math.ceil(rad); iy++) {
+                for (let ix = -Math.ceil(rad); ix <= Math.ceil(rad); ix++) {
+                    if (ix * ix + iy * iy <= rad * rad) bpx(arr, Math.round(x + ix), Math.round(y + iy), c);
+                }
+            }
+        }
+        function plotLine(arr, x0, y0, x1, y1, c, w) {
+            if (!isFinite(x0 + y0 + x1 + y1)) return;
+            let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+            let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+            let e = dx + dy, lim = 3000;
+            while (lim-- > 0) {
+                plotBlk(arr, x0, y0, c, w);
+                if (x0 === x1 && y0 === y1) break;
+                const e2 = 2 * e;
+                if (e2 >= dy) { e += dy; x0 += sx; }
+                if (e2 <= dx) { e += dx; y0 += sy; }
+            }
+        }
+        function plotRect(arr, x0, y0, x1, y1, c, w) {
+            plotLine(arr, x0, y0, x1, y0, c, w);
+            plotLine(arr, x1, y0, x1, y1, c, w);
+            plotLine(arr, x1, y1, x0, y1, c, w);
+            plotLine(arr, x0, y1, x0, y0, c, w);
+        }
+        function mapCoord(e) {
+            const r = CVS.getBoundingClientRect();
+            if (!r.width) return [0, 0];
+            return [
+                clamp(Math.floor((e.clientX - r.left) / r.width * W), 0, W - 1),
+                clamp(Math.floor((e.clientY - r.top) / r.height * H), 0, H - 1)
+            ];
+        }
+        function commitStroke(p0, p1, isFinalForRect = false) {
+            const range = getSelRange();
+            const from = range ? range.from : A.cur;
+            const to = range ? range.to : A.cur;
+            const col = A.tool === 'erase' ? INKS[0].rgb : INKS[A.ink].rgb;
+            for (let i = from; i <= to; i++) {
+                const f = A.frames[i]; if (!f) continue;
+                if (A.tool === 'pen' || A.tool === 'erase') plotLine(f.hl, p0[0], p0[1], p1[0], p1[1], col, A.sz);
+                if (A.tool === 'rect' && isFinalForRect) plotRect(f.hl, p0[0], p0[1], p1[0], p1[1], col, A.sz);
+            }
+            renderCanvas();
+        }
+        function setTool(id) {
+            A.tool = id;
+            ['pen', 'rect', 'erase'].forEach(t => {
+                get('tool-' + t)?.classList.toggle('on', t === id);
+                get('dtt-' + t)?.classList.toggle('on', t === id);
+            });
+            updateSB();
+        }
+        function buildInkPalette() {
+            ['c-swatches', 'dt-swatches'].forEach(boxId => {
+                const box = get(boxId); if (!box) return;
+                box.innerHTML = '';
+                INKS.slice(1).forEach(c => {
+                    const el = document.createElement('div');
+                    el.className = (boxId === 'c-swatches' ? 'ink-sw' : 'dt-swatch') + (c.id === A.ink ? ' on' : '');
+                    el.style.background = c.hex;
+                    el.addEventListener('click', () => {
+                        A.ink = c.id;
+                        document.querySelectorAll('.ink-sw, .dt-swatch').forEach(s => s.classList.remove('on'));
+                        document.querySelectorAll('.ink-sw, .dt-swatch').forEach(s => {
+                            if (s.style.background === c.hex || s.style.backgroundColor === c.hex) s.classList.add('on');
+                        });
+                        if (A.tool === 'erase') setTool('pen');
+                        updateSB();
+                    });
+                    box.appendChild(el);
+                });
+            });
+        }
+        function togglePlay() {
+            clack();
+            A.playing = !A.playing;
+            _syncPlayButton();
+            _syncPlayOverlay();
+            if (A.playing) {
+                _lastT = performance.now();
+                _playRAF = requestAnimationFrame(_playStep);
+            } else {
+                cancelAnimationFrame(_playRAF);
+                renderCanvas();
+                rebuildTimeline();
+            }
+        }
+        function _playStep(now) {
+            if (!A.playing) return;
+            _playRAF = requestAnimationFrame(_playStep);
+            const elapsed = now - _lastT;
+            const dur = 1000 / BASE_FPS;
+            if (elapsed >= dur) {
+                _lastT = now - (elapsed % dur);
+                A.cur = (A.cur + 1) % Math.max(1, A.frames.length);
+                renderCanvas();
+                document.querySelectorAll('.tl-frame').forEach((el, i) => el.classList.toggle('cur', i === A.cur));
+                setT('sb-frame', String(A.cur + 1).padStart(2, '0') + '/' + String(A.frames.length).padStart(2, '0'));
+            }
+        }
+        function _syncPlayButton() {
+            const btn = get('play-btn'), lbl = get('play-lbl'), ico = get('play-ico');
+            btn?.classList.toggle('playing', A.playing);
+            if (lbl) lbl.textContent = A.playing ? 'STOP' : 'PLAY';
+            if (ico) ico.innerHTML = A.playing
+                ? '<rect x="0" y="0" width="4" height="13"/><rect x="7" y="0" width="4" height="13"/>'
+                : '<polygon points="0,0 11,6.5 0,13"/>';
+        }
+        function _syncPlayOverlay() {
+            const ov = get('play-ov'); if (!ov) return;
+            const has = A.frames.length > 0;
+            const drawing = A.activeSheet === 'c';
+            ov.classList.toggle('vis', has && !A.playing && !drawing);
+        }
+
+        function rebuildTimeline() {
+            const strip = get('tl-strip'); if (!strip) return;
+            const range = getSelRange();
+            const frame_n = A.frames.length;
+            const sel_txt = range ? 'SEL ' + (range.from + 1) + '–' + (range.to + 1) + ' · ' : '';
+            setT('tl-info', sel_txt + (frame_n ? frame_n + ' FR' : ''));
+            strip.innerHTML = '';
+            if (!A.frames.length) {
+                const e = document.createElement('span'); e.id = 'tl-empty';
+                e.textContent = 'NO FRAMES — generate shots or add blank';
+                strip.appendChild(e); return;
+            }
+
+            let i = 0;
+            while (i < A.frames.length) {
+                let startIdx = i;
+                let isCollapsed = A.frames[i].collapsed === true;
+                let endIdx = i;
+                while (endIdx + 1 < A.frames.length && !A.frames[endIdx + 1].clipBoundary && A.frames[endIdx + 1].shotId === A.frames[startIdx].shotId) {
+                    endIdx++;
+                }
+                const isClip = endIdx > startIdx;
+
+                if (isClip && isCollapsed) {
+                    const w = document.createElement('div');
+                    let cls = 'tl-clip-group';
+                    const isSelected = range && ((startIdx >= range.from && startIdx <= range.to) || (endIdx >= range.from && endIdx <= range.to));
+                    if (isSelected) cls += ' sel';
+                    if (A.cur >= startIdx && A.cur <= endIdx) cls += ' cur';
+                    w.className = cls;
+
+                    w.addEventListener('click', (e) => {
+                        if (A.playing) return;
+                        A.cur = startIdx;
+                        rebuildTimeline(); renderCanvas(); updateSB();
+                    });
+                    w.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        showCtxMenu(e.clientX, e.clientY, startIdx);
+                    });
+
+                    const tc = document.createElement('canvas'); tc.className = 'tl-thumb'; tc.width = 58; tc.height = 36;
+                    const tx = tc.getContext('2d'); tx.fillStyle = '#1a1a1a'; tx.fillRect(0, 0, 58, 36);
+                    w.appendChild(tc);
+
+                    const num = document.createElement('div'); num.className = 'tl-num'; num.textContent = `CLIP [${endIdx - startIdx + 1}]`;
+                    w.appendChild(num);
+
+                    const tog = document.createElement('button');
+                    tog.className = 'tl-clip-toggle';
+                    tog.innerHTML = '+';
+                    tog.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        A.frames[startIdx].collapsed = false;
+                        rebuildTimeline();
+                    });
+                    w.appendChild(tog);
+                    strip.appendChild(w);
+                    i = endIdx + 1;
+                } else {
+                    for (let j = startIdx; j <= endIdx; j++) {
+                        const f = A.frames[j];
+                        const el = document.createElement('div');
+                        let cls = 'tl-frame';
+                        if (j === A.cur) cls += ' cur';
+                        if (range && j >= range.from && j <= range.to) cls += ' sel';
+                        if (f.clipBoundary) cls += ' clip-boundary';
+                        el.className = cls;
+
+                        const tc = document.createElement('canvas'); tc.width = 58; tc.height = 36; tc.className = 'tl-thumb';
+                        const tx = tc.getContext('2d'); tx.fillStyle = '#fff'; tx.fillRect(0, 0, 58, 36);
+                        if (f.src) { tx.globalAlpha = 0.55; tx.drawImage(f.src, 0, 0, 58, 36); tx.globalAlpha = 1; }
+                        el.appendChild(tc);
+
+                        const num = document.createElement('div'); num.className = 'tl-num'; num.textContent = j + 1;
+                        el.appendChild(num);
+
+                        el.addEventListener('click', (e) => {
+                            if (A.playing) return;
+                            if (A.selMode) {
+                                A.selEnd = j; rebuildTimeline();
+                            } else if (j === A.cur) {
+                                enterSelMode();
+                            } else {
+                                A.cur = j; rebuildTimeline(); renderCanvas(); updateSB();
+                            }
+                        });
+                        el.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            showCtxMenu(e.clientX, e.clientY, j);
+                        });
+
+                        if (j === startIdx && isClip) {
+                            const tog = document.createElement('button');
+                            tog.className = 'tl-clip-toggle';
+                            tog.innerHTML = '-';
+                            tog.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                A.frames[startIdx].collapsed = true;
+                                rebuildTimeline();
+                            });
+                            el.appendChild(tog);
+                        }
+
+                        strip.appendChild(el);
+                        if (j === A.cur) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+                    }
+                    i = endIdx + 1;
+                }
+            }
+        }
+
+        let _ctxIdx = -1;
+        function showCtxMenu(x, y, idx) {
+            _ctxIdx = idx;
+            const menu = get('tl-ctx-menu'); if (!menu) return;
+            menu.style.left = Math.min(x, window.innerWidth - 170) + 'px';
+            menu.style.top = Math.min(y, window.innerHeight - 200) + 'px';
+            menu.style.display = 'block';
+        }
+        function hideCtxMenu() {
+            get('tl-ctx-menu').style.display = 'none';
+            _ctxIdx = -1;
+        }
+
+        let _bfxRunning = false;
+
+        async function executeBEFLIX(code, shotId = null) {
+            if (_bfxRunning) { showToast('Already rendering — please wait', true); return 0; }
+            _bfxRunning = true;
+            get('bfx-bar')?.classList.add('on');
+            const updateProgress = pct => {
+                setP('bfx-fill', 'style', 'width:' + clamp(pct, 0, 100) + '%');
+                setT('bfx-pct', Math.round(pct) + '%');
+            };
+            updateProgress(0);
+            let framesGenerated = 0;
+            try {
+                const lines = String(code).toUpperCase().split('\n');
+                const total = lines.length;
+                const res = [];
+                const CHUNK = 400;
+                let mat = Array.from({ length: GR }, () => Array(GC).fill(0));
+
+                for (let chunk = 0; chunk < total; chunk += CHUNK) {
+                    const end = Math.min(chunk + CHUNK, total);
+                    for (let li = chunk; li < end; li++) {
+                        const line = lines[li].trim();
+                        if (!line || line.startsWith('C') || line.startsWith(';')) continue;
+                        const parts = line.split(/\s+/);
+                        const cmd = parts[0];
+                        const a = parts.slice(1).map(Number);
+                        try {
+                            if (cmd === 'CLR') {
+                                const v = clamp(a[0] || 0, 0, 7);
+                                for (let y = 0; y < GR; y++) for (let x = 0; x < GC; x++) mat[y][x] = v;
+                            } else if (cmd === 'PNT') {
+                                const [px, py, pw, ph, pv] = a;
+                                const iv = clamp(pv || 0, 0, 7);
+                                for (let dy = py; dy < py + ph; dy++) {
+                                    for (let dx = px; dx < px + pw; dx++) {
+                                        if (dy >= 0 && dy < GR && dx >= 0 && dx < GC) mat[dy][dx] = iv;
+                                    }
+                                }
+                            } else if (cmd === 'LIN') {
+                                const [x1, y1, x2, y2, lv] = a;
+                                const iv = clamp(lv || 0, 0, 7);
+                                let lx = x1, ly = y1;
+                                const dx = Math.abs(x2 - lx), sx = lx < x2 ? 1 : -1;
+                                const dy = -Math.abs(y2 - ly), sy = ly < y2 ? 1 : -1;
+                                let le = dx + dy, lim = 2000;
+                                while (lim-- > 0) {
+                                    if (lx >= 0 && lx < GC && ly >= 0 && ly < GR) mat[ly][lx] = iv;
+                                    if (lx === x2 && ly === y2) break;
+                                    const e2 = 2 * le;
+                                    if (e2 >= dy) { le += dy; lx += sx; }
+                                    if (e2 <= dx) { le += dx; ly += sy; }
+                                }
+                            } else if (cmd === 'REC') {
+                                const n = clamp(a[0] || 1, 1, SHOT_FRAMES);
+                                const available = SHOT_FRAMES - res.length;
+                                const toAdd = Math.min(n, available);
+                                for (let i = 0; i < toAdd; i++) res.push(mat.map(r => [...r]));
+                                if (res.length >= SHOT_FRAMES) break;
+                            } else if (cmd === 'SHF') {
+                                const [sdx, sdy, sn] = a;
+                                const count = clamp(sn || 1, 1, SHOT_FRAMES);
+                                for (let fi = 0; fi < count && res.length < SHOT_FRAMES; fi++) {
+                                    const nm = Array.from({ length: GR }, () => Array(GC).fill(0));
+                                    for (let y = 0; y < GR; y++) {
+                                        for (let x = 0; x < GC; x++) {
+                                            const nx = x - sdx, ny = y - sdy;
+                                            if (nx >= 0 && nx < GC && ny >= 0 && ny < GR) nm[y][x] = mat[ny][nx];
+                                        }
+                                    }
+                                    mat = nm;
+                                    res.push(mat.map(r => [...r]));
+                                }
+                            }
+                        } catch (_) { }
+                    }
+                    if (total > 400 && chunk + CHUNK < total) {
+                        updateProgress((end / total) * 70);
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+
+                if (!res.length) res.push(mat.map(r => [...r]));
+
+                if (shotId) A.frames = A.frames.filter(f => f.shotId !== shotId);
+                const insertAt = A.frames.length;
+
+                for (let i = 0; i < res.length; i++) {
+                    const f = makeFrame(shotId);
+                    f.clipBoundary = (i === 0);
+                    f.sl.fill(0);
+                    const sm = res[i];
+                    for (let y = 0; y < GR; y++) {
+                        for (let x = 0; x < GC; x++) {
+                            if (!sm[y][x]) continue;
+                            const col = INKS[sm[y][x]].rgb;
+                            for (let by = 0; by < BS; by++) {
+                                for (let bx = 0; bx < BS; bx++) bpx(f.sl, x * BS + bx, y * BS + by, col);
+                            }
+                        }
+                    }
+                    A.frames.push(f);
+                    if (i % 30 === 0) {
+                        updateProgress(75 + (i / res.length) * 25);
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+                A.cur = insertAt;
+                framesGenerated = res.length;
+                updateProgress(100);
+                rebuildTimeline(); renderCanvas(); updateSB();
+            } catch (e) {
+                showToast('BEFLIX Compile failed', true);
+            } finally {
+                _bfxRunning = false;
+                get('bfx-bar')?.classList.remove('on');
+            }
+            return framesGenerated;
+        }
+        async function callGemini(systemPrompt, userPrompt, isJson = false) {
+            if (!KEY) {
+                return { error: "No API Key saved." };
+            }
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [{ text: userPrompt }]
+                    }
+                ],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+
+            if (isJson) {
+                payload.generationConfig = {
+                    responseMimeType: "application/json"
+                };
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            return rawText;
+        }
+
+        async function handleChat(userMsg) {
+            const sys = `You are CAUSALITY, an AI film development engine.
+Always return VALID JSON matches this format:
+{"reply": "Brief narrative advice or critique.", "actions": []}
+
+NARRATIVE PROCESS FLOW ACTIONS:
+SET_PREMISE:  {"type":"SET_PREMISE","payload":{"premise":"One-sentence logline"}}
+SET_SCRIPT:   {"type":"SET_SCRIPT","payload":{"script":"Fully formatted screen play"}}
+SET_SHOTS:    {"type":"SET_SHOTS","payload":{"shots":[{"type":"WIDE","title":"Shot description","desc":"Cinematic actions","bfxHint":"Visual composition cue"}]}}
+SET_BOARD:    {"type":"SET_BOARD","payload":{}}
+SET_PACKAGE:  {"type":"SET_PACKAGE","payload":{}}
+UPDATE_PROJECT:{"type":"UPDATE_PROJECT","payload":{"title":"Optional Title","premise":"..."}}
+RENDER_SHOTS: {"type":"RENDER_SHOTS","payload":{}}
+NAVIGATE:     {"type":"NAVIGATE","payload":{"sheet":"a|b|c|d"}}
+
+Current State Context:
+Title: "${S.title}"
+Logline: "${S.premise}"
+Script Word Count: ${S.script ? S.script.split(/\\s+/).length : 0}
+Defined Shots: ${S.shots.length}
+
+Match user intent exactly. If they say "make an idea" trigger SET_PREMISE. If "write script" trigger SET_SCRIPT. "break into shots" -> SET_SHOTS. "render" -> RENDER_SHOTS. Ensure strictly correct JSON structure with no formatting wrappers.`;
+
+            try {
+                const raw = await callGemini(sys, userMsg, true);
+                let parsed;
+                try {
+                    parsed = JSON.parse(raw.replace(/```json\n?|```/g, '').trim());
+                } catch (_) {
+                    parsed = { reply: raw, actions: [] };
+                }
+                return parsed;
+            } catch (e) {
+                return { reply: "Gemini Error: " + e.message, actions: [], isError: true };
+            }
+        }
+
+        function buildBEFLIXPrompt(shot, idx) {
+            return `You are a BEFLIX-128 animation composer. You generate frame-by-frame animation code for a 128-wide x 96-tall monochrome dot-matrix grid.
+
+COMMANDS (output ONLY these, one per line):
+  CLR v            — Fill entire grid with intensity v
+  PNT x y w h v    — Paint rectangle at (x,y) with width w, height h, intensity v
+  LIN x1 y1 x2 y2 v — Draw line from (x1,y1) to (x2,y2) in intensity v
+  REC n            — Record current grid state as n frames (higher n = longer hold)
+  SHF dx dy n      — Shift all pixels by (dx,dy) and record n frames
+
+INTENSITY: 0=White(no dot) 1=Tiny dot 2-3=Small 4-5=Medium 6=Large 7=Full black dot
+
+CINEMATIC RULES:
+1. Build each frame from scratch using CLR then layered PNT/LIN. Do NOT rely only on SHF.
+2. Use REC with VARYING values: REC 1 for fast action, REC 3-5 for holds, REC 8-15 for pauses.
+3. Layer multiple PNT commands per frame for depth. Use intensity variation for shading.
+4. Move objects smoothly: change x,y by small increments (1-4 pixels) for fluid motion.
+5. Use LIN for outlines, contours, and fine details. Use PNT for mass and fills.
+6. At least 8-12 distinct visual states. Total REC should sum to 40-120 frames.
+7. Use intensity gradient: value 1-2 for background haze, 4-5 for midground, 6-7 for foreground detail.
+8. Think cinematically: establish, build, climax, resolve.
+
+SHOT INFORMATION:
+Number: ${idx + 1}
+Type: ${shot.type} (${SHOT_TYPE_DESC[shot.type]})
+Title: "${shot.title}"
+Action details: "${shot.desc}"
+Cues: "${shot.bfxHint}"
+
+OUTPUT: Use C for comment lines. Output ONLY raw BEFLIX code. NO markdown. NO backticks. NO chat.`;
+        }
+
+        async function generateForShot(idx) {
+            const shot = S.shots[idx];
+            if (!shot) return;
+            shot.generating = true;
+            shot.error = null;
+            renderShotList();
+
+            setT('bfx-bar-lbl', 'GENERATING SHOT ' + (idx + 1));
+            get('bfx-bar')?.classList.add('on');
+
+            try {
+                let code = '';
+                if (KEY) {
+                    const prompt = buildBEFLIXPrompt(shot, idx);
+                    const raw = await callGemini("Generate raw BEFLIX-128 code strictly complying with the instructions.", prompt, false);
+                    code = raw.replace(/```[a-z]*\n?/g, '').replace(/```/g, '').trim();
+                } else {
+                    code = SEED_BFX[idx % SEED_BFX.length];
+                }
+                shot.beflix = code;
+                shot.rendered = false;
+
+                get('bfx-bar')?.classList.remove('on');
+                const fCount = await executeBEFLIX(code, shot.id);
+                shot.rendered = fCount > 0;
+                shot.generating = false;
+
+                if (_bfxModalShotId === shot.id) {
+                    setP('bfx-editor', 'value', code);
+                    _syncBFXEditorMeta();
+                }
+                renderShotList();
+                schedSave();
+            } catch (e) {
+                shot.generating = false;
+                shot.error = e.message;
+                get('bfx-bar')?.classList.remove('on');
+                renderShotList();
+                showToast('Shot failed: ' + e.message, true);
+            }
+        }
+
+        async function generateAllShots() {
+            if (!S.shots.length) { showToast('No shots to render', true); return; }
+            const btn = get('btn-render-all');
+            if (btn) { btn.disabled = true; btn.textContent = 'Rendering...'; }
+            try {
+                for (let i = 0; i < S.shots.length; i++) {
+                    await generateForShot(i);
+                }
+                S.boardReady = true;
+                updateAllViews();
+                schedSave();
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'RENDER ALL SHOTS'; }
+            }
+        }
+
+        async function applyActions(acts) {
+            for (const a of acts) {
+                switch (a.type) {
+                    case 'SET_PREMISE':
+                        S.premise = String(a.payload?.premise || '').slice(0, 1000);
+                        break;
+                    case 'SET_SCRIPT':
+                        S.script = String(a.payload?.script || '').slice(0, 60000);
+                        _updateScriptMeta();
+                        break;
+                    case 'SET_SHOTS': {
+                        const raw = Array.isArray(a.payload?.shots) ? a.payload.shots : [];
+                        S.shots = raw.slice(0, SHOTS_MAX).map((s, i) => ({
+                            id: uid(), order: i + 1,
+                            type: SHOT_TYPES.includes(s.type) ? s.type : 'SHOT',
+                            title: String(s.title || '').slice(0, 100),
+                            desc: String(s.desc || '').slice(0, 400),
+                            bfxHint: String(s.bfxHint || '').slice(0, 100),
+                            beflix: '', rendered: false, generating: false, error: null
+                        }));
+                        S.boardReady = false;
+                        S.pkgReady = false;
+                        S.selShotId = null;
+                        renderShotList();
+                        break;
+                    }
+                    case 'SET_BOARD': S.boardReady = true; break;
+                    case 'SET_PACKAGE': S.pkgReady = true; break;
+                    case 'UPDATE_PROJECT':
+                        if (a.payload?.title) { S.title = String(a.payload.title); setP('proj-title', 'value', S.title); }
+                        break;
+                    case 'RENDER_SHOTS':
+                        setTimeout(generateAllShots, 100);
+                        break;
+                    case 'NAVIGATE':
+                        openSheet(a.payload?.sheet || 'b', true);
+                        break;
+                }
+            }
+        }
+
+        const SEED_SCRIPT = t => `INT. FOREST ROAD - NIGHT\n\nRain hammers the windshield of an old Volvo wagon. \n\nNATE (40s) drives with gripped knuckles. Next to him, MARA (30s) watches the shadows outside.\n\nMARA\nWe should have turned back at the bypass.\n\nNATE\nThere is no highway back.\n\nSuddenly, the headlights scan a tall wooden structure standing in the center of the road.\n\nNATE slams the brakes. The Volvo skids to a complete halt inches from the wood.\n\nInside, the cabin dashboard light flickers off.\n\nMARA\nNate. It is moving.`;
+        const SEED_SHOTS = [
+            { type: 'WIDE', title: 'Rain road', desc: 'Volvo wagon slicing through deep dark woods.', bfxHint: 'car head lights road' },
+            { type: 'CLOSE', title: 'Nate driving', desc: 'Tight focus on Nate, knuckles white on wheel.', bfxHint: 'driver face fear' },
+            { type: 'MEDIUM', title: 'Road block', desc: 'Headlights catch massive timber scaffold ahead.', bfxHint: 'wood structure path' },
+            { type: 'INSERT', title: 'Skid stop', desc: 'Tires locking, rain spray blooming.', bfxHint: 'wheel mud lock' },
+            { type: 'CLOSE', title: 'Dashboard dead', desc: 'Stereo lights die. Total cabin darkness.', bfxHint: 'radio interface click' },
+        ];
+        const SEED_BFX = [
+            `C SHOT 1
+CLR 0
+PNT 0 80 128 16 7
+PNT 20 40 40 20 5
+REC 10
+SHF 4 0 20`,
+            `C SHOT 2
+CLR 1
+PNT 40 20 48 50 6
+REC 15
+LIN 40 20 88 70 7
+REC 15`,
+            `C SHOT 3
+CLR 0
+PNT 44 8 40 80 4
+REC 20`,
+            `C SHOT 4
+CLR 0
+PNT 0 80 128 16 7
+PNT 40 40 48 24 5
+REC 5
+SHF -2 1 15`,
+            `C SHOT 5
+CLR 7
+REC 20
+CLR 0
+REC 10`
+        ];
+
+        async function sendMessage(txt) {
+            const t = (txt || '').trim(); if (!t) return;
+            setP('chat-in', 'value', '');
+            addMessage('you', t);
+            setP('send-btn', 'disabled', true);
+            try {
+                let res;
+                if (KEY) {
+                    res = await handleChat(t);
+                } else {
+                    res = localFallback(t);
+                }
+                await applyActions(res.actions || []);
+                addMessage(res.isError ? 'err' : 'ai', res.reply || 'Acknowledged.');
+                updateAllViews();
+                renderShotList();
+                schedSave();
+            } catch (e) {
+                addMessage('err', 'System failure: ' + e.message);
+            } finally {
+                setP('send-btn', 'disabled', false);
+            }
+        }
+
+        function localFallback(text) {
+            const t = text.toLowerCase();
+            if (t.includes('reset')) {
+                localStorage.removeItem(SK); S = jc(BASE_STORY);
+                return { reply: 'Project wiped.', actions: [] };
+            }
+            if (t.includes('script') || t.includes('write')) {
+                return { reply: 'Screenplay draft completed. Next, ask to "break into shots".', actions: [{ type: 'SET_SCRIPT', payload: { script: SEED_SCRIPT() } }] };
+            }
+            if (t.includes('shot') || t.includes('break')) {
+                return { reply: '5 shot lists prepared. Say "render" to compile BEFLIX cells.', actions: [{ type: 'SET_SHOTS', payload: { shots: SEED_SHOTS } }] };
+            }
+            if (t.includes('render') || t.includes('beflix')) {
+                return { reply: 'Executing local fallback rendering...', actions: [{ type: 'RENDER_SHOTS', payload: {} }] };
+            }
+            return { reply: 'Local Mode. Say: idea · script · break into shots · render.\nAdd a Gemini key to activate advanced reasoning.', actions: [] };
+        }
+
+        function addMessage(who, text) {
+            S.log.push({ who, text, time: nowTime() });
+            renderChat();
+        }
+        function renderChat() {
+            const msgs = get('chat-msgs'); if (!msgs) return;
+            msgs.innerHTML = S.log.map(m => `
+    <div class="bubble ${m.who === 'you' ? 'me' : m.who === 'err' ? 'ai err' : 'ai'}">
+      <div class="bwho">${m.who === 'you' ? 'YOU' : 'GEMINI CANVAS'}<span>${esc(m.time || '')}</span></div>
+      <p>${esc(m.text).replace(/\n/g, '<br>')}</p>
+    </div>`).join('');
+            msgs.scrollTop = 9999;
+        }
+        function openSheet(id, silent = false) {
+            if (!silent) tick();
+            const wasOpen = A.activeSheet === id;
+            closeSheets();
+            if (!wasOpen) {
+                A.activeSheet = id;
+                get('sheet-' + id)?.classList.add('on');
+                get('backdrop')?.classList.add('on');
+                ['a', 'b', 'c', 'd'].forEach(x => {
+                    get('tab-' + x)?.classList.remove('on-a', 'on-b', 'on-c', 'on-d');
+                    get('snav-' + x)?.classList.remove('on-a', 'on-b', 'on-c', 'on-d');
+                });
+                get('tab-' + id)?.classList.add('on-' + id);
+                get('snav-' + id)?.classList.add('on-' + id);
+                if (id === 'c') get('draw-tb')?.classList.add('on');
+                if (id === 'a') renderShotList();
+                if (id === 'b') { renderChat(); _updateScriptMeta(); }
+                if (id === 'd') renderExportPanel();
+            }
+            _syncPlayOverlay();
+            requestAnimationFrame(scaleWorkspace);
+        }
+        function closeSheets() {
+            ['a', 'b', 'c', 'd'].forEach(id => {
+                get('sheet-' + id)?.classList.remove('on');
+                get('tab-' + id)?.classList.remove('on-a', 'on-b', 'on-c', 'on-d');
+                get('snav-' + id)?.classList.remove('on-a', 'on-b', 'on-c', 'on-d');
+            });
+            get('backdrop')?.classList.remove('on');
+            if (A.activeSheet !== 'c') get('draw-tb')?.classList.remove('on');
+            A.activeSheet = null;
+            _syncPlayOverlay();
+        }
+
+        function openInnerTab(sheetId, tabId) {
+            const sheet = get('sheet-' + sheetId); if (!sheet) return;
+            sheet.querySelectorAll('.sh-tab').forEach(b => b.classList.toggle('on', b.dataset.stab === tabId));
+            const panels = { a: ['a-shots', 'a-media', 'a-info'], b: ['b-chat', 'b-script'] };
+            (panels[sheetId] || []).forEach(pid => {
+                const el = get(pid); if (el) el.style.display = pid === tabId ? (tabId === 'b-chat' ? 'flex' : '') : 'none';
+            });
+        }
+
+        function updateAllViews() {
+            enforceInvariants();
+            _updateStatusBar();
+            _updateCausalChain();
+            _updateStateNodes();
+            _updateStageRail();
+            _syncPlayButton();
+            _syncPlayOverlay();
+        }
+        function _updateStatusBar() {
+            setT('sb-frame', A.frames.length
+                ? String(A.cur + 1).padStart(2, '0') + '/' + String(A.frames.length).padStart(2, '0')
+                : '00/00');
+            setT('sb-fps', BASE_FPS);
+            const b = get('ink-badge'); if (b) b.style.background = INKS[A.ink].hex;
+            setT('f-premise', S.premise ? 'Ready.' : 'None');
+            setT('f-script', S.script ? S.script.split(/\s+/).length + ' words' : 'None');
+            setT('f-shots', S.shots.length + ' / ' + SHOTS_MAX);
+            setT('f-frames', A.frames.length + ' / ' + FRAMES_MAX);
+        }
+        function _updateCausalChain() {
+            get('dn-idea')?.classList.toggle('lit', !!S.premise);
+            get('dn-script')?.classList.toggle('lit', !!S.script);
+            get('dn-shots')?.classList.toggle('lit', S.shots.length > 0);
+            get('dn-board')?.classList.toggle('lit', S.boardReady);
+            get('dn-out')?.classList.toggle('lit', S.pkgReady);
+        }
+        function _updateStateNodes() {
+            get('sn-idea')?.classList.toggle('lit', !!S.premise);
+            get('sn-script')?.classList.toggle('lit', !!S.script);
+            get('sn-shots')?.classList.toggle('lit', S.shots.length > 0);
+            get('sn-board')?.classList.toggle('lit', S.boardReady);
+        }
+        function _updateStageRail() {
+            const idx = STAGES.indexOf(S.stage);
+            document.querySelectorAll('.stage-pip').forEach((el, i) => {
+                el.classList.toggle('active', el.dataset.stage === S.stage);
+                el.classList.toggle('done', i < idx);
+            });
+        }
+        function _updateScriptMeta() {
+            const wc = S.script ? S.script.split(/\s+/).length : 0;
+            setT('wc-lbl', wc + ' words');
+            setT('wc-warn', wc > WORD_MAX ? 'VERY LONG' : '');
+            const fill = get('word-fill'); if (fill) fill.style.width = clamp(Math.round(wc / WORD_MAX * 100), 0, 100) + '%';
+            const el = get('script-el'); if (el && document.activeElement !== el) el.value = S.script || '';
+        }
+        function updateSB() { _updateStatusBar(); _syncPlayOverlay(); }
+
+        function renderShotList() {
+            const wrap = get('shot-list'); if (!wrap) return;
+            if (!S.shots.length) {
+                wrap.innerHTML = '<div style="padding:11px;font:11px/1.5 var(--font);color:#aaa">No shots. Open Build → Chat and ask to "break into shots".</div>';
+                return;
+            }
+            wrap.innerHTML = S.shots.map((shot, i) => {
+                const isSel = shot.id === S.selShotId;
+                const count = A.frames.filter(f => f.shotId === shot.id).length;
+                const bfxClass = shot.generating ? 'generating'
+                    : shot.error ? 'err'
+                        : shot.rendered ? 'rendered'
+                            : shot.beflix ? 'has-code'
+                                : 'none';
+                const bfxLabel = shot.generating ? 'GENERATING...'
+                    : shot.error ? 'ERR: ' + shot.error.slice(0, 25)
+                        : shot.rendered ? 'RENDERED (' + count + ' FR)'
+                            : shot.beflix ? 'CODE BUILT'
+                                : 'NO CODE';
+                return `
+      <article class="shot-card${isSel ? ' sel' : ''}" data-sid="${shot.id}">
+        <div class="shot-n">${i + 1}</div>
+        <div class="shot-card-body">
+          <div class="shot-flds">
+            <div class="shot-fld">
+              <select data-sf="type" style="height:26px">
+                ${SHOT_TYPES.map(t => `<option${shot.type === t ? ' selected' : ''}>${t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="shot-fld">
+              <input data-sf="title" value="${esc(shot.title || '')}" placeholder="Shot Title">
+            </div>
+            <div class="shot-fld">
+              <textarea data-sf="desc" rows="2">${esc(shot.desc || '')}</textarea>
+            </div>
+          </div>
+          <div class="shot-footer">
+            <span class="bfx-status ${bfxClass}">
+              <span class="bfx-dot"></span>${bfxLabel}
+            </span>
+          </div>
+          <div class="shot-actions">
+            <button class="btn b sm" data-render="${shot.id}"${shot.generating ? ' disabled' : ''}>RENDER</button>
+            <button class="btn sm"   data-edit="${shot.id}">EDIT</button>
+            <button class="btn sm"   data-sup="${shot.id}">UP</button>
+            <button class="btn sm"   data-sdn="${shot.id}">DN</button>
+            <button class="btn sm"   data-sdel="${shot.id}" style="color:var(--c)">DEL</button>
+          </div>
+        </div>
+      </article>`;
+            }).join('');
+        }
+
+        function renderExportPanel() {
+            const list = get('exp-list'); if (!list) return;
+            const items = [
+                { done: !!S.premise, label: 'Logline / Premise set' },
+                { done: !!S.script, label: 'Screenplay draft' },
+                { done: S.shots.length > 0, label: S.shots.length + ' Shot listings defined' },
+                { done: S.shots.some(s => s.beflix), label: 'BEFLIX animation instructions' },
+                { done: S.shots.some(s => s.rendered), label: 'Boards rendered into frames' },
+                { done: A.frames.length > 0, label: A.frames.length + ' Composite frames' },
+                { done: S.boardReady, label: 'Production complete (board ready)' }
+            ];
+            list.innerHTML = items.map(item => `
+    <div class="exp-item${item.done ? ' done' : ''}">
+      <div class="exp-chk">${item.done ? '✓' : ''}</div>
+      ${esc(item.label)}
+    </div>`).join('');
+        }
+
+        function openBFXEditor(shotId) {
+            const shot = S.shots.find(s => s.id === shotId);
+            if (!shot) return;
+            _bfxModalShotId = shotId;
+            const modal = get('bfx-modal'); if (!modal) return;
+            const ed = get('bfx-editor'); if (!ed) return;
+            ed.value = shot.beflix || SEED_BFX[S.shots.indexOf(shot) % SEED_BFX.length];
+            setT('bfx-modal-title', 'BEFLIX — ' + (shot.title || 'SHOT ' + (S.shots.indexOf(shot) + 1)).toUpperCase());
+            setT('bfx-err-line', '');
+            _syncBFXEditorMeta();
+            modal.classList.add('on');
+            ed.focus();
+        }
+        function closeBFXEditor() {
+            get('bfx-modal')?.classList.remove('on');
+            _bfxModalShotId = null;
+        }
+        function _syncBFXEditorMeta() {
+            const ed = get('bfx-editor'); if (!ed) return;
+            const lines = ed.value.split('\n').length;
+            setT('bfx-line-count', lines + ' LINES');
+        }
+        async function runBFXFromEditor() {
+            const ed = get('bfx-editor'); if (!ed) return;
+            const shot = S.shots.find(s => s.id === _bfxModalShotId);
+            if (!shot) return;
+            setT('bfx-err-line', '');
+            shot.beflix = ed.value;
+            shot.rendered = false;
+            renderShotList();
+            const fCount = await executeBEFLIX(shot.beflix, shot.id);
+            shot.rendered = fCount > 0;
+            renderShotList();
+            schedSave();
+        }
+        async function regenBFXFromEditor() {
+            const shot = S.shots.find(s => s.id === _bfxModalShotId);
+            if (!shot) return;
+            const idx = S.shots.indexOf(shot);
+            setT('bfx-err-line', 'RE-COMPOSING WITH GEMINI...');
+            await generateForShot(idx);
+            const ed = get('bfx-editor');
+            if (ed && shot.beflix) { ed.value = shot.beflix; _syncBFXEditorMeta(); }
+            setT('bfx-err-line', shot.error ? 'ERROR: ' + shot.error : '');
+        }
+
+        const _textCanvas = document.createElement('canvas'); _textCanvas.width = GC; _textCanvas.height = GR;
+        const _textCtx = _textCanvas.getContext('2d', { willReadFrequently: true });
+
+        function rasterizeText(text, fontSize, gx, gy, inkLevel) {
+            const grid = Array.from({ length: GR }, () => Array(GC).fill(0));
+            _textCtx.clearRect(0, 0, GC, GR);
+            _textCtx.fillStyle = '#000';
+            _textCtx.font = `900 ${fontSize}px Helvetica, Arial, sans-serif`;
+            _textCtx.textBaseline = 'top';
+            _textCtx.textAlign = 'left';
+            const lineH = Math.ceil(fontSize * 1.2);
+            let cy = gy;
+            for (const line of text.split('\n')) {
+                const maxW = GC - gx;
+                const words = line.split(' ');
+                let cur = '';
+                for (const word of words) {
+                    const test = cur ? cur + ' ' + word : word;
+                    if (_textCtx.measureText(test).width > maxW && cur) {
+                        _textCtx.fillText(cur, gx, cy); cy += lineH; cur = word;
+                    } else { cur = test; }
+                }
+                if (cur) { _textCtx.fillText(cur, gx, cy); cy += lineH; }
+            }
+            const px = _textCtx.getImageData(0, 0, GC, GR).data;
+            for (let y = 0; y < GR; y++) {
+                for (let x = 0; x < GC; x++) {
+                    const alpha = px[(y * GC + x) * 4 + 3];
+                    if (alpha > 30) grid[y][x] = clamp(Math.round((alpha / 255) * inkLevel), 1, 7);
+                }
+            }
+            return grid;
+        }
+        function applyGridToFrame(f, grid) {
+            for (let y = 0; y < GR; y++) {
+                for (let x = 0; x < GC; x++) {
+                    if (!grid[y][x]) continue;
+                    const col = INKS[grid[y][x]].rgb;
+                    for (let by = 0; by < BS; by++) {
+                        for (let bx = 0; bx < BS; bx++) bpx(f.sl, x * BS + bx, y * BS + by, col);
+                    }
+                }
+            }
+        }
+        function stampText() {
+            if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+            pushUndo('stamp text');
+            const text = (get('t-text')?.value || '').toUpperCase();
+            const size = parseInt(get('t-size')?.value || '14');
+            const ink = parseInt(get('t-ink')?.value || '7');
+            applyGridToFrame(A.frames[A.cur], rasterizeText(text, size, 4, 40, ink));
+            renderCanvas(); rebuildTimeline();
+            showToast('TEXT STAMPED');
+        }
+        function previewText() {
+            if (!A.frames.length) return;
+            const f = A.frames[A.cur];
+            const bkp = new Uint8ClampedArray(f.sl);
+            const text = (get('t-text')?.value || '').toUpperCase();
+            const size = parseInt(get('t-size')?.value || '14');
+            const ink = parseInt(get('t-ink')?.value || '7');
+            applyGridToFrame(f, rasterizeText(text, size, 4, 40, ink));
+            renderCanvas();
+            f.sl.set(bkp);
+            showToast('PREVIEWING ONLY — USE STAMP TO COMMIT');
+        }
+        async function ripVideoFrames(source, shotId = null) {
+            lockSys('LOADING VIDEO', 0);
+            const url = source instanceof Blob ? URL.createObjectURL(source) : source;
+            const vid = document.createElement('video');
+            vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = url;
+            try {
+                await new Promise((res, rej) => {
+                    vid.onloadedmetadata = res;
+                    vid.onerror = () => rej(new Error('Video unreadable'));
+                    setTimeout(() => rej(new Error('Metadata timeout')), 8000);
+                });
+            } catch (e) {
+                unlockSys(); showToast('Video load failed', true);
+                if (source instanceof Blob) URL.revokeObjectURL(url);
+                return;
+            }
+            const dur = vid.duration;
+            if (!isFinite(dur) || dur <= 0) { unlockSys(); showToast('No duration', true); return; }
+            A.audioBlob = source instanceof Blob ? source : null;
+            A.audioDuration = dur;
+            const maxF = clamp(Math.ceil(dur * BASE_FPS), 1, SHOT_FRAMES);
+            const interval = 1 / BASE_FPS;
+            const frames = [];
+            let lastCap = -Infinity;
+            lockSys('RIPPING CELLS', 0);
+            const capture = () => { if (vid.videoWidth) frames.push(fitToCanvas(vid, vid.videoWidth, vid.videoHeight)); setLockN(frames.length); };
+            await new Promise(res => {
+                const onR = () => {
+                    if (frames.length >= maxF || vid.ended) { res(); return; }
+                    if (vid.videoWidth && vid.currentTime - lastCap >= interval - 0.001) { lastCap = vid.currentTime; capture(); }
+                    requestAnimationFrame(onR);
+                };
+                requestAnimationFrame(onR); vid.play().catch(() => { }); setTimeout(res, (dur + 3) * 1000);
+            });
+            vid.pause();
+            if (source instanceof Blob) URL.revokeObjectURL(url);
+            if (!frames.length) { unlockSys(); showToast('No frames ripped', true); return; }
+            if (A.frames.length + frames.length > FRAMES_MAX) {
+                const avail = FRAMES_MAX - A.frames.length;
+                if (avail <= 0) { unlockSys(); return; }
+                frames.splice(avail);
+            }
+            const insertAt = A.frames.length;
+            frames.forEach((src, i) => {
+                const f = makeFrame(shotId); f.src = src; f.clipBoundary = (i === 0); processFrame(f); A.frames.push(f);
+            });
+            A.cur = insertAt; unlockSys(); rebuildTimeline(); renderCanvas(); updateSB();
+            showToast(frames.length + ' CELLS IMPORTED');
+        }
+
+        function processFrame(f) {
+            const mode = get('proc-mode')?.value || 'posterize';
+            if (mode === 'raw' || !f.src) return;
+            const tc = document.createElement('canvas'); tc.width = GC; tc.height = GR;
+            const tx = tc.getContext('2d'); tx.imageSmoothingEnabled = true;
+            tx.drawImage(f.src, 0, 0, GC, GR);
+            const sd = tx.getImageData(0, 0, GC, GR).data;
+            const grid = Array.from({ length: GR }, () => Array(GC).fill(0));
+
+            if (mode === 'threshold') {
+                for (let y = 0; y < GR; y++) {
+                    for (let x = 0; x < GC; x++) {
+                        const i = (y * GC + x) * 4;
+                        grid[y][x] = (sd[i] * 0.299 + sd[i + 1] * 0.587 + sd[i + 2] * 0.114) < 128 ? 7 : 0;
+                    }
+                }
+            } else if (mode === 'posterize') {
+                for (let y = 0; y < GR; y++) {
+                    for (let x = 0; x < GC; x++) {
+                        const i = (y * GC + x) * 4;
+                        const l = sd[i] * 0.299 + sd[i + 1] * 0.587 + sd[i + 2] * 0.114;
+                        grid[y][x] = clamp(Math.round((255 - l) / 255 * 7), 0, 7);
+                    }
+                }
+            } else if (mode === 'edge') {
+                const lum = Array.from({ length: GR }, (_, y) =>
+                    Array.from({ length: GC }, (_, x) => {
+                        const i = (y * GC + x) * 4;
+                        return sd[i] * 0.299 + sd[i + 1] * 0.587 + sd[i + 2] * 0.114;
+                    })
+                );
+                for (let y = 1; y < GR - 1; y++) {
+                    for (let x = 1; x < GC - 1; x++) {
+                        const gx = -lum[y - 1][x - 1] + lum[y - 1][x + 1] - 2 * lum[y][x - 1] + 2 * lum[y][x + 1] - lum[y + 1][x - 1] + lum[y + 1][x + 1];
+                        const gy = -lum[y - 1][x - 1] - 2 * lum[y - 1][x] - lum[y - 1][x + 1] + lum[y + 1][x - 1] + 2 * lum[y + 1][x] + lum[y + 1][x + 1];
+                        grid[y][x] = (gx * gx + gy * gy) > 3600 ? 7 : 0;
+                    }
+                }
+            } else if (mode === 'halftone') {
+                const b = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+                for (let y = 0; y < GR; y++) {
+                    for (let x = 0; x < GC; x++) {
+                        const i = (y * GC + x) * 4;
+                        const th = (b[y % 4][x % 4] / 16 - 0.5) * 80;
+                        const l = sd[i] * 0.299 + sd[i + 1] * 0.587 + sd[i + 2] * 0.114;
+                        grid[y][x] = clamp(Math.round((255 - clamp(l + th, 0, 255)) / 255 * 7), 0, 7);
+                    }
+                }
+            }
+
+            f.sl.fill(0);
+            for (let y = 0; y < GR; y++) {
+                for (let x = 0; x < GC; x++) {
+                    if (!grid[y][x]) continue;
+                    const col = INKS[grid[y][x]].rgb;
+                    for (let by = 0; by < BS; by++) {
+                        for (let bx = 0; bx < BS; bx++) bpx(f.sl, x * BS + bx, y * BS + by, col);
+                    }
+                }
+            }
+        }
+
+        function fitToCanvas(src, sw, sh) {
+            const c = document.createElement('canvas'); c.width = W; c.height = H;
+            const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+            const a = sw / sh;
+            let dw = W, dh = H, dx = 0, dy = 0;
+            if (a > W / H) { dh = W / a; dy = (H - dh) / 2; }
+            else { dw = H * a; dx = (W - dw) / 2; }
+            cx.drawImage(src, 0, 0, sw, sh, dx, dy, dw, dh);
+            return c;
+        }
+
+        let fbRenderedFrames = [];
+
+        function getVisualPrimitivesForFrame(frameIdx) {
+            if (!A.frames[frameIdx]) return null;
+            const f = A.frames[frameIdx];
+            let minX = 9999, minY = 9999, maxX = -9999, maxY = -9999;
+            let count = 0, sumX = 0, sumY = 0;
+            for (let gy = 0; gy < GR; gy++) {
+                for (let gx = 0; gx < GC; gx++) {
+                    const sx = gx * BS + Math.floor(BS / 2);
+                    const sy = gy * BS + Math.floor(BS / 2);
+                    const si = (sy * W + sx) * 4;
+                    let val = 0;
+                    if (f.hl[si + 3] >= 16) val = 1;
+                    else if (f.sl[si + 3] >= 16) val = 1;
+
+                    if (val > 0) {
+                        if (gx < minX) minX = gx;
+                        if (gx > maxX) maxX = gx;
+                        if (gy < minY) minY = gy;
+                        if (gy > maxY) maxY = gy;
+                        sumX += gx; sumY += gy; count++;
+                    }
+                }
+            }
+            if (count === 0) return null;
+            return {
+                bbox: { minX, minY, maxX, maxY },
+                centroid: { x: Math.round(sumX / count), y: Math.round(sumY / count) }
+            };
+        }
+
+        function openFlipbookGenerator() {
+            if (!A.frames.length) { showToast('NO CELLS TO PRINT', true); return; }
+            lockSys('PREPARING BOOK', 0);
+            setTimeout(() => {
+                fbRenderedFrames = [];
+                for (let i = 0; i < A.frames.length; i++) {
+                    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+                    renderDotFrame(A.frames[i], tmp);
+                    fbRenderedFrames.push({
+                        index: i + 1,
+                        dataUrl: tmp.toDataURL('image/png'),
+                        idx: i
+                    });
+                }
+                setT('fb-stat-frames', fbRenderedFrames.length);
+                get('flipbook-modal').classList.add('on');
+                fbRenderFlipbook();
+                unlockSys();
+            }, 100);
+        }
+
+        function fbRenderFlipbook() {
+            const preset = get('fb-grid-preset').value;
+            const parts = preset.split('x');
+            const cols = parseInt(parts[0]);
+            const rows = parseInt(parts[1]);
+            const bindSide = get('fb-bind-side').value;
+            const bindAssist = get('fb-bind-assist').value;
+            const pagMode = get('fb-pag-mode').value;
+            const orientation = get('fb-orientation').value;
+            const paperSize = get('fb-paper-size').value;
+            const primitivesOn = get('fb-primitives-toggle').checked;
+
+            const cardsPerPage = cols * rows;
+            const totalPages = Math.ceil(fbRenderedFrames.length / cardsPerPage);
+            setT('fb-stat-pages', totalPages);
+            setT('fb-stat-cards', cardsPerPage);
+
+            const container = get('fb-pages-container');
+            container.innerHTML = '';
+
+            for (let p = 0; p < totalPages; p++) {
+                const pageEl = document.createElement('div');
+                pageEl.className = 'fb-a4-page paper-' + paperSize + (orientation === 'landscape' ? ' landscape-page' : '');
+                pageEl.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+                pageEl.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const cardIndex = r * cols + c;
+                        const frameIdx = pagMode === 'sequential'
+                            ? (p * cardsPerPage + cardIndex)
+                            : (cardIndex * totalPages + p);
+
+                        const cardEl = document.createElement('div');
+                        cardEl.className = 'fb-flip-card';
+
+                        if (frameIdx < fbRenderedFrames.length) {
+                            const f = fbRenderedFrames[frameIdx];
+                            let bindHTML = '';
+                            const bindSizeVal = get('fb-bind-size')?.value || '16';
+
+                            if (bindSide === 'left') {
+                                let assistHTML = '';
+                                if (bindAssist === 'staples' || bindAssist === 'both') {
+                                    assistHTML += '<div class="fb-staple-mark" style="position:absolute;top:20%"></div><div class="fb-staple-mark" style="position:absolute;top:80%"></div>';
+                                }
+                                if (bindAssist === 'holes' || bindAssist === 'both') {
+                                    assistHTML += '<div class="fb-hole-mark"></div><div class="fb-hole-mark"></div>';
+                                }
+                                bindHTML = '<div class="fb-binding-safe-zone" style="width: ' + bindSizeVal + 'mm;">' + assistHTML + '</div>';
+                            } else if (bindSide === 'top') {
+                                let assistHTML = '';
+                                if (bindAssist === 'staples' || bindAssist === 'both') assistHTML += '<div class="fb-staple-mark"></div>';
+                                if (bindAssist === 'holes' || bindAssist === 'both') assistHTML += '<div class="fb-hole-mark"></div><div class="fb-hole-mark"></div>';
+                                bindHTML = '<div class="fb-binding-safe-zone top-bind" style="height: ' + bindSizeVal + 'mm;">' + assistHTML + '</div>';
+                                cardEl.style.flexDirection = 'column';
+                            }
+
+                            let primsHTML = '';
+                            if (primitivesOn) {
+                                const prims = getVisualPrimitivesForFrame(f.idx);
+                                if (prims) {
+                                    const bbox = prims.bbox;
+                                    const cent = prims.centroid;
+                                    const rectW = bbox.maxX - bbox.minX + 1;
+                                    const rectH = bbox.maxY - bbox.minY + 1;
+                                    primsHTML = '<svg viewBox="0 0 128 96" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15;">' +
+                                        '<rect x="' + bbox.minX + '" y="' + bbox.minY + '" width="' + rectW + '" height="' + rectH + '" fill="rgba(0, 255, 0, 0.08)" stroke="#00cc00" stroke-width="1.2" stroke-dasharray="2,2"/>' +
+                                        '<text x="' + bbox.minX + '" y="' + Math.max(9, bbox.minY - 2) + '" fill="#00cc00" font-family="monospace" font-size="7" font-weight="900">[' + bbox.minX + ',' + bbox.minY + ']</text>' +
+                                        '<circle cx="' + cent.x + '" cy="' + cent.y + '" r="3" fill="none" stroke="#00e5ff" stroke-width="1"/>' +
+                                        '</svg>';
+                                }
+                            }
+
+                            cardEl.innerHTML = bindHTML +
+                                '<div class="fb-card-body">' +
+                                '<div class="fb-frame-img-container"><img src="' + f.dataUrl + '"></div>' +
+                                primsHTML +
+                                '<div class="fb-card-meta">' +
+                                '<span class="idx">#' + String(f.index).padStart(3, '0') + '</span>' +
+                                '</div>' +
+                                '</div>';
+                        } else {
+                            cardEl.innerHTML = '<div style="flex:1; display:flex; align-items:center; justify-content:center; background:#fafafa; opacity:0.3;"><span style="font-size:8px;">EMPTY</span></div>';
+                        }
+                        pageEl.appendChild(cardEl);
+                    }
+                }
+                container.appendChild(pageEl);
+            }
+        }
+        function exportPNG() {
+            if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+            const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+            renderDotFrame(A.frames[A.cur], tmp);
+            const a = document.createElement('a');
+            a.download = 'CAUSALITY_' + String(A.cur + 1).padStart(3, '0') + '.png';
+            a.href = tmp.toDataURL(); a.click();
+        }
+
+        async function exportVideo(fmt) {
+            if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+            if (A.playing) togglePlay();
+            const mime = pickMimeType(fmt);
+            if (!mime) { showToast('FORMAT UNSUPPORTED', true); return; }
+            lockSys('ENCODING ' + fmt.toUpperCase(), 0);
+            const ec = document.createElement('canvas'); ec.width = W * 2; ec.height = H * 2;
+            const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+            const stream = ec.captureStream(BASE_FPS);
+            let eAC = null, srcN = null;
+            if (A.audioBlob) {
+                try {
+                    eAC = new (window.AudioContext || window.webkitAudioContext)();
+                    const ab = await A.audioBlob.arrayBuffer();
+                    const buf = await eAC.decodeAudioData(ab);
+                    const dest = eAC.createMediaStreamDestination();
+                    srcN = eAC.createBufferSource(); srcN.buffer = buf;
+                    const outDur = A.frames.length / BASE_FPS;
+                    if (buf.duration > 0) srcN.playbackRate.value = clamp(buf.duration / outDur, 0.25, 4);
+                    srcN.connect(dest);
+                    const tracks = dest.stream.getAudioTracks();
+                    if (tracks.length) stream.addTrack(tracks[0]);
+                } catch (_) { }
+            }
+            const rec = new MediaRecorder(stream, { mimeType: mime });
+            const chunks = []; rec.ondataavailable = e => { if (e.data?.size) chunks.push(e.data); };
+            const done = new Promise(r => { rec.onstop = r; });
+            try { srcN?.start(0); } catch (_) { }
+            rec.start();
+            const t0 = performance.now();
+            for (let i = 0; i < A.frames.length; i++) {
+                renderDotFrame(A.frames[i], tmp); ec.getContext('2d').drawImage(tmp, 0, 0, W * 2, H * 2);
+                setLockN(i + 1);
+                const target = t0 + (i + 1) * (1000 / BASE_FPS);
+                const delay = target - performance.now();
+                await new Promise(r => setTimeout(r, Math.max(0, delay)));
+            }
+            await new Promise(r => setTimeout(r, 80)); rec.stop();
+            try { srcN?.stop(); } catch (_) { }
+            try { eAC?.close(); } catch (_) { }
+            await done; stream.getTracks().forEach(t => t.stop());
+            const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+            const bl = new Blob(chunks, { type: mime });
+            const a = document.createElement('a');
+            a.download = 'CAUSALITY_' + Date.now() + '.' + ext;
+            a.href = URL.createObjectURL(bl); a.click();
+            unlockSys(); showToast(ext.toUpperCase() + ' SAVED');
+        }
+
+        function pickMimeType(fmt) {
+            const webm = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+            const mp4 = ['video/mp4;codecs=h264', 'video/mp4'];
+            const list = fmt === 'mp4' ? mp4 : webm;
+            for (const m of list) if (window.MediaRecorder?.isTypeSupported?.(m)) return m;
+            return '';
+        }
+
+        function exportGIF() {
+            if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+            lockSys('ENCODING GIF', 0);
+            const gif = new GIF({ workers: 1, quality: 12, width: W * 2, height: H * 2, workerScript: 'https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js' });
+            const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+            for (let i = 0; i < A.frames.length; i++) {
+                renderDotFrame(A.frames[i], tmp);
+                const fc = document.createElement('canvas'); fc.width = W * 2; fc.height = H * 2;
+                fc.getContext('2d').drawImage(tmp, 0, 0, W * 2, H * 2);
+                gif.addFrame(fc, { delay: 1000 / BASE_FPS, copy: true });
+            }
+            gif.on('progress', p => setLockN(Math.round(p * 100) + '%'));
+            gif.on('finished', blob => {
+                const a = document.createElement('a');
+                a.download = 'CAUSALITY_' + Date.now() + '.gif';
+                a.href = URL.createObjectURL(blob); a.click();
+                unlockSys(); showToast('GIF SAVED');
+            });
+            gif.render();
+        }
+
+        function exportContactSheet() {
+            if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+            lockSys('CONTACT SHEET', 0);
+            setTimeout(() => {
+                const cols = Math.min(5, A.frames.length);
+                const rows = Math.ceil(A.frames.length / cols);
+                const sc = document.createElement('canvas'); sc.width = cols * W; sc.height = rows * H;
+                const sctx = sc.getContext('2d');
+                for (let i = 0; i < A.frames.length; i++) {
+                    const tc = document.createElement('canvas'); tc.width = W; tc.height = H;
+                    renderDotFrame(A.frames[i], tc);
+                    sctx.drawImage(tc, (i % cols) * W, Math.floor(i / cols) * H);
+                }
+                const a = document.createElement('a'); a.download = 'CAUSALITY_SHEET.png'; a.href = sc.toDataURL(); a.click();
+                unlockSys(); showToast('SHEET SAVED');
+            }, 50);
+        }
+
+        function decompileToCode() {
+            let code = `; CAUSALITY BEFLIX EXPORT\n; FRAMES: ${A.frames.length}\n;\n`;
+            for (let fi = 0; fi < A.frames.length; fi++) {
+                const f = A.frames[fi];
+                code += `C FRAME ${fi + 1}\n`;
+                const grid = Array.from({ length: GR }, () => Array(GC).fill(0));
+                for (let y = 0; y < GR; y++) {
+                    for (let x = 0; x < GC; x++) {
+                        const sx = x * BS + Math.floor(BS / 2), sy = y * BS + Math.floor(BS / 2);
+                        const si = (sy * W + sx) * 4;
+                        const ha = f.hl[si + 3];
+                        if (ha >= 16) grid[y][x] = alphaToLevel(ha);
+                        else { const sa = f.sl[si + 3]; if (sa >= 16) grid[y][x] = alphaToLevel(sa); }
+                    }
+                }
+                code += `CLR 0\n`;
+                for (let y = 0; y < GR; y++) {
+                    let x = 0;
+                    while (x < GC) {
+                        const ink = grid[y][x];
+                        if (ink !== 0) {
+                            const sx = x; while (x < GC && grid[y][x] === ink) x++;
+                            code += `PNT ${sx} ${y} ${x - sx} 1 ${ink}\n`;
+                        } else x++;
+                    }
+                }
+                code += `REC 1\n`;
+            }
+            return code;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            CVS = get('cvs');
+            CTX = CVS.getContext('2d', { willReadFrequently: true });
+            COMP = document.createElement('canvas'); COMP.width = W; COMP.height = H;
+            CCTX = COMP.getContext('2d', { willReadFrequently: true });
+
+            buildDotStamps();
+            buildInkPalette();
+            addFrame(true);
+            scaleWorkspace();
+
+            document.body.addEventListener('pointerdown', initAudio, { once: true });
+            window.addEventListener('resize', () => requestAnimationFrame(scaleWorkspace));
+
+            CVS.addEventListener('pointerdown', e => {
+                const drawActive = A.activeSheet === 'c' || get('draw-tb')?.classList.contains('on');
+                if (!drawActive) return;
+                pushUndo('draw'); CVS.setPointerCapture(e.pointerId);
+                A.dragging = true; A.p0 = mapCoord(e); A.p1 = [...A.p0];
+                if (A.tool !== 'rect') commitStroke(A.p0, A.p0);
+                else renderCanvas();
+            });
+            CVS.addEventListener('pointermove', e => {
+                if (!A.dragging) return;
+                const prev = [...A.p1]; A.p1 = mapCoord(e);
+                if (A.tool === 'rect') renderCanvas();
+                else commitStroke(prev, A.p1);
+            });
+            CVS.addEventListener('pointerup', () => {
+                if (!A.dragging) return;
+                if (A.tool === 'rect') commitStroke(A.p0, A.p1, true);
+                A.dragging = false; renderCanvas(); rebuildTimeline();
+            });
+
+            get('play-btn')?.addEventListener('click', togglePlay);
+            get('play-ov-btn')?.addEventListener('click', togglePlay);
+            get('fps-up')?.addEventListener('click', () => { BASE_FPS = Math.min(30, BASE_FPS + 1); updateSB(); });
+            get('fps-dn')?.addEventListener('click', () => { BASE_FPS = Math.max(1, BASE_FPS - 1); updateSB(); });
+
+            get('grid-btn')?.addEventListener('click', () => {
+                const net = get('net'); if (!net) return;
+                if (!A.showGrid && !A.showOnion) {
+                    A.showGrid = true; setT('grid-btn', 'GRID: ON'); net.classList.add('on'); drawGrid();
+                } else if (A.showGrid) {
+                    A.showGrid = false; A.showOnion = true; setT('grid-btn', 'ONION: ON'); _drawOnion();
+                } else {
+                    A.showGrid = false; A.showOnion = false; setT('grid-btn', 'GRID: OFF'); net.classList.remove('on');
+                }
+            });
+
+            get('tl-prev')?.addEventListener('click', () => { clearSel(); stepFrame(-1); });
+            get('tl-next')?.addEventListener('click', () => { clearSel(); stepFrame(1); });
+            get('tl-blk')?.addEventListener('click', addFrame);
+            get('tl-dup')?.addEventListener('click', dupFrame);
+            get('tl-del')?.addEventListener('click', deleteSelected);
+            get('tl-undo')?.addEventListener('click', popUndo);
+            get('tl-sel')?.addEventListener('click', () => { if (A.selMode) clearSel(); else enterSelMode(); });
+            get('tl-clr')?.addEventListener('click', clearSel);
+
+            ['a', 'b', 'c', 'd'].forEach(id => {
+                get('tab-' + id)?.addEventListener('click', () => openSheet(id));
+                get('snav-' + id)?.addEventListener('click', () => openSheet(id));
+            });
+            get('tab-help')?.addEventListener('click', () => get('m-help')?.classList.add('on'));
+            get('backdrop')?.addEventListener('click', closeSheets);
+
+            ['a', 'b', 'c', 'd'].forEach(id => get('sh-' + id + '-x')?.addEventListener('click', closeSheets));
+
+            document.querySelectorAll('.sh-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sheet = btn.closest('.sheet')?.id?.replace('sheet-', '');
+                    if (sheet) openInnerTab(sheet, btn.dataset.stab);
+                });
+            });
+
+            document.querySelectorAll('.stage-pip').forEach(el => {
+                el.addEventListener('click', () => {
+                    const stage = el.dataset.stage;
+                    if (stage === 'script') { openSheet('b'); openInnerTab('b', 'b-script'); }
+                    else if (stage === 'shots' || stage === 'board') { openSheet('a'); }
+                    else if (stage === 'export') { openSheet('d'); }
+                    else { openSheet('b'); }
+                });
+            });
+
+            get('composer')?.addEventListener('submit', e => {
+                e.preventDefault();
+                const ci = get('chat-in'), t = ci?.value.trim() || '';
+                if (!t) return;
+                sendMessage(t);
+            });
+
+            document.querySelectorAll('[data-cmd]').forEach(el => {
+                el.addEventListener('click', () => sendMessage(el.dataset.cmd));
+            });
+
+            get('btn-add-shot')?.addEventListener('click', () => {
+                if (S.shots.length >= SHOTS_MAX) { showToast('Shot limit reached', true); return; }
+                S.shots.push({ id: uid(), order: S.shots.length + 1, type: 'SHOT', title: 'New beat', desc: '', bfxHint: '', beflix: '', rendered: false, generating: false, error: null });
+                renderShotList(); schedSave();
+            });
+            get('btn-render-all')?.addEventListener('click', generateAllShots);
+            get('btn-save-proj')?.addEventListener('click', () => {
+                const t = get('proj-title'), i = get('proj-idea');
+                if (t) S.title = t.value.slice(0, 120);
+                if (i) S.idea = i.value.slice(0, 5000);
+                schedSave(); showToast('PROJECT SAVED');
+            });
+            get('btn-reset')?.addEventListener('click', () => {
+                if (!confirm('Wipe current project?')) return;
+                localStorage.removeItem(SK); S = jc(BASE_STORY);
+                renderChat(); renderShotList(); updateAllViews();
+            });
+
+            get('btn-load-clips')?.addEventListener('click', () => get('file-in')?.click());
+            get('file-in')?.addEventListener('change', async e => {
+                const files = Array.from(e.target.files); e.target.value = '';
+                for (const f of files) {
+                    if (f.type.startsWith('video/')) { A.audioBlob = f; await ripVideoFrames(f); }
+                    else {
+                        lockSys('LOADING IMAGE', 0);
+                        const url = URL.createObjectURL(f);
+                        const img = new Image(); img.src = url;
+                        try {
+                            await new Promise((r, j) => { img.onload = r; img.onerror = j; setTimeout(j, 5000); });
+                            if (A.frames.length >= FRAMES_MAX) { showToast('Frame cap reached', true); } else {
+                                addFrame(true);
+                                const fr = A.frames[A.frames.length - 1];
+                                fr.src = fitToCanvas(img, img.naturalWidth, img.naturalHeight);
+                                processFrame(fr);
+                                rebuildTimeline(); renderCanvas(); updateSB();
+                            }
+                        } catch (_) { }
+                        URL.revokeObjectURL(url); unlockSys();
+                    }
+                }
+            });
+
+            get('btn-camera')?.addEventListener('click', () => {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then(s => {
+                        get('cam-vid').srcObject = s;
+                        get('cam-feed').style.display = 'flex';
+                        closeSheets();
+                    }).catch(e => showToast('Camera denied: ' + e.message, true));
+            });
+            get('btn-cam-abort')?.addEventListener('click', () => {
+                const v = get('cam-vid'); if (v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
+                get('cam-feed').style.display = 'none';
+            });
+
+            get('btn-leader')?.addEventListener('click', () => {
+                thud();
+                const insertAt = A.frames.length;
+                lockSys('GENERATING LEADER', 0);
+                setTimeout(() => {
+                    const SECS = 8, TOTAL = SECS * BASE_FPS;
+                    for (let i = 0; i < TOTAL; i++) {
+                        const c = document.createElement('canvas'); c.width = W; c.height = H;
+                        const cx = c.getContext('2d');
+                        const sec = SECS - Math.floor(i / BASE_FPS);
+                        const prog = (i % BASE_FPS) / BASE_FPS;
+                        cx.fillStyle = '#666'; cx.fillRect(0, 0, W, H);
+                        cx.strokeStyle = '#000'; cx.lineWidth = 2;
+                        cx.beginPath(); cx.moveTo(W / 2, 0); cx.lineTo(W / 2, H); cx.stroke();
+                        cx.beginPath(); cx.moveTo(0, H / 2); cx.lineTo(W, H / 2); cx.stroke();
+                        cx.beginPath(); cx.arc(W / 2, H / 2, H / 2.2, 0, Math.PI * 2); cx.stroke();
+                        cx.save(); cx.translate(W / 2, H / 2); cx.rotate(-Math.PI / 2 + prog * Math.PI * 2);
+                        cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(H / 2.2, 0); cx.lineWidth = 4; cx.stroke(); cx.restore();
+                        cx.fillStyle = '#000'; cx.font = '900 ' + (H / 2.5) + 'px Helvetica';
+                        cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(sec, W / 2, H / 2 + 5);
+                        const f = makeFrame(); f.src = c; f.clipBoundary = (i === 0); A.frames.push(f);
+                    }
+                    A.cur = insertAt; rebuildTimeline(); renderCanvas(); unlockSys(); updateSB();
+                    closeSheets();
+                }, 50);
+            });
+
+            get('btn-reprocess')?.addEventListener('click', () => {
+                if (!A.frames.length) return;
+                lockSys('REPROCESSING', 0); let i = 0;
+                const next = () => {
+                    if (i >= A.frames.length) { rebuildTimeline(); renderCanvas(); unlockSys(); return; }
+                    processFrame(A.frames[i]); i++; setLockN(i); setTimeout(next, 2);
+                };
+                next();
+            });
+
+            get('btn-save-script')?.addEventListener('click', () => {
+                const el = get('script-el'); if (!el) return;
+                S.script = el.value.trim(); schedSave(); showToast('SCRIPT SAVED'); updateAllViews();
+            });
+            get('btn-push-shots')?.addEventListener('click', () => {
+                const el = get('script-el'); if (el) { S.script = el.value; schedSave(); }
+                sendMessage('break script into shots');
+            });
+            get('btn-simpler')?.addEventListener('click', () => sendMessage('rewrite simpler'));
+
+            get('tool-pen')?.addEventListener('click', () => setTool('pen'));
+            get('tool-rect')?.addEventListener('click', () => setTool('rect'));
+            get('tool-erase')?.addEventListener('click', () => setTool('erase'));
+            get('dtt-pen')?.addEventListener('click', () => setTool('pen'));
+            get('dtt-rect')?.addEventListener('click', () => setTool('rect'));
+            get('dtt-erase')?.addEventListener('click', () => setTool('erase'));
+            get('btn-wipe')?.addEventListener('click', () => {
+                if (!A.frames.length) return;
+                pushUndo('wipe ink');
+                const r = getSelRange(), from = r ? r.from : A.cur, to = r ? r.to : A.cur;
+                for (let i = from; i <= to; i++) A.frames[i]?.hl.fill(0);
+                renderCanvas(); rebuildTimeline(); showToast('INK WIPED');
+            });
+            get('brush-sz')?.addEventListener('input', e => { A.sz = parseInt(e.target.value); });
+            get('btn-stamp')?.addEventListener('click', () => { pushUndo('stamp text'); stampText(); });
+            get('btn-preview-txt')?.addEventListener('click', previewText);
+
+            get('btn-webm')?.addEventListener('click', () => exportVideo('webm'));
+            get('btn-mp4')?.addEventListener('click', () => exportVideo('mp4'));
+            get('btn-gif')?.addEventListener('click', exportGIF);
+            get('btn-png')?.addEventListener('click', exportPNG);
+            get('btn-sheet')?.addEventListener('click', exportContactSheet);
+            get('btn-copy-all')?.addEventListener('click', () => {
+                const txt = [S.title, S.premise, S.script].join('\n\n');
+                navigator.clipboard.writeText(txt).then(() => showToast('COPIED TO CLIPBOARD'));
+            });
+            get('btn-dl-txt')?.addEventListener('click', () => {
+                const txt = [S.title, S.premise, S.script].join('\n\n');
+                const b = new Blob([txt], { type: 'text/plain' });
+                const a = document.createElement('a'); a.download = slugify(S.title || 'film') + '.txt'; a.href = URL.createObjectURL(b); a.click();
+            });
+            get('btn-dl-code')?.addEventListener('click', () => {
+                const code = decompileToCode();
+                const b = new Blob([code], { type: 'text/plain' });
+                const a = document.createElement('a'); a.download = slugify(S.title || 'film') + '.bfx'; a.href = URL.createObjectURL(b); a.click();
+            });
+            get('btn-load-code')?.addEventListener('click', () => get('code-in')?.click());
+            get('code-in')?.addEventListener('change', e => {
+                const f = e.target.files[0]; if (!f) return; e.target.value = '';
+                const r = new FileReader();
+                r.onload = ev => executeBEFLIX(ev.target.result).then(() => showToast('BEFLIX SCRIPT RE-INSTATED'));
+                r.readAsText(f);
+            });
+            get('btn-dup-range')?.addEventListener('click', dupSelRange);
+            get('btn-rev-range')?.addEventListener('click', reverseSelRange);
+            get('btn-flipbook')?.addEventListener('click', () => { openFlipbookGenerator(); closeSheets(); });
+
+            get('bfx-run')?.addEventListener('click', runBFXFromEditor);
+            get('bfx-regen')?.addEventListener('click', regenBFXFromEditor);
+            get('bfx-close')?.addEventListener('click', closeBFXEditor);
+            get('bfx-ref-toggle')?.addEventListener('click', () => get('bfx-ref')?.classList.toggle('on'));
+
+            get('key-btn')?.addEventListener('click', () => { setP('api-in', 'value', KEY); get('m-api')?.classList.add('on'); });
+            get('api-cancel')?.addEventListener('click', () => get('m-api')?.classList.remove('on'));
+            get('api-save')?.addEventListener('click', () => {
+                const ki = get('api-in'); KEY = ki ? ki.value.trim() : '';
+                safe(() => localStorage.setItem('gemini_key', KEY));
+                get('m-api')?.classList.remove('on');
+                get('key-btn').classList.toggle('active', !!KEY);
+                showToast(KEY ? 'API KEY SAVED' : 'KEY CLEARED');
+            });
+            get('help-x')?.addEventListener('click', () => get('m-help')?.classList.remove('on'));
+
+            document.addEventListener('click', e => {
+                const render = e.target.closest('[data-render]');
+                if (render) {
+                    const idx = S.shots.findIndex(s => s.id === render.dataset.render);
+                    if (idx >= 0) generateForShot(idx);
+                    return;
+                }
+                const edit = e.target.closest('[data-edit]');
+                if (edit) { openBFXEditor(edit.dataset.edit); return; }
+
+                const sup = e.target.closest('[data-sup]');
+                if (sup) {
+                    const idx = S.shots.findIndex(s => s.id === sup.dataset.sup);
+                    if (idx > 0) { [S.shots[idx - 1], S.shots[idx]] = [S.shots[idx], S.shots[idx - 1]]; renderShotList(); schedSave(); }
+                    return;
+                }
+                const sdn = e.target.closest('[data-sdn]');
+                if (sdn) {
+                    const idx = S.shots.findIndex(s => s.id === sdn.dataset.sdn);
+                    if (idx < S.shots.length - 1) { [S.shots[idx + 1], S.shots[idx]] = [S.shots[idx], S.shots[idx + 1]]; renderShotList(); schedSave(); }
+                    return;
+                }
+                const sdel = e.target.closest('[data-sdel]');
+                if (sdel) {
+                    S.shots = S.shots.filter(s => s.id !== sdel.dataset.sdel).map((s, i) => ({ ...s, order: i + 1 }));
+                    renderShotList(); schedSave();
+                    return;
+                }
+
+                if (e.target.closest('#tl-ctx-menu')) {
+                    const action = e.target.dataset.action;
+                    if (action === 'goto' && _ctxIdx >= 0) { A.cur = _ctxIdx; renderCanvas(); rebuildTimeline(); updateSB(); }
+                    if (action === 'boundary' && _ctxIdx >= 0) { A.frames[_ctxIdx].clipBoundary = !A.frames[_ctxIdx].clipBoundary; rebuildTimeline(); }
+                    if (action === 'collapse' && _ctxIdx >= 0) {
+                        let clipStart = _ctxIdx;
+                        while (clipStart > 0 && !A.frames[clipStart].clipBoundary) clipStart--;
+                        A.frames[clipStart].collapsed = !A.frames[clipStart].collapsed;
+                        rebuildTimeline();
+                    }
+                    if (action === 'duplicate' && _ctxIdx >= 0) {
+                        pushUndo('dup frame');
+                        A.frames.splice(_ctxIdx + 1, 0, copyFrame(A.frames[_ctxIdx]));
+                        rebuildTimeline(); updateSB();
+                    }
+                    if (action === 'delete' && _ctxIdx >= 0 && A.frames.length > 1) {
+                        pushUndo('del frame');
+                        A.frames.splice(_ctxIdx, 1);
+                        A.cur = clamp(A.cur, 0, A.frames.length - 1);
+                        rebuildTimeline(); renderCanvas(); updateSB();
+                    }
+                    if (action === 'col' && _ctxIdx >= 0) {
+                        const c = e.target.dataset.col;
+                        A.frames[_ctxIdx].colorTag = c === 'none' ? null : c;
+                        rebuildTimeline();
+                    }
+                    hideCtxMenu();
+                } else {
+                    hideCtxMenu();
+                }
+            });
+
+            document.addEventListener('input', e => {
+                const pt = get('proj-title'); if (pt && e.target === pt) { S.title = pt.value.slice(0, 120); schedSave(); }
+                const pi = get('proj-idea'); if (pi && e.target === pi) { S.idea = pi.value.slice(0, 5000); schedSave(); }
+                const se = get('script-el'); if (se && e.target === se) { S.script = se.value; _updateScriptMeta(); schedSave(); }
+
+                const sf = e.target.closest('[data-sf]');
+                if (sf) {
+                    const card = sf.closest('[data-sid]');
+                    const shot = card ? S.shots.find(s => s.id === card.dataset.sid) : null;
+                    if (shot) { shot[sf.dataset.sf] = sf.value; shot.rendered = false; schedSave(); }
+                }
+            });
+
+            get('fb-btn-close')?.addEventListener('click', () => { get('flipbook-modal').classList.remove('on'); });
+            get('fb-grid-preset')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-bind-side')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-bind-assist')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-bind-size')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-pag-mode')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-primitives-toggle')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-paper-size')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-orientation')?.addEventListener('change', fbRenderFlipbook);
+            get('fb-zoom-level')?.addEventListener('change', () => {
+                const z = get('fb-zoom-level').value;
+                get('fb-zoom-wrapper').style.transform = 'scale(' + z + ')';
+            });
+            get('fb-btn-print')?.addEventListener('click', () => window.print());
+
+            document.addEventListener('keydown', e => {
+                const inInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
+                if (inInput) return;
+                switch (e.key) {
+                    case ' ': e.preventDefault(); togglePlay(); break;
+                    case 'ArrowLeft': e.preventDefault(); if (e.shiftKey && A.selMode) { A.selEnd = clamp(A.selEnd - 1, 0, A.frames.length - 1); rebuildTimeline(); } else { clearSel(); stepFrame(-1); } break;
+                    case 'ArrowRight': e.preventDefault(); if (e.shiftKey && A.selMode) { A.selEnd = clamp(A.selEnd + 1, 0, A.frames.length - 1); rebuildTimeline(); } else { clearSel(); stepFrame(1); } break;
+                    case '1': openSheet('a'); break;
+                    case '2': openSheet('b'); break;
+                    case '3': openSheet('c'); break;
+                    case '4': openSheet('d'); break;
+                    case 'Escape': closeSheets(); closeBFXEditor(); get('m-api')?.classList.remove('on'); get('m-help')?.classList.remove('on'); hideCtxMenu(); break;
+                    case 'Delete': case 'Backspace': deleteSelected(); break;
+                }
+                if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); popUndo(); }
+            });
+
+            setP('proj-title', 'value', S.title || '');
+            setP('proj-idea', 'value', S.idea || '');
+            get('key-btn').classList.toggle('active', !!KEY);
+
+            if (!S.log.length) {
+                S.log.push({
+                    who: 'ai',
+                    text: 'Explain your film concept.\n\nType "make a movie idea", "write script", or "break into shots" to start. Setup your Google Gemini API Key via KEY button to operate premium reasoning.',
+                    time: 'now'
+                });
+            }
+            renderChat();
+            renderShotList();
+            updateAllViews();
+
+            if (!A.frames.length) openSheet('b', true);
+        });
+
+    </script>
+</body>
+
+</html>

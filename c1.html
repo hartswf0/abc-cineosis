@@ -1,0 +1,3929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>CAUSALITY</title>
+<script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+<style>
+
+/* ─────────────────────────────────────────
+   DESIGN TOKENS
+   All colors are pure black or white.
+   Accent colors used only for function, not decoration.
+───────────────────────────────────────── */
+:root {
+  --bg:      #f4f4f0;
+  --ink:     #000000;
+  --paper:   #ffffff;
+  --soft:    #ebebeb;
+  --a:       #0033cc;   /* navigation / info */
+  --b:       #c8a800;   /* build / warning */
+  --c:       #e60000;   /* action / danger */
+  --g:       #1a6b3a;   /* success / rendered */
+
+  --bw:      2px;
+  --bw3:     3px;
+  --sh:      4px 4px 0 #000;
+  --sh-sm:   2px 2px 0 #000;
+  --font:    ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans:    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --tap:     48px;
+
+  --sb-h:    44px;
+  --tab-h:   54px;
+  --tl-h:    80px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─────────────────────────────────────────
+   RESET
+───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%; min-height: 100dvh;
+  overflow: hidden; position: fixed; inset: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--sans);
+}
+button, input, textarea, select {
+  font: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+button { cursor: pointer; touch-action: manipulation; }
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-thumb { background: var(--ink); }
+
+/* ─────────────────────────────────────────
+   SHELL — four-row grid
+───────────────────────────────────────── */
+#shell {
+  display: grid;
+  grid-template-rows: var(--sb-h) 1fr var(--tl-h) calc(var(--tab-h) + var(--safe-b));
+  width: 100%; height: 100dvh; overflow: hidden;
+}
+
+/* ─────────────────────────────────────────
+   STATUS BAR
+───────────────────────────────────────── */
+#sb {
+  grid-row: 1;
+  display: flex; align-items: stretch;
+  background: var(--ink); color: var(--paper);
+  border-bottom: 2px solid #1a1a1a;
+  z-index: 60;
+}
+
+/* Film reel — animates while rendering */
+.reel-svg { width: 22px; height: 22px; }
+.reel-rotor { transform-origin: 11px 11px; }
+.reel-rotor.spinning { animation: reel-spin 3s linear infinite; }
+@keyframes reel-spin { to { transform: rotate(360deg); } }
+
+/* Stage pills — show causal progress */
+#stage-rail {
+  display: flex; align-items: stretch; flex: 1;
+  border-left: 1px solid #222; border-right: 1px solid #222;
+}
+.stage-pip {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .07em;
+  color: #2a2a2a; cursor: pointer;
+  border-right: 1px solid #1a1a1a;
+  transition: background .12s, color .12s;
+  position: relative;
+}
+.stage-pip:last-child { border-right: 0; }
+.stage-pip.done { color: #444; }
+.stage-pip.done::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: #333;
+}
+.stage-pip.active { background: var(--paper); color: var(--ink); }
+
+/* Status cells */
+.sb-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; padding: 0 8px; border-right: 1px solid #222; flex-shrink: 0;
+}
+.sb-cell.grow { flex: 1; }
+.sb-lbl { font: 900 6px/1 var(--font); text-transform: uppercase; letter-spacing: .1em; color: #444; }
+.sb-val { font: 900 12px/1 var(--font); color: var(--paper); font-variant-numeric: tabular-nums; }
+
+.fps-wrap { display: flex; align-items: center; gap: 3px; }
+.fps-btn {
+  width: 20px; height: 20px;
+  background: #1a1a1a; border: 1px solid #333; color: var(--paper);
+  font-size: 14px; font-weight: 900;
+  display: grid; place-items: center;
+  transition: background .08s;
+}
+.fps-btn:active { background: #444; }
+
+#key-btn {
+  flex-shrink: 0; align-self: stretch; padding: 0 10px;
+  background: transparent; border: 0; border-left: 1px solid #1a1a1a;
+  color: #444; font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .08em;
+  transition: color .1s;
+}
+#key-btn:hover { color: var(--b); }
+
+#play-btn {
+  flex-shrink: 0; width: 64px; align-self: stretch;
+  background: var(--c); border: 0; border-left: 2px solid #800;
+  color: var(--paper); font: 900 10px/1 var(--font); text-transform: uppercase; letter-spacing: .1em;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: background .1s;
+}
+#play-btn.playing { background: #1a1a1a; border-left-color: #333; }
+#play-btn:active { filter: brightness(.8); }
+
+/* ─────────────────────────────────────────
+   CANVAS ZONE
+───────────────────────────────────────── */
+#cz {
+  grid-row: 2;
+  position: relative; overflow: hidden;
+  background: #e0deda;
+  display: flex; align-items: center; justify-content: center;
+}
+
+#canvas-wrap {
+  position: relative; z-index: 10;
+  border: 2px solid #888; background: var(--paper);
+  box-shadow: 0 2px 16px rgba(0,0,0,.2);
+}
+#cvs { image-rendering: pixelated; display: block; touch-action: none; cursor: crosshair; }
+#net {
+  position: absolute; inset: 0;
+  pointer-events: none; opacity: 0; transition: opacity .15s;
+  image-rendering: pixelated; z-index: 20;
+}
+#net.on { opacity: .5; }
+
+/* Floating draw toolbar */
+#draw-tb {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  z-index: 30; display: none; align-items: center; gap: 5px;
+  background: rgba(0,0,0,.92); border: 1.5px solid #555; padding: 5px 10px;
+}
+#draw-tb.on { display: flex; }
+.dt-btn {
+  height: 32px; min-width: 42px;
+  border: 1.5px solid #555; background: transparent; color: var(--paper);
+  font: 900 8px/1 var(--font); text-transform: uppercase; padding: 0 8px;
+  transition: background .1s, border-color .1s;
+}
+.dt-btn.on { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.dt-sep { width: 1px; height: 22px; background: #444; flex-shrink: 0; }
+.dt-swatch {
+  width: 22px; height: 22px; border: 2px solid #555; cursor: pointer; flex-shrink: 0;
+  transition: border-color .1s, transform .1s;
+}
+.dt-swatch.on { border: 2.5px solid var(--paper); transform: scale(1.18); }
+
+/* Grid toggle */
+#grid-btn {
+  position: absolute; top: 8px; left: 8px; z-index: 30;
+  background: rgba(0,0,0,.75); color: var(--paper);
+  border: 1.5px solid #555; font: 900 8px/1 var(--font);
+  padding: 5px 9px; cursor: pointer; text-transform: uppercase; letter-spacing: .06em;
+}
+
+/* Play overlay */
+#play-ov {
+  position: absolute; inset: 0; z-index: 25;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity .15s;
+}
+#play-ov.vis { opacity: 1; pointer-events: all; }
+#play-ov-btn {
+  width: 60px; height: 60px;
+  background: rgba(0,0,0,.78); border: 3px solid rgba(255,255,255,.9);
+  color: var(--paper); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform .08s, background .08s;
+}
+#play-ov-btn:active { transform: scale(.9); background: rgba(230,0,0,.85); }
+
+/* Error overlay — non-crashing, dismissable */
+#err-ov {
+  position: absolute; bottom: 8px; left: 8px; right: 8px; z-index: 40;
+  background: var(--c); color: var(--paper);
+  padding: 8px 12px; display: none;
+  font: 900 9px/1.45 var(--font); text-transform: uppercase; letter-spacing: .05em;
+  animation: errslide .15s ease;
+}
+#err-ov.on { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
+@keyframes errslide { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+#err-msg { flex: 1; }
+#err-x { background: transparent; border: 0; color: var(--paper); font: 900 9px/1 var(--font); text-transform: uppercase; cursor: pointer; text-decoration: underline; white-space: nowrap; }
+
+/* Camera feed */
+#cam-feed {
+  display: none; position: absolute; inset: 0; z-index: 60;
+  background: var(--ink); flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+#cam-vid { max-width: 100%; max-height: calc(100% - 80px); object-fit: contain; border: 2px solid #444; }
+
+/* ─────────────────────────────────────────
+   TIMELINE
+───────────────────────────────────────── */
+#tl {
+  grid-row: 3;
+  background: var(--bg); border-top: var(--bw3) solid var(--ink);
+  display: flex; flex-direction: column; overflow: hidden; z-index: 40;
+}
+#tlc {
+  display: flex; align-items: center; gap: 5px; padding: 4px 8px;
+  border-bottom: 2px solid var(--ink); flex-shrink: 0;
+  overflow-x: auto; scrollbar-width: none;
+}
+#tlc::-webkit-scrollbar { display: none; }
+.tl-btn {
+  background: var(--paper); color: var(--ink);
+  border: var(--bw) solid var(--ink);
+  padding: 4px 8px; font: 900 8px/1 var(--font); text-transform: uppercase;
+  box-shadow: var(--sh-sm); flex-shrink: 0; min-height: 26px;
+  transition: transform .05s, box-shadow .05s;
+}
+.tl-btn:active { transform: translate(2px,2px); box-shadow: none; }
+.tl-btn.active { background: var(--a); color: var(--paper); border-color: var(--a); }
+.tl-div { width: 1px; height: 16px; background: var(--ink); flex-shrink: 0; }
+#tl-info { margin-left: auto; font: 900 7px/1 var(--font); color: #888; text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+
+#tl-strip {
+  flex: 1; display: flex; gap: 4px; padding: 5px 8px;
+  overflow-x: auto; align-items: center;
+  scrollbar-width: none; overscroll-behavior-x: contain;
+}
+#tl-strip::-webkit-scrollbar { display: none; }
+
+.tl-frame {
+  position: relative; flex: 0 0 58px; height: 36px;
+  border: var(--bw3) solid var(--ink);
+  background: #1a1a1a; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  user-select: none; transition: border-color .1s;
+}
+.tl-frame.cur { border-left: 4px solid var(--c); }
+.tl-frame.sel { box-shadow: inset 0 0 0 2px var(--c), 0 0 6px rgba(230,0,0,.5); }
+.tl-frame.clip-start { border-left: 3px solid var(--b); }
+.tl-thumb {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; image-rendering: pixelated; opacity: .5; z-index: 1;
+}
+.tl-num {
+  position: relative; z-index: 2;
+  color: var(--paper); font: 900 9px/1 var(--font);
+  text-shadow: 1px 1px 0 var(--ink); pointer-events: none;
+}
+.tl-shot-lbl {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+  background: rgba(200,168,0,.9); font: 900 5px/1 var(--font);
+  text-transform: uppercase; text-align: center; padding: 1px; color: var(--ink);
+}
+#tl-empty {
+  font: 900 9px/1 var(--font); color: #aaa;
+  text-transform: uppercase; letter-spacing: .1em;
+}
+
+/* ─────────────────────────────────────────
+   TAB BAR (mobile)
+───────────────────────────────────────── */
+#tabs {
+  grid-row: 4;
+  display: flex; border-top: var(--bw3) solid var(--ink);
+  background: var(--paper); z-index: 60;
+  padding-bottom: var(--safe-b);
+}
+.tab {
+  flex: 1; height: var(--tab-h);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .06em;
+  background: var(--paper); color: #bbb; border: 0; border-right: var(--bw) solid var(--ink);
+  transition: background .12s, color .12s; position: relative;
+}
+.tab:last-child { border-right: 0; flex: 0 0 48px; }
+.tab-ltr { font-size: 17px; line-height: 1; font-weight: 900; }
+.tab.on-a { background: var(--a); color: var(--paper); }
+.tab.on-b { background: var(--b); color: var(--ink); }
+.tab.on-c { background: var(--c); color: var(--paper); }
+.tab.on-d { background: var(--ink); color: var(--paper); }
+.tab.on-a::before, .tab.on-b::before, .tab.on-c::before, .tab.on-d::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: currentColor; opacity: .4;
+  animation: trackslide .25s ease forwards;
+}
+@keyframes trackslide { from { transform: scaleX(0); transform-origin: left; } to { transform: scaleX(1); } }
+.tab-badge { position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border: 1.5px solid currentColor; }
+
+/* ─────────────────────────────────────────
+   SHEET SYSTEM
+───────────────────────────────────────── */
+#backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0); pointer-events: none; z-index: 70;
+  transition: background .22s;
+}
+#backdrop.on { background: rgba(0,0,0,.6); pointer-events: all; }
+
+.sheet {
+  position: fixed; left: 0; right: 0;
+  bottom: calc(var(--tab-h) + var(--safe-b));
+  max-height: 85dvh;
+  background: var(--paper);
+  border-top: var(--bw3) solid var(--ink);
+  border-left: var(--bw3) solid var(--ink);
+  border-right: var(--bw3) solid var(--ink);
+  z-index: 80;
+  display: flex; flex-direction: column;
+  transform: translateY(calc(100% + 80px));
+  transition: transform .28s cubic-bezier(.25,1,.5,1), visibility 0s .28s;
+  visibility: hidden; overflow: hidden;
+}
+.sheet.on { transform: translateY(0); visibility: visible; transition: transform .28s cubic-bezier(.25,1,.5,1), visibility 0s 0s; }
+
+/* Sheet header */
+.sh-hd {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 14px 8px; border-bottom: var(--bw3) solid var(--ink); background: var(--soft);
+}
+.sh-title { font: 900 10px/1 var(--font); text-transform: uppercase; letter-spacing: .12em; }
+.sh-x { background: none; border: 0; font-size: 20px; font-weight: 900; cursor: pointer; padding: 0; color: var(--ink); line-height: 1; }
+
+/* Inner tabs for sub-navigation */
+.sh-tabs { flex-shrink: 0; display: flex; border-bottom: var(--bw3) solid var(--ink); }
+.sh-tab {
+  flex: 1; min-height: 34px; border: 0; border-right: var(--bw) solid var(--ink);
+  background: var(--soft); font: 900 8px/1 var(--font); text-transform: uppercase; letter-spacing: .06em;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .1s, color .1s;
+}
+.sh-tab:last-child { border-right: 0; }
+.sh-tab.on { background: var(--ink); color: var(--paper); }
+
+/* Sheet body */
+.sh-body {
+  overflow-y: auto; flex: 1; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+}
+.sh-body.no-pad { padding: 0; gap: 0; }
+
+/* ─────────────────────────────────────────
+   BUTTONS + INPUTS
+───────────────────────────────────────── */
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  min-height: var(--tap); border: var(--bw3) solid var(--ink);
+  background: var(--paper); color: var(--ink); padding: 9px 12px;
+  font: 900 9px/1 var(--font); text-transform: uppercase; letter-spacing: .08em;
+  box-shadow: var(--sh-sm); width: 100%; flex-shrink: 0;
+  transition: transform .06s, box-shadow .06s, background .07s;
+}
+.btn:active { transform: translate(2px,2px); box-shadow: none; }
+.btn:disabled { opacity: .3; pointer-events: none; }
+.btn.pri { background: var(--ink); color: var(--paper); }
+.btn.a   { background: var(--a);   color: var(--paper); border-color: var(--a); }
+.btn.b   { background: var(--b);   color: var(--ink);   border-color: var(--b); }
+.btn.c   { background: var(--c);   color: var(--paper); border-color: var(--c); }
+.btn.g   { background: var(--g);   color: var(--paper); border-color: var(--g); }
+.btn.sm  { min-height: 30px; padding: 4px 8px; font-size: 7px; box-shadow: 2px 2px 0 var(--ink); }
+.btn.sm:active { transform: translate(2px,2px); box-shadow: none; }
+.btn-row { display: flex; gap: 7px; }
+.btn-row .btn { flex: 1; }
+.btn-grid { display: grid; gap: 7px; }
+
+.lbl { font: 900 8px/1 var(--font); text-transform: uppercase; letter-spacing: .1em; color: #666; margin-bottom: 3px; }
+.sep-lbl { font: 900 8px/1 var(--font); text-transform: uppercase; letter-spacing: .1em; color: #999; padding: 3px 0; border-bottom: 1px solid #ddd; }
+
+.inp {
+  width: 100%; border: var(--bw3) solid var(--ink); padding: 9px 10px;
+  font: 700 12px/1.2 var(--font); background: var(--soft); color: var(--ink);
+  transition: border-color .1s, background .1s;
+  user-select: text; -webkit-user-select: text;
+}
+.inp:focus { outline: 0; border-color: var(--a); background: var(--paper); }
+
+.ta {
+  width: 100%; border: var(--bw3) solid var(--ink); padding: 9px 10px;
+  font: 600 12px/1.5 var(--sans); background: var(--soft); color: var(--ink);
+  resize: none; transition: border-color .1s, background .1s;
+  user-select: text; -webkit-user-select: text;
+}
+.ta:focus { outline: 0; border-color: var(--a); background: var(--paper); }
+
+.sel-input {
+  width: 100%; height: 36px; border: var(--bw3) solid var(--ink);
+  padding: 0 8px; font: 900 10px/1 var(--font); background: var(--paper); color: var(--ink); cursor: pointer;
+}
+
+/* ─────────────────────────────────────────
+   CAUSAL CHAIN — the epistemic spine
+───────────────────────────────────────── */
+.dep-chain {
+  display: flex; height: 32px; border: var(--bw) solid var(--ink);
+  overflow: hidden; background: var(--soft); flex-shrink: 0;
+}
+.dep-node {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  border-right: var(--bw) solid var(--ink);
+  font: 900 6px/1 var(--font); text-transform: uppercase; letter-spacing: .05em;
+  color: #bbb; cursor: default; transition: background .12s, color .12s; position: relative;
+}
+.dep-node:last-child { border-right: 0; }
+.dep-node b { font-size: 8px; font-family: var(--font); }
+.dep-node.lit { background: var(--paper); color: var(--ink); cursor: pointer; }
+.dep-node.lit::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: var(--ink);
+}
+.dep-arrow {
+  width: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font: 900 9px/1 var(--font); color: #ccc; border-right: var(--bw) solid var(--ink);
+}
+
+/* State nodes (in chat) */
+.state-bar { display: flex; align-items: stretch; height: 28px; border-bottom: var(--bw) solid var(--ink); flex-shrink: 0; }
+.state-lbl {
+  flex-shrink: 0; display: flex; align-items: center; padding: 0 9px;
+  font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .1em;
+  border-right: var(--bw) solid var(--ink); color: #666;
+}
+.snodes { flex: 1; display: flex; }
+.snode {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px;
+  border-right: 1px solid #eee;
+  font: 900 6px/1 var(--font); text-transform: uppercase; letter-spacing: .05em;
+  color: #ccc; cursor: default; transition: color .12s, background .12s;
+}
+.snode:last-child { border-right: 0; }
+.snode.lit { color: var(--ink); cursor: pointer; }
+.snode.lit:hover { background: var(--soft); }
+.snd { width: 5px; height: 5px; border: 1px solid currentColor; flex-shrink: 0; transition: background .12s; }
+.snode.lit .snd { background: var(--ink); }
+
+/* Chips */
+.chip-bar {
+  flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 7px 10px; border-bottom: var(--bw) solid var(--ink); background: var(--soft);
+}
+.chip {
+  border: var(--bw) solid var(--ink); background: var(--paper); color: var(--ink);
+  padding: 4px 8px; font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .05em;
+  min-height: 0; box-shadow: var(--sh-sm);
+  transition: transform .05s, box-shadow .05s, background .06s;
+}
+.chip:hover { background: var(--ink); color: var(--paper); }
+.chip:active { transform: translate(2px,2px); box-shadow: none; }
+
+/* ─────────────────────────────────────────
+   CHAT BUBBLES
+───────────────────────────────────────── */
+#chat-msgs {
+  flex: 1; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 9px; scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; min-height: 80px;
+}
+.bubble {
+  border: var(--bw) solid var(--ink); padding: 7px 10px; max-width: 96%;
+  animation: bubin .15s ease;
+}
+@keyframes bubin { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.bubble.me  { margin-left: auto;  background: var(--ink); color: var(--paper); }
+.bubble.ai  { margin-right: auto; background: var(--paper); }
+.bubble.err { border-color: var(--c); }
+.bubble.err .bwho { color: var(--c); opacity: 1; }
+.bwho {
+  font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 4px; opacity: .4;
+  display: flex; justify-content: space-between;
+}
+.bubble.me .bwho { color: #aaa; opacity: .55; }
+.bubble p { margin: 0; font-size: 11px; line-height: 1.5; white-space: pre-wrap; user-select: text; -webkit-user-select: text; }
+
+/* Typing indicator */
+.typing { border: var(--bw) solid var(--ink); padding: 8px 12px; width: fit-content; animation: bubin .15s ease; }
+.dots { display: flex; gap: 4px; align-items: center; }
+.dots span { width: 5px; height: 5px; background: var(--ink); animation: td 1s ease-in-out infinite; }
+.dots span:nth-child(2) { animation-delay: .15s; }
+.dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes td { 0%,80%,100% { transform: scaleY(.3); opacity: .2; } 40% { transform: scaleY(1); opacity: 1; } }
+
+/* Composer */
+.composer {
+  flex-shrink: 0; border-top: var(--bw3) solid var(--ink);
+  display: grid; grid-template-columns: 1fr auto;
+}
+.composer input {
+  border: 0; border-right: var(--bw) solid var(--ink);
+  padding: 0 12px; height: var(--tap);
+  font: 500 13px/1 var(--sans); color: var(--ink); background: var(--soft);
+  min-width: 0; transition: background .12s;
+  user-select: text; -webkit-user-select: text;
+}
+.composer input:focus { outline: 0; background: var(--paper); }
+.composer input::placeholder { color: #aaa; }
+.send-btn {
+  width: var(--tap); height: var(--tap); border: 0;
+  background: var(--ink); color: var(--paper);
+  font: 900 15px/1 var(--font); display: grid; place-items: center;
+  transition: background .1s;
+}
+.send-btn:hover { background: #222; }
+.send-btn:active { background: #555; }
+.send-btn:disabled { background: #888; pointer-events: none; }
+
+/* BEFLIX render progress bar */
+#bfx-bar {
+  flex-shrink: 0; display: none; align-items: center; gap: 8px;
+  padding: 6px 10px; background: #111; border-top: 1px solid #222;
+}
+#bfx-bar.on { display: flex; }
+.bfx-lbl { font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .06em; color: #555; }
+.bfx-track { flex: 1; height: 4px; background: #222; border: 1px solid #333; overflow: hidden; }
+.bfx-fill { height: 100%; background: var(--b); transition: width .2s; }
+.bfx-pct { font: 900 9px/1 var(--font); color: var(--b); min-width: 28px; text-align: right; }
+
+/* ─────────────────────────────────────────
+   SHOT CARDS — the core management unit
+───────────────────────────────────────── */
+.fact-grid { display: grid; grid-template-columns: 1fr 1fr; border: var(--bw) solid var(--ink); flex-shrink: 0; }
+.fact { padding: 7px 10px; border-right: var(--bw) solid var(--ink); border-bottom: var(--bw) solid var(--ink); }
+.fact:nth-child(2n)       { border-right: 0; }
+.fact:nth-last-child(-n+2){ border-bottom: 0; }
+.fact b    { display: block; font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; opacity: .45; }
+.fact span { font: 700 11px/1.2 var(--sans); }
+
+.shot-list { display: flex; flex-direction: column; border: var(--bw3) solid var(--ink); overflow: hidden; flex-shrink: 0; }
+
+.shot-card {
+  display: grid; grid-template-columns: 32px 1fr;
+  border-bottom: var(--bw) solid var(--ink); background: var(--paper);
+  animation: bubin .14s ease;
+}
+.shot-card:last-child { border-bottom: 0; }
+.shot-card.sel { background: var(--ink); color: var(--paper); }
+.shot-card.sel .shot-fld input,
+.shot-card.sel .shot-fld textarea,
+.shot-card.sel .shot-fld select { background: #111; color: var(--paper); border-color: #333; }
+
+.shot-n {
+  display: grid; place-items: center;
+  border-right: var(--bw) solid var(--ink);
+  font: 900 10px/1 var(--font);
+}
+.shot-card.sel .shot-n { border-right-color: #333; }
+
+.shot-body { padding: 7px 9px; display: flex; flex-direction: column; gap: 5px; }
+
+.shot-flds { display: flex; flex-direction: column; gap: 4px; }
+.shot-fld input, .shot-fld textarea, .shot-fld select {
+  width: 100%; border: var(--bw) solid var(--ink);
+  background: var(--soft); color: var(--ink);
+  padding: 5px 7px; font: 700 10px/1.3 var(--font);
+  user-select: text; -webkit-user-select: text;
+}
+.shot-fld input:focus, .shot-fld textarea:focus { outline: 0; border-color: var(--a); }
+.shot-fld textarea { min-height: 38px; resize: vertical; }
+
+/* BEFLIX status badge */
+.bfx-status {
+  display: flex; align-items: center; gap: 4px;
+  font: 900 7px/1 var(--font); text-transform: uppercase; letter-spacing: .05em;
+}
+.bfx-dot { width: 6px; height: 6px; border: 1px solid currentColor; flex-shrink: 0; }
+.bfx-status.none       { color: #bbb; }
+.bfx-status.generating { color: var(--b); animation: pulse 1s ease-in-out infinite; }
+.bfx-status.has-code   { color: var(--a); }
+.bfx-status.rendered   { color: var(--g); }
+.bfx-status.err        { color: var(--c); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.bfx-status.generating .bfx-dot { background: var(--b); }
+.bfx-status.rendered   .bfx-dot { background: var(--g); }
+.bfx-status.err        .bfx-dot { background: var(--c); }
+
+.shot-footer { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.shot-actions { display: flex; gap: 4px; }
+
+/* Script area */
+.script-area {
+  width: 100%; min-height: 200px;
+  border: var(--bw3) solid var(--ink); padding: 12px;
+  font: 11px/1.85 var(--font); background: var(--paper); color: var(--ink);
+  resize: none; user-select: text; -webkit-user-select: text;
+}
+.script-area:focus { outline: 0; border-color: var(--a); }
+.word-bar { height: 3px; background: var(--soft); border: var(--bw) solid var(--ink); border-top: 0; overflow: hidden; }
+.word-fill { height: 100%; background: var(--ink); transition: width .3s; }
+.script-meta { display: flex; justify-content: space-between; align-items: center; }
+.script-meta span { font: 900 8px/1 var(--font); text-transform: uppercase; letter-spacing: .07em; color: #999; }
+.script-meta .warn { color: var(--c); }
+
+/* Ink palette */
+.ink-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.ink-sw {
+  width: 42px; height: 42px; border: var(--bw3) solid var(--ink); cursor: pointer;
+  box-shadow: var(--sh-sm); transition: transform .05s, box-shadow .05s;
+}
+.ink-sw.on { outline: 3px solid var(--ink); outline-offset: 3px; transform: translate(3px,3px); box-shadow: none; }
+input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; border: 2px solid var(--ink); height: 26px; outline: none; flex-shrink: 0; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 26px; width: 26px; background: var(--ink); border: 0; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 26px; }
+
+/* Export panel */
+.exp-list { border: var(--bw3) solid var(--ink); overflow: hidden; flex-shrink: 0; }
+.exp-item {
+  display: flex; align-items: center; gap: 9px;
+  border-bottom: var(--bw) solid var(--ink); padding: 9px 11px;
+  font: 800 10px/1.3 var(--font); transition: background .12s;
+}
+.exp-item:last-child { border-bottom: 0; }
+.exp-item.done { background: var(--soft); }
+.exp-chk {
+  width: 16px; height: 16px; border: var(--bw) solid var(--ink);
+  display: grid; place-items: center; font: 900 9px/1 var(--font); flex-shrink: 0;
+}
+.exp-item.done .exp-chk { background: var(--ink); color: var(--paper); }
+
+/* ─────────────────────────────────────────
+   BEFLIX EDITOR MODAL
+   Full-screen per-shot code editor
+───────────────────────────────────────── */
+#bfx-modal {
+  position: fixed; inset: 0; background: var(--ink); z-index: 300;
+  display: none; flex-direction: column;
+}
+#bfx-modal.on { display: flex; }
+#bfx-modal-hd {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-bottom: 2px solid #222; flex-shrink: 0; background: var(--ink);
+}
+#bfx-modal-title { font: 900 11px/1 var(--font); text-transform: uppercase; letter-spacing: .1em; color: var(--paper); flex: 1; }
+.bfx-modal-btn {
+  padding: 6px 12px; border: 1.5px solid #444; background: transparent;
+  color: var(--paper); font: 900 8px/1 var(--font); text-transform: uppercase; letter-spacing: .06em;
+  cursor: pointer; transition: background .1s, border-color .1s;
+}
+.bfx-modal-btn:hover { border-color: var(--paper); }
+.bfx-modal-btn.run  { background: var(--g); border-color: var(--g); }
+.bfx-modal-btn.regen { background: var(--b); color: var(--ink); border-color: var(--b); }
+.bfx-modal-btn.close { color: #666; }
+
+#bfx-editor {
+  flex: 1; resize: none; padding: 14px; margin: 0;
+  font: 12px/1.7 var(--font); background: #111; color: #e0e0e0;
+  border: 0; outline: 0; spellcheck: false;
+  user-select: text; -webkit-user-select: text; overflow-y: auto;
+}
+
+#bfx-modal-foot {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  border-top: 1px solid #222; flex-shrink: 0; background: #0a0a0a;
+}
+#bfx-line-count { font: 900 8px/1 var(--font); color: #444; text-transform: uppercase; letter-spacing: .06em; }
+#bfx-err-line   { font: 900 8px/1 var(--font); color: var(--c); text-transform: uppercase; letter-spacing: .06em; flex: 1; }
+#bfx-ref-toggle { font: 900 7px/1 var(--font); color: #444; background: transparent; border: 0; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: .06em; }
+
+#bfx-ref {
+  display: none; padding: 10px 14px; border-top: 1px solid #111;
+  font: 10px/1.65 var(--font); color: #666; background: #0a0a0a; flex-shrink: 0;
+  max-height: 160px; overflow-y: auto;
+}
+#bfx-ref.on { display: block; }
+
+/* ─────────────────────────────────────────
+   MODALS — API key, help
+───────────────────────────────────────── */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+.modal.on { display: flex; }
+.modal-box {
+  background: var(--paper); width: min(440px,100vw);
+  border-top: var(--bw3) solid var(--ink);
+  border-left: var(--bw3) solid var(--ink);
+  border-right: var(--bw3) solid var(--ink);
+  padding: 18px; box-shadow: 0 -4px 0 var(--ink);
+  animation: slideup .22s cubic-bezier(.25,1,.5,1);
+}
+@keyframes slideup { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-box h3 { margin: 0 0 6px; font: 900 11px/1 var(--font); text-transform: uppercase; letter-spacing: .1em; }
+.modal-box p  { font-size: 11px; line-height: 1.55; margin: 0 0 12px; color: #555; }
+
+/* ─────────────────────────────────────────
+   TOAST
+───────────────────────────────────────── */
+#toast {
+  position: fixed; top: calc(var(--sb-h) + 8px); left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: var(--paper); color: var(--ink);
+  font: 900 10px/1 var(--font); padding: 9px 16px;
+  opacity: 0; pointer-events: none; z-index: 9999;
+  text-transform: uppercase; letter-spacing: .1em;
+  border: var(--bw3) solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink); white-space: nowrap;
+  transition: opacity .14s, transform .14s;
+}
+#toast.on  { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { background: var(--c); color: var(--paper); border-color: var(--c); }
+
+/* ─────────────────────────────────────────
+   LOCK SCREEN (loading indicator)
+───────────────────────────────────────── */
+#lock {
+  position: fixed; inset: 0; background: rgba(0,0,0,.93); z-index: 9000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+#lock.on { opacity: 1; pointer-events: all; }
+#lock-cvs { image-rendering: auto; }
+#lock-msg { font: 900 11px/1 var(--font); text-transform: uppercase; letter-spacing: .2em; color: var(--paper); margin-top: 14px; }
+#lock-n   { font-size: 24px; font-weight: 900; color: var(--c); margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+/* ─────────────────────────────────────────
+   DESKTOP
+───────────────────────────────────────── */
+@media (min-width: 768px) {
+  #shell { grid-template-rows: var(--sb-h) 1fr var(--tl-h); }
+  #tabs  { display: none; }
+  .sheet {
+    left: 0; right: auto; bottom: 0;
+    top: var(--sb-h); max-height: none;
+    width: 340px;
+    border-top: 0; border-left: 0; border-bottom: 0;
+    border-right: var(--bw3) solid var(--ink);
+    transform: translateX(-100%) !important;
+  }
+  .sheet.on { transform: translateX(0) !important; visibility: visible; }
+  #backdrop.on { background: transparent; pointer-events: none; }
+
+  /* Desktop side nav */
+  #side-nav { display: flex; }
+}
+@media (max-width: 767px) { #side-nav { display: none; } }
+
+#side-nav {
+  position: fixed; left: 0; top: var(--sb-h); bottom: 0; width: 50px;
+  background: var(--paper); border-right: var(--bw3) solid var(--ink);
+  flex-direction: column; z-index: 65;
+}
+.snav {
+  width: 100%; flex: 1; border: 0; border-bottom: var(--bw) solid var(--ink);
+  background: var(--paper); font: 900 7px/1 var(--font); text-transform: uppercase;
+  letter-spacing: .05em; cursor: pointer; color: #bbb;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  transition: background .12s, color .12s;
+}
+.snav:last-child { border-bottom: 0; }
+.snav-ltr { font-size: 17px; line-height: 1; font-weight: 900; }
+.snav.on-a { background: var(--a); color: var(--paper); }
+.snav.on-b { background: var(--b); color: var(--ink); }
+.snav.on-c { background: var(--c); color: var(--paper); }
+.snav.on-d { background: var(--ink); color: var(--paper); }
+</style>
+</head>
+<body>
+
+<div id="shell">
+
+  <!-- STATUS BAR -->
+  <header id="sb">
+    <!-- Film reel: spins while rendering -->
+    <div class="sb-cell" style="flex:0 0 auto;padding:0 9px;border-right:1px solid #1a1a1a">
+      <svg class="reel-svg" viewBox="0 0 22 22" fill="none" id="reel-svg">
+        <g class="reel-rotor" id="reel-rotor">
+          <circle cx="11" cy="11" r="9" stroke="#fff" stroke-width="1" stroke-opacity=".2" fill="none"/>
+          <circle cx="11" cy="11" r="3.5" fill="#fff" fill-opacity=".4"/>
+          <circle cx="11" cy="2"  r="1.5" fill="#fff"/>
+          <circle cx="11" cy="20" r="1.5" fill="#fff"/>
+          <circle cx="2"  cy="11" r="1.5" fill="#fff"/>
+          <circle cx="20" cy="11" r="1.5" fill="#fff"/>
+          <circle cx="4.3" cy="4.3"  r="1.5" fill="#fff"/>
+          <circle cx="17.7" cy="17.7" r="1.5" fill="#fff"/>
+          <circle cx="4.3" cy="17.7" r="1.5" fill="#fff"/>
+          <circle cx="17.7" cy="4.3" r="1.5" fill="#fff"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Stage rail: causal progress always visible -->
+    <div id="stage-rail">
+      <div class="stage-pip active" data-stage="idea">IDEA</div>
+      <div class="stage-pip"        data-stage="script">SCRIPT</div>
+      <div class="stage-pip"        data-stage="shots">SHOTS</div>
+      <div class="stage-pip"        data-stage="board">BOARD</div>
+      <div class="stage-pip"        data-stage="export">OUT</div>
+    </div>
+
+    <!-- Frame counter -->
+    <div class="sb-cell" style="flex:0 0 auto">
+      <span class="sb-lbl">FRAME</span>
+      <span class="sb-val" id="sb-frame">00/00</span>
+    </div>
+
+    <!-- FPS control -->
+    <div class="sb-cell" style="flex:0 0 auto;flex-direction:row;gap:4px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        <span class="sb-lbl">FPS</span>
+        <div class="fps-wrap">
+          <button class="fps-btn" id="fps-dn">-</button>
+          <span class="sb-val" id="sb-fps" style="min-width:20px;text-align:center">12</span>
+          <button class="fps-btn" id="fps-up">+</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="key-btn">KEY</button>
+
+    <!-- Play button -->
+    <button id="play-btn">
+      <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor" id="play-ico">
+        <polygon points="0,0 11,6.5 0,13"/>
+      </svg>
+      <span id="play-lbl">PLAY</span>
+    </button>
+  </header>
+
+  <!-- CANVAS ZONE -->
+  <div id="cz">
+    <button id="grid-btn">GRID: OFF</button>
+
+    <div id="draw-tb">
+      <button class="dt-btn on" id="dtt-pen">PEN</button>
+      <button class="dt-btn"    id="dtt-rect">BOX</button>
+      <button class="dt-btn"    id="dtt-erase">ERASE</button>
+      <div class="dt-sep"></div>
+      <div id="dt-swatches" style="display:flex;gap:4px;align-items:center"></div>
+    </div>
+
+    <div id="canvas-wrap">
+      <canvas id="cvs"></canvas>
+      <canvas id="net"></canvas>
+    </div>
+
+    <div id="play-ov">
+      <button id="play-ov-btn">
+        <svg width="22" height="26" viewBox="0 0 22 26" fill="white"><polygon points="0,0 22,13 0,26"/></svg>
+      </button>
+    </div>
+
+    <div id="err-ov">
+      <span id="err-msg"></span>
+      <button id="err-x">DISMISS</button>
+    </div>
+
+    <div id="cam-feed">
+      <video id="cam-vid" autoplay playsinline muted></video>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn c" id="btn-rec"       style="max-width:120px;min-height:40px">RECORD</button>
+        <button class="btn"   id="btn-cam-abort" style="max-width:100px;min-height:40px">ABORT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="tl">
+    <div id="tlc">
+      <button class="tl-btn" id="tl-prev">&lt;</button>
+      <button class="tl-btn" id="tl-next">&gt;</button>
+      <div class="tl-div"></div>
+      <button class="tl-btn" id="tl-blk">+BLK</button>
+      <button class="tl-btn" id="tl-dup">+CPY</button>
+      <button class="tl-btn" id="tl-del" style="color:var(--c)">DEL</button>
+      <div class="tl-div"></div>
+      <button class="tl-btn" id="tl-undo">UNDO</button>
+      <button class="tl-btn" id="tl-sel">SEL</button>
+      <button class="tl-btn" id="tl-clr">CLR SEL</button>
+      <span id="tl-info"></span>
+    </div>
+    <div id="tl-strip">
+      <span id="tl-empty">NO FRAMES — generate shots or add blank</span>
+    </div>
+  </div>
+
+  <!-- TAB BAR (mobile only) -->
+  <nav id="tabs">
+    <button class="tab" id="tab-a"><span class="tab-ltr">A</span>SHOTS<div class="tab-badge"></div></button>
+    <button class="tab" id="tab-b"><span class="tab-ltr">B</span>BUILD</button>
+    <button class="tab" id="tab-c"><span class="tab-ltr">C</span>COLOR<div class="tab-badge" id="ink-badge" style="background:#000"></div></button>
+    <button class="tab" id="tab-d"><span class="tab-ltr">D</span>SAVE</button>
+    <button class="tab" id="tab-help" style="flex:0 0 48px"><span class="tab-ltr">?</span>HELP</button>
+  </nav>
+
+</div><!-- #shell -->
+
+<!-- SIDE NAV (desktop) -->
+<nav id="side-nav">
+  <button class="snav" id="snav-a"><span class="snav-ltr">A</span>SHOTS</button>
+  <button class="snav" id="snav-b"><span class="snav-ltr">B</span>BUILD</button>
+  <button class="snav" id="snav-c"><span class="snav-ltr">C</span>COLOR</button>
+  <button class="snav" id="snav-d"><span class="snav-ltr">D</span>SAVE</button>
+</nav>
+
+<!-- BACKDROP -->
+<div id="backdrop"></div>
+
+<!-- ── SHEET A: SHOTS ── -->
+<div class="sheet" id="sheet-a">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--a)">A · SHOTS &amp; MEDIA</span>
+    <button class="sh-x" id="sh-a-x">×</button>
+  </div>
+  <div class="sh-tabs">
+    <button class="sh-tab on" data-stab="a-shots">SHOTS</button>
+    <button class="sh-tab"    data-stab="a-media">MEDIA</button>
+    <button class="sh-tab"    data-stab="a-info">INFO</button>
+  </div>
+
+  <!-- SHOTS panel -->
+  <div class="sh-body" id="a-shots">
+    <!-- Causal chain — computed from state, never stored -->
+    <div class="dep-chain" id="dep-chain">
+      <div class="dep-node" id="dn-idea"><b>01</b>IDEA</div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-script"><b>02</b>SCRIPT</div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-shots"><b>03</b>SHOTS</div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-board"><b>04</b>BOARD</div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-out"><b>05</b>OUT</div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="fact-grid">
+      <div class="fact"><b>Premise</b><span id="f-premise">None</span></div>
+      <div class="fact"><b>Script</b>  <span id="f-script">No script</span></div>
+      <div class="fact"><b>Shots</b>   <span id="f-shots">0</span></div>
+      <div class="fact"><b>Frames</b>  <span id="f-frames">0</span></div>
+    </div>
+
+    <!-- Shot cards — rendered by renderShotList() -->
+    <div class="shot-list" id="shot-list">
+      <div style="padding:11px;font:11px/1.5 var(--font);color:#aaa">
+        No shots yet. Open Build → Chat and say "break into shots".
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn a" id="btn-render-all">RENDER ALL SHOTS</button>
+      <button class="btn sm" id="btn-add-shot" style="min-height:var(--tap)">+ SHOT</button>
+    </div>
+  </div>
+
+  <!-- MEDIA panel -->
+  <div class="sh-body" id="a-media" style="display:none">
+    <button class="btn" id="btn-load-clips">LOAD CLIPS / IMAGES</button>
+    <button class="btn" id="btn-camera">CAMERA</button>
+    <button class="btn" id="btn-leader">FILM LEADER</button>
+    <div class="sep-lbl" style="margin-top:4px">PROCESS MODE</div>
+    <select class="sel-input" id="proc-mode">
+      <option value="posterize" selected>POSTERIZE</option>
+      <option value="threshold">THRESHOLD</option>
+      <option value="edge">EDGE DETECT</option>
+      <option value="halftone">HALFTONE</option>
+      <option value="raw">RAW</option>
+    </select>
+    <button class="btn" id="btn-reprocess">REPROCESS ALL FRAMES</button>
+    <input type="file" id="file-in" accept="image/*,video/*" multiple style="display:none">
+  </div>
+
+  <!-- INFO panel -->
+  <div class="sh-body" id="a-info" style="display:none">
+    <div><div class="lbl">PROJECT TITLE</div><input class="inp" id="proj-title" placeholder="UNTITLED PROJECT" autocomplete="off"></div>
+    <div><div class="lbl">IDEA / LOGLINE</div><textarea class="ta" id="proj-idea" rows="4" placeholder="Describe your film..."></textarea></div>
+    <button class="btn pri" id="btn-save-proj">SAVE PROJECT</button>
+    <div class="sep-lbl">DANGER</div>
+    <button class="btn c" id="btn-reset" style="opacity:.6;font-size:8px">RESET PROJECT</button>
+  </div>
+</div>
+
+<!-- ── SHEET B: BUILD / CHAT ── -->
+<div class="sheet" id="sheet-b">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--b)">B · BUILD</span>
+    <button class="sh-x" id="sh-b-x">×</button>
+  </div>
+  <div class="sh-tabs">
+    <button class="sh-tab on" data-stab="b-chat">CHAT</button>
+    <button class="sh-tab"    data-stab="b-script">SCRIPT</button>
+  </div>
+
+  <!-- CHAT panel -->
+  <div class="sh-body no-pad" id="b-chat" style="display:flex;flex-direction:column">
+    <!-- State nodes: what's complete, what's next -->
+    <div class="state-bar">
+      <span class="state-lbl">STATE</span>
+      <div class="snodes">
+        <div class="snode" id="sn-idea">  <div class="snd"></div>IDEA</div>
+        <div class="snode" id="sn-script"><div class="snd"></div>SCRIPT</div>
+        <div class="snode" id="sn-shots"> <div class="snd"></div>SHOTS</div>
+        <div class="snode" id="sn-board"> <div class="snd"></div>BOARD</div>
+      </div>
+    </div>
+
+    <!-- Quick-action chips -->
+    <div class="chip-bar">
+      <button class="chip" data-cmd="make a movie idea">IDEA</button>
+      <button class="chip" data-cmd="write the script">SCRIPT</button>
+      <button class="chip" data-cmd="break into shots">SHOTS</button>
+      <button class="chip" data-cmd="render all shots to canvas">RENDER</button>
+      <button class="chip" data-cmd="make it darker">DARKER</button>
+      <button class="chip" data-cmd="add a plot twist">TWIST</button>
+      <button class="chip" data-cmd="make it funnier">FUNNIER</button>
+      <button class="chip" data-cmd="finish the package">FINISH</button>
+    </div>
+
+    <div id="chat-msgs"></div>
+
+    <!-- BEFLIX render progress: shown during shot-by-shot generation -->
+    <div id="bfx-bar">
+      <span class="bfx-lbl" id="bfx-bar-lbl">RENDERING</span>
+      <div class="bfx-track"><div class="bfx-fill" id="bfx-fill" style="width:0%"></div></div>
+      <span class="bfx-pct" id="bfx-pct">0%</span>
+    </div>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <input id="chat-in" placeholder="Describe what you want..." autocomplete="off">
+      <button class="send-btn" id="send-btn" type="submit">→</button>
+    </form>
+  </div>
+
+  <!-- SCRIPT panel -->
+  <div class="sh-body" id="b-script" style="display:none">
+    <div class="script-meta">
+      <span id="wc-lbl">0 words</span>
+      <span id="wc-warn" class="warn"></span>
+    </div>
+    <textarea class="script-area" id="script-el" rows="16" spellcheck="true" placeholder="No script yet. Generate one via Chat or type here."></textarea>
+    <div class="word-bar"><div class="word-fill" id="word-fill" style="width:0%"></div></div>
+    <div class="btn-row" style="margin-top:7px">
+      <button class="btn pri" id="btn-save-script">SAVE SCRIPT</button>
+      <button class="btn"      id="btn-push-shots">→ SHOTS</button>
+      <button class="btn"      id="btn-simpler">SIMPLER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SHEET C: COLOR ── -->
+<div class="sheet" id="sheet-c">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--c)">C · COLOR / DRAW</span>
+    <button class="sh-x" id="sh-c-x">×</button>
+  </div>
+  <div class="sh-body">
+    <div class="lbl">TOOLS</div>
+    <div class="btn-row">
+      <button class="btn on" id="tool-pen">PEN</button>
+      <button class="btn"    id="tool-rect">BOX</button>
+      <button class="btn"    id="tool-erase">ERASE</button>
+    </div>
+    <button class="btn pri" id="btn-wipe">WIPE FRAME INK</button>
+    <div class="lbl" style="margin-top:4px">PALETTE</div>
+    <div class="ink-grid" id="c-swatches"></div>
+    <div class="lbl" style="margin-top:4px">BRUSH SIZE</div>
+    <input type="range" id="brush-sz" min="1" max="24" value="5">
+    <div class="sep-lbl">TEXT STAMP</div>
+    <textarea class="ta" id="t-text" rows="2">CAUSALITY</textarea>
+    <div class="btn-row">
+      <div style="flex:1"><div class="lbl">SIZE</div>
+        <select class="sel-input" id="t-size">
+          <option value="8">SM 8</option>
+          <option value="14" selected>MD 14</option>
+          <option value="22">LG 22</option>
+          <option value="36">XL 36</option>
+        </select>
+      </div>
+      <div style="flex:1"><div class="lbl">INK</div>
+        <select class="sel-input" id="t-ink">
+          <option value="7" selected>MAX 7</option>
+          <option value="5">5</option>
+          <option value="3">3</option>
+          <option value="1">1</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btn-stamp">STAMP TEXT</button>
+      <button class="btn" id="btn-preview-txt">PREVIEW</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SHEET D: SAVE ── -->
+<div class="sheet" id="sheet-d">
+  <div class="sh-hd">
+    <span class="sh-title">D · SAVE / EXPORT</span>
+    <button class="sh-x" id="sh-d-x">×</button>
+  </div>
+  <div class="sh-body">
+    <div class="exp-list" id="exp-list"></div>
+    <div class="sep-lbl">EXPORT VIDEO</div>
+    <div class="btn-row">
+      <button class="btn" id="btn-webm">WEBM</button>
+      <button class="btn" id="btn-mp4">MP4</button>
+      <button class="btn" id="btn-gif">GIF</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btn-png">FRAME PNG</button>
+      <button class="btn" id="btn-sheet">CONTACT SHEET</button>
+    </div>
+    <div class="sep-lbl">EXPORT STORY</div>
+    <div class="btn-row">
+      <button class="btn" id="btn-copy-all">COPY ALL</button>
+      <button class="btn" id="btn-dl-txt">DOWNLOAD .TXT</button>
+    </div>
+    <div class="sep-lbl">BEFLIX CODE</div>
+    <div class="btn-row">
+      <button class="btn a" id="btn-dl-code">DOWNLOAD CODE</button>
+      <button class="btn"   id="btn-load-code">LOAD CODE</button>
+    </div>
+    <div class="sep-lbl">TIMELINE OPS</div>
+    <div class="btn-row">
+      <button class="btn" id="btn-dup-range">DUPLICATE SEL</button>
+      <button class="btn" id="btn-rev-range">REVERSE SEL</button>
+    </div>
+    <input id="code-in" type="file" accept=".txt,.bfx" style="display:none">
+  </div>
+</div>
+
+<!-- ── BEFLIX EDITOR MODAL (per-shot, full-screen) ── -->
+<div id="bfx-modal">
+  <div id="bfx-modal-hd">
+    <span id="bfx-modal-title">BEFLIX EDITOR</span>
+    <button class="bfx-modal-btn run"   id="bfx-run">RUN</button>
+    <button class="bfx-modal-btn regen" id="bfx-regen">REGEN</button>
+    <button class="bfx-modal-btn close" id="bfx-close">CLOSE</button>
+  </div>
+  <textarea id="bfx-editor" spellcheck="false"></textarea>
+  <div id="bfx-modal-foot">
+    <span id="bfx-line-count">0 LINES</span>
+    <span id="bfx-err-line"></span>
+    <button id="bfx-ref-toggle">REFERENCE</button>
+  </div>
+  <div id="bfx-ref">
+CLR v           — Fill entire grid with intensity v (0=white, 7=black)
+PNT x y w h v   — Paint rectangle at (x,y) width w height h value v
+LIN x1 y1 x2 y2 v — Draw line between two points at value v
+REC n           — Record current state as n frames (1–15 per beat)
+SHF dx dy n     — Shift all pixels by (dx,dy) and record n frames
+
+Grid: 128 columns (x=0..127) × 96 rows (y=0..95). Origin = top-left.
+Intensity: 0=white, 1=faint, 3=mid, 5=dark, 7=black.
+Target: 40–60 total frames per shot. Start with CLR, layer PNT, use LIN for details.
+Lines beginning with C or ; are comments and are ignored.
+  </div>
+</div>
+
+<!-- ── MODAL: API KEY ── -->
+<div class="modal" id="m-api">
+  <div class="modal-box" style="max-height:85dvh; overflow-y:auto;">
+    <h3>AI Configuration</h3>
+    <p style="margin-bottom: 12px; font-size: 10px; color: #666;">Configure your models and API keys. Stored locally in your browser.</p>
+    
+    <div style="margin-bottom: 12px;">
+      <div class="lbl">Active Model</div>
+      <select class="sel-input" id="model-select" style="margin-bottom: 6px;">
+        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+        <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
+        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+        <option value="gpt-4o">OpenAI GPT-4o</option>
+        <option value="o1">OpenAI o1</option>
+        <option value="o3-mini">OpenAI o3-mini</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div class="lbl">Gemini API Key</div>
+      <input class="inp" id="api-gemini" type="password" placeholder="AIzaSy..." style="margin-bottom: 4px;">
+      <span style="font-size: 9px; color: #888;">Get at <a href="https://aistudio.google.com" target="_blank" rel="noopener" style="color:var(--a)">aistudio.google.com</a></span>
+    </div>
+
+    <div style="margin-bottom: 10px;">
+      <div class="lbl">Claude API Key</div>
+      <input class="inp" id="api-claude" type="password" placeholder="sk-ant-..." style="margin-bottom: 4px;">
+      <span style="font-size: 9px; color: #888;">Get at <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:var(--a)">console.anthropic.com</a></span>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <div class="lbl">OpenAI API Key</div>
+      <input class="inp" id="api-openai" type="password" placeholder="sk-proj-..." style="margin-bottom: 4px;">
+      <span style="font-size: 9px; color: #888;">Get at <a href="https://platform.openai.com" target="_blank" rel="noopener" style="color:var(--a)">platform.openai.com</a></span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="api-cancel">CANCEL</button>
+      <button class="btn pri" id="api-save">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: HELP ── -->
+<div class="modal" id="m-help" style="align-items:center">
+  <div class="modal-box" style="max-height:88dvh;overflow-y:auto;border:var(--bw3) solid var(--ink)">
+    <h3>CAUSALITY</h3>
+    <p style="user-select:text;-webkit-user-select:text;font-size:12px;line-height:1.7">
+      <b>B → CHAT:</b> Talk to the AI. "make an idea" → "write script" → "break into shots" → "render shots". Configure your API key via the KEY button in the status bar to enable the AI engine.<br><br>
+      <b>B → SCRIPT:</b> Edit the script directly. Save and push to shots.<br><br>
+      <b>A → SHOTS:</b> Each shot has its own BEFLIX animation program. Tap RENDER on any shot to generate + animate it individually. Tap RENDER ALL to process all shots in sequence. Tap EDIT on a shot to open the full BEFLIX code editor.<br><br>
+      <b>BEFLIX EDITOR:</b> Full code editor per shot. RUN executes the current code. REGEN asks Claude to write new BEFLIX for this shot. REFERENCE shows the command syntax.<br><br>
+      <b>C → COLOR:</b> Draw on canvas. Pen, box, erase. 8 ink levels. Text stamp.<br><br>
+      <b>D → SAVE:</b> Export WebM, MP4, GIF, PNG, contact sheet, story text.<br><br>
+      <b>TIMELINE:</b> Tap frame to navigate. Tap current frame to enter SEL mode. Frames tagged with shot ID — selecting a shot jumps to its frames.<br><br>
+      <b>Keys:</b> Space=play, ←/→=step, 1-4=tabs, Cmd+Z=undo, Esc=close.
+    </p>
+    <button class="btn pri" id="help-x">CLOSE</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="lock">
+  <canvas id="lock-cvs" width="200" height="150"></canvas>
+  <div id="lock-msg">LOADING</div>
+  <div id="lock-n">0</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT
+     Sections are clearly separated.
+     Theory-code mapping:
+       CONSTANTS      → invariant bounds (Power-of-10)
+       HELPERS        → pure functions, null-safe DOM access
+       STORY STATE    → S{} entity with enforceInvariants()
+       ANIM STATE     → A{} entity + frame management
+       ERROR SYSTEM   → reportError(), non-crashing
+       INK/STAMPS     → INKS[], DOT_STAMPS[]
+       CANVAS         → renderCanvas(), renderDotFrame()
+       DRAWING        → plotLine/Rect, commitStroke
+       FRAME OPS      → addFrame, dupFrame, stepFrame
+       SELECTION      → getRange, enterSelMode, clearSel
+       UNDO           → pushUndo, popUndo (bounded stack)
+       TIMELINE       → rebuildTimeline()
+       PLAYBACK       → togglePlay, playStep
+       BEFLIX         → executeBEFLIX() — shot-by-shot
+       BEFLIX GEN     → generateForShot(), generateAllShots()
+       BEFLIX EDITOR → openBFXEditor(), closeBFXEditor()
+       TEXT           → rasterizeText, stampText
+       PROCESS        → processFrame (posterize/threshold/edge)
+       CAUSAL CHAIN   → updateAllViews() — computed from state
+       SHOT LIST      → renderShotList()
+       EXPORT PANEL  → renderExportPanel()
+       CHAT           → addMessage, renderChat, sendMessage
+       CLAUDE API    → callClaude, callClaudeForBEFLIX
+       APPLY ACTIONS → applyActions()
+       LOCAL FALLBACK → localFallback()
+       SHEETS / NAV  → openSheet, closeSheets, openInnerTab
+       VIDEO IMPORT  → ripVideoFrames()
+       CAMERA         → openCamera, toggleRecord, closeCamera
+       EXPORT         → exportPNG, exportVideo, exportGIF
+       DOM WIRING     → DOMContentLoaded
+       INIT           → first render, welcome message
+═══════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─────────────────────────────────────────
+// CONSTANTS
+// All hard bounds declared here. One place to change them.
+// ─────────────────────────────────────────
+const SK          = 'causality-v8';
+const LOG_MAX     = 40;    // max chat messages kept in S.log
+const SHOTS_MAX   = 12;    // max shots per project
+const FRAMES_MAX  = 600;   // hard cap on total canvas frames
+const SHOT_FRAMES = 60;    // max frames per shot (5s @ 12fps)
+const UNDO_MAX    = 20;    // max undo snapshots
+const FETCH_MS    = 14000; // API timeout
+const WORD_MAX    = 2500;  // word count for 100% fill bar
+const W  = 640, H  = 480;  // canvas pixel dimensions
+const GC = 128, GR = 96;   // grid columns, rows
+const BS = 5;               // pixels per grid cell (W/GC = 5)
+
+const STAGES = Object.freeze(['idea','script','shots','board','export']);
+const SHOT_TYPES = Object.freeze(['WIDE','INSERT','MEDIUM','CLOSE','OTS','POV','TWO-SHOT','SHOT']);
+
+const SHOT_TYPE_DESC = {
+  WIDE:      'Full scene establishing shot',
+  INSERT:    'Close detail, object, or reaction',
+  MEDIUM:    'Waist-up, conversational distance',
+  CLOSE:     'Face or single object, dominant in frame',
+  OTS:       'Over-the-shoulder perspective',
+  POV:       'Character point-of-view',
+  'TWO-SHOT':'Both characters together in frame',
+  SHOT:      'Generic single shot'
+};
+
+
+// ─────────────────────────────────────────
+// HELPERS — null-safe, pure functions
+// ─────────────────────────────────────────
+
+// Null-safe getElementById — the only way we access DOM elements
+const get = id => document.getElementById(id);
+
+// Null-safe property setter — never throws on missing element
+const setP = (id, prop, val) => { const el = get(id); if (el) el[prop] = val; };
+const setT = (id, text) => setP(id, 'textContent', text);
+const setH = (id, html) => setP(id, 'innerHTML',   html);
+
+// Escape HTML for safe innerHTML insertion
+const esc = s => String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+
+// Deep clone via JSON round-trip (no structuredClone dependency)
+const jc = v => JSON.parse(JSON.stringify(v));
+
+// Current time string, e.g. "14:32"
+const nowTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+// Unique ID — uses crypto.randomUUID when available
+const uid = () => (crypto?.randomUUID?.()) ?? ('id' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+// Slugify for filenames
+const slugify = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'film';
+
+// Clamp a number to an inclusive range
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+// Run fn safely — returns null on error, never throws to caller
+const safe = fn => { try { return fn(); } catch (_) { return null; } };
+
+
+// ─────────────────────────────────────────
+// STORY STATE
+// S is the single source of truth for the narrative layer.
+// Invariants are enforced by enforceInvariants() before every render.
+// ─────────────────────────────────────────
+const BASE_STORY = Object.freeze({
+  stage:      'idea',
+  title:      '',
+  idea:       '',
+  premise:    '',
+  script:     '',
+  shots:      [],    // Shot[]
+  prompts:    [],    // string[] — one per shot
+  boardReady: false,
+  pkgReady:   false,
+  log:        [],    // ChatMessage[]
+  selShotId:  null   // string | null — bidirectional binding anchor
+});
+
+function loadStory() {
+  try {
+    const raw = localStorage.getItem(SK);
+    if (!raw) return jc(BASE_STORY);
+    const d = JSON.parse(raw);
+    return {
+      ...jc(BASE_STORY),
+      ...d,
+      shots:   Array.isArray(d.shots)   ? d.shots.slice(0, SHOTS_MAX) : [],
+      prompts: Array.isArray(d.prompts) ? d.prompts                   : [],
+      log:     Array.isArray(d.log)     ? d.log.slice(-LOG_MAX)        : [],
+    };
+  } catch (e) {
+    console.warn('[CAUSALITY] loadStory failed, using base state:', e.message);
+    return jc(BASE_STORY);
+  }
+}
+
+// enforceInvariants heals S before every render.
+// If invariants are violated, state is corrected silently.
+function enforceInvariants() {
+  if (S.log.length    > LOG_MAX)   S.log    = S.log.slice(-LOG_MAX);
+  if (S.shots.length  > SHOTS_MAX) S.shots  = S.shots.slice(0, SHOTS_MAX);
+  if (!STAGES.includes(S.stage))   S.stage  = 'idea';
+  if (S.selShotId && !S.shots.find(s => s.id === S.selShotId)) S.selShotId = null;
+  if (S.prompts.length > S.shots.length) S.prompts = S.prompts.slice(0, S.shots.length);
+}
+
+let S   = loadStory();
+let KEYS = {
+  gemini:  safe(() => localStorage.getItem('cau_gemini_key')) || '',
+  claude:  safe(() => localStorage.getItem('cau_claude_key')) || '',
+  openai:  safe(() => localStorage.getItem('cau_openai_key')) || ''
+};
+let ACTIVE_MODEL = safe(() => localStorage.getItem('cau_active_model')) || 'claude-3-5-sonnet-20241022';
+
+function getProvider(model) {
+  if (model.startsWith('gemini-')) return 'gemini';
+  if (model.startsWith('claude-')) return 'claude';
+  if (model.startsWith('gpt-') || model.startsWith('o1') || model.startsWith('o3-')) return 'openai';
+  return 'gemini';
+}
+
+function getActiveKey() {
+  const provider = getProvider(ACTIVE_MODEL);
+  return KEYS[provider] || '';
+}
+
+function updateKeyButton() {
+  const keyBtn = get('key-btn');
+  if (!keyBtn) return;
+  const provider = getProvider(ACTIVE_MODEL);
+  const hasKey = !!KEYS[provider];
+  keyBtn.textContent = ACTIVE_MODEL.split('-')[0].toUpperCase();
+  keyBtn.style.color = hasKey ? 'var(--g)' : '';
+}
+
+let _saveTimer = null;
+function schedSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(flushSave, 800);
+}
+function flushSave() {
+  enforceInvariants();
+  try {
+    safe(() => { const el = get('proj-title'); if (el && document.activeElement !== el) S.title = el.value || S.title; });
+    safe(() => { const el = get('proj-idea');  if (el && document.activeElement !== el) S.idea  = el.value || S.idea;  });
+    localStorage.setItem(SK, JSON.stringify(S));
+  } catch (e) {
+    reportError('Save failed: ' + e.message);
+  }
+}
+
+
+// ─────────────────────────────────────────
+// ANIMATION STATE
+// A is the single source of truth for the canvas layer.
+// Frames are tagged with shotId to enable bidirectional binding.
+// ─────────────────────────────────────────
+const A = {
+  frames:    [],   // Frame[]
+  cur:       0,    // current frame index
+  playing:   false,
+  tool:      'pen',
+  ink:       7,
+  sz:        5,
+  showGrid:  false,
+  showOnion: false,
+  dragging:  false,
+  p0:        [0, 0],
+  p1:        [0, 0],
+  activeSheet: null,
+  selStart:  -1,
+  selEnd:    -1,
+  selMode:   false,
+  audioBlob: null,
+};
+
+let BASE_FPS  = 12;
+let _playRAF  = null;
+let _lastT    = 0;
+let _lockRAF  = null;
+let _lockF    = 0;
+let _undoStack = [];
+
+// Canvas contexts — initialized in DOMContentLoaded
+let CVS, CTX, COMP, CCTX;
+
+// Currently open BEFLIX editor shot ID
+let _bfxModalShotId = null;
+
+
+// ─────────────────────────────────────────
+// AUDIO
+// ─────────────────────────────────────────
+let _audioCtx = null;
+
+function initAudio() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+}
+
+function playTone(freq, type, dur, vol) {
+  if (!_audioCtx || _audioCtx.state === 'suspended') return;
+  try {
+    const o = _audioCtx.createOscillator();
+    const g = _audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, _audioCtx.currentTime);
+    g.gain.setValueAtTime(vol, _audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, _audioCtx.currentTime + dur);
+    o.connect(g); g.connect(_audioCtx.destination);
+    o.start(); o.stop(_audioCtx.currentTime + dur);
+  } catch (_) {}
+}
+
+function hap(d) { if (navigator.vibrate) try { navigator.vibrate(d); } catch (_) {} }
+function tick()  { playTone(800, 'square',   0.015, 0.05); hap(5);  }
+function clack() { playTone(300, 'triangle', 0.04,  0.1);  hap(15); }
+function thud()  { playTone(100, 'sine',     0.1,   0.2);  hap(30); }
+
+
+// ─────────────────────────────────────────
+// ERROR SYSTEM
+// reportError shows a dismissable canvas overlay — never crashes.
+// ─────────────────────────────────────────
+function reportError(msg, ctx = '') {
+  console.error('[CAUSALITY]', msg, ctx);
+  const ov = get('err-ov');
+  const em = get('err-msg');
+  if (!ov || !em) return;
+  em.textContent = String(msg).slice(0, 140);
+  ov.classList.add('on');
+  clearTimeout(reportError._t);
+  reportError._t = setTimeout(clearError, 8000);
+}
+
+function clearError() {
+  get('err-ov')?.classList.remove('on');
+}
+
+
+// ─────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────
+function showToast(msg, isErr = false, dur = 1500) {
+  const el = get('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('err', isErr);
+  el.classList.add('on');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('on'), dur);
+}
+
+
+// ─────────────────────────────────────────
+// LOCK SCREEN
+// ─────────────────────────────────────────
+function lockSys(msg, n = 0) {
+  const l = get('lock');
+  if (!l) return;
+  l.classList.add('on');
+  setT('lock-msg', msg);
+  setT('lock-n', n);
+  if (!_lockRAF) { _lockF = 0; _animateLock(); }
+  // Spin the reel
+  get('reel-rotor')?.classList.add('spinning');
+}
+
+function unlockSys() {
+  get('lock')?.classList.remove('on');
+  if (_lockRAF) { cancelAnimationFrame(_lockRAF); _lockRAF = null; }
+  get('reel-rotor')?.classList.remove('spinning');
+}
+
+function setLockN(n) { setT('lock-n', n); }
+
+function _animateLock() {
+  const c = get('lock-cvs');
+  if (!c) return;
+  const lc = c.getContext('2d');
+  const cw = 200, ch = 150;
+  lc.fillStyle = '#000'; lc.fillRect(0, 0, cw, ch);
+  _lockF++;
+  const cx = cw / 2, cy = ch / 2;
+  lc.strokeStyle = '#333'; lc.lineWidth = 2.5;
+  lc.beginPath(); lc.arc(cx, cy, 48, 0, Math.PI * 2); lc.stroke();
+  lc.beginPath(); lc.arc(cx, cy, 13, 0, Math.PI * 2); lc.stroke();
+  lc.fillStyle = '#1a1a1a'; lc.fill();
+  const a = (_lockF * 3) * Math.PI / 180;
+  for (let i = 0; i < 6; i++) {
+    const ang = a + (i * Math.PI / 3);
+    lc.beginPath();
+    lc.moveTo(cx + Math.cos(ang) * 13, cy + Math.sin(ang) * 13);
+    lc.lineTo(cx + Math.cos(ang) * 44, cy + Math.sin(ang) * 44);
+    lc.strokeStyle = '#333'; lc.lineWidth = 3; lc.stroke();
+  }
+  const off = (_lockF * 2) % 18;
+  lc.fillStyle = '#1a1a1a'; lc.fillRect(0, cy - 5, cw, 10);
+  for (let x = -off; x < cw; x += 18) {
+    lc.fillStyle = '#000';
+    lc.fillRect(x, cy - 4, 4, 3);
+    lc.fillRect(x, cy + 1, 4, 3);
+  }
+  lc.fillStyle = '#e60000';
+  lc.globalAlpha = 0.4 + 0.3 * Math.sin(_lockF * 0.1);
+  lc.beginPath(); lc.arc(cx, cy, 3, 0, Math.PI * 2); lc.fill();
+  lc.globalAlpha = 1;
+  _lockRAF = requestAnimationFrame(_animateLock);
+}
+
+
+// ─────────────────────────────────────────
+// INK PALETTE + DOT STAMPS
+// 8 monochrome intensity levels. Level 0 = white (no dot).
+// DOT_STAMPS are pre-rendered circles at each size for fast rendering.
+// ─────────────────────────────────────────
+const INKS = [
+  { id: 0, hex: '#ffffff', rgb: [0,0,0,  0] },  // no dot
+  { id: 1, hex: '#dddddd', rgb: [0,0,0, 40] },
+  { id: 2, hex: '#bbbbbb', rgb: [0,0,0, 80] },
+  { id: 3, hex: '#999999', rgb: [0,0,0,120] },
+  { id: 4, hex: '#777777', rgb: [0,0,0,160] },
+  { id: 5, hex: '#555555', rgb: [0,0,0,200] },
+  { id: 6, hex: '#333333', rgb: [0,0,0,230] },
+  { id: 7, hex: '#000000', rgb: [0,0,0,255] },  // full dot
+];
+
+const DOT_STAMPS = [];
+
+function buildDotStamps() {
+  const maxR = BS * 0.45;
+  for (let v = 0; v < 8; v++) {
+    const c = document.createElement('canvas');
+    c.width = BS; c.height = BS;
+    if (v > 0) {
+      const dc = c.getContext('2d');
+      const r  = maxR * (v / 7);
+      dc.fillStyle = '#000';
+      dc.beginPath();
+      dc.arc(BS / 2, BS / 2, Math.max(0.4, r), 0, Math.PI * 2);
+      dc.fill();
+    }
+    DOT_STAMPS[v] = c;
+  }
+}
+
+// Convert pixel alpha to ink level 0–7
+function alphaToLevel(a) {
+  if (a < 16)  return 0;
+  if (a < 55)  return 1;
+  if (a < 95)  return 2;
+  if (a < 135) return 3;
+  if (a < 175) return 4;
+  if (a < 210) return 5;
+  if (a < 240) return 6;
+  return 7;
+}
+
+
+// ─────────────────────────────────────────
+// FRAME MANAGEMENT
+// ─────────────────────────────────────────
+
+function blankLayer() { return new Uint8ClampedArray(W * H * 4); }
+
+// Each frame has: src canvas (from video), scriptLayer (BEFLIX), handLayer (drawing)
+function makeFrame(shotId = null) {
+  return { src: null, sl: blankLayer(), hl: blankLayer(), clipStart: false, shotId };
+}
+
+function copyFrame(f) {
+  return {
+    src:        f.src,
+    sl:         new Uint8ClampedArray(f.sl),
+    hl:         new Uint8ClampedArray(f.hl),
+    clipStart: !!f.clipStart,
+    shotId:    f.shotId || null
+  };
+}
+
+// guardFrames enforces FRAMES_MAX and valid cursor position
+function guardFrames() {
+  if (A.frames.length > FRAMES_MAX) {
+    A.frames = A.frames.slice(0, FRAMES_MAX);
+    showToast('Frame cap (' + FRAMES_MAX + ') reached', true);
+  }
+  A.cur = clamp(A.cur, 0, Math.max(0, A.frames.length - 1));
+}
+
+function addFrame(isInit = false) {
+  if (A.frames.length >= FRAMES_MAX) { showToast('Frame cap reached', true); return; }
+  if (!isInit) clack();
+  A.frames.push(makeFrame());
+  if (!isInit) { A.cur = A.frames.length - 1; rebuildTimeline(); renderCanvas(); updateSB(); }
+}
+
+function dupFrame() {
+  if (!A.frames.length) return;
+  if (A.frames.length >= FRAMES_MAX) { showToast('Frame cap reached', true); return; }
+  pushUndo('dup frame');
+  A.frames.splice(A.cur + 1, 0, copyFrame(A.frames[A.cur]));
+  A.cur++;
+  rebuildTimeline(); renderCanvas(); updateSB();
+  showToast('FRAME COPIED');
+}
+
+function stepFrame(dir) {
+  if (A.playing || !A.frames.length) return;
+  A.cur = (A.cur + dir + A.frames.length) % A.frames.length;
+  rebuildTimeline(); renderCanvas(); updateSB();
+}
+
+
+// ─────────────────────────────────────────
+// SELECTION
+// ─────────────────────────────────────────
+function getSelRange() {
+  if (A.selStart < 0) return null;
+  const from = Math.min(A.selStart, A.selEnd);
+  const to   = Math.max(A.selStart, A.selEnd);
+  return { from, to, count: to - from + 1 };
+}
+
+function enterSelMode() {
+  A.selMode  = true;
+  A.selStart = A.cur;
+  A.selEnd   = A.cur;
+  get('tl-sel')?.classList.add('active');
+  rebuildTimeline();
+  showToast('SEL MODE — tap frames to extend');
+}
+
+// Clear selected timeline range
+function clearSel() {
+  A.selMode  = false;
+  A.selStart = -1;
+  A.selEnd   = -1;
+  get('tl-sel')?.classList.remove('active');
+  rebuildTimeline();
+}
+
+function deleteSelected() {
+  const r = getSelRange();
+  if (!r) { showToast('SELECT FRAMES FIRST', true); return; }
+  pushUndo('del ' + r.count + ' frames');
+  A.frames.splice(r.from, r.count);
+  if (!A.frames.length) addFrame(true);
+  A.cur = clamp(A.cur, 0, A.frames.length - 1);
+  clearSel(); renderCanvas(); rebuildTimeline(); updateSB();
+  showToast(r.count + ' FRAMES DELETED');
+}
+
+function dupSelRange() {
+  const r = getSelRange();
+  if (!r) { showToast('SELECT FRAMES FIRST', true); return; }
+  if (A.frames.length + r.count > FRAMES_MAX) { showToast('Would exceed frame cap', true); return; }
+  pushUndo('dup range');
+  const dupes = A.frames.slice(r.from, r.to + 1).map(copyFrame);
+  A.frames.splice(r.to + 1, 0, ...dupes);
+  clearSel(); rebuildTimeline(); updateSB();
+  showToast(dupes.length + ' FRAMES DUPED');
+}
+
+function reverseSelRange() {
+  const r = getSelRange();
+  if (!r || r.count < 2) { showToast('SELECT 2+ FRAMES', true); return; }
+  pushUndo('rev range');
+  const sub = A.frames.slice(r.from, r.to + 1).reverse();
+  A.frames.splice(r.from, r.count, ...sub);
+  clearSel(); renderCanvas(); rebuildTimeline();
+  showToast(r.count + ' FRAMES REVERSED');
+}
+
+
+// ─────────────────────────────────────────
+// UNDO — bounded stack, skips snapshots for large timelines
+// ─────────────────────────────────────────
+function pushUndo(label) {
+  if (A.frames.length > 80) return; // skip snapshot to protect memory
+  try {
+    _undoStack.push({ label, cur: A.cur, frames: A.frames.map(copyFrame) });
+    if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  } catch (e) {
+    // Memory pressure — trim aggressively
+    _undoStack = _undoStack.slice(-5);
+    console.warn('[CAUSALITY] Undo stack trimmed:', e.message);
+  }
+}
+
+// REST OF THE CODE CONTINUES DIRECTLY IN NEXT PORTION
+
+function popUndo() {
+  if (!_undoStack.length) { showToast('NOTHING TO UNDO', true); return; }
+  clack();
+  const snap   = _undoStack.pop();
+  A.frames     = snap.frames.map(copyFrame);
+  A.cur        = clamp(snap.cur, 0, A.frames.length - 1);
+  if (!A.frames.length) addFrame(true);
+  renderCanvas(); rebuildTimeline(); updateSB();
+  showToast('UNDO: ' + snap.label.toUpperCase());
+}
+
+
+// ─────────────────────────────────────────
+// CANVAS SCALE + RENDERING
+// ─────────────────────────────────────────
+function scaleWorkspace() {
+  const zone = get('cz');
+  const wrap = get('canvas-wrap');
+  if (!zone || !CVS || zone.clientWidth === 0) return;
+  const pad = 10;
+  const sc  = Math.min((zone.clientWidth - pad) / W, (zone.clientHeight - pad) / H);
+  CVS.style.width  = (W * sc) + 'px';
+  CVS.style.height = (H * sc) + 'px';
+  CVS.width  = W; CVS.height = H;
+  wrap.style.width  = (W * sc) + 'px';
+  wrap.style.height = (H * sc) + 'px';
+  renderCanvas();
+}
+
+function renderCanvas() {
+  if (!CVS || !A.frames.length) { CTX?.clearRect(0, 0, W, H); return; }
+  const f = A.frames[A.cur];
+  renderDotFrame(f, COMP);
+  // If dragging a rect, overlay the preview
+  if (A.dragging && A.tool === 'rect') {
+    const live = blankLayer();
+    plotRect(live, A.p0[0], A.p0[1], A.p1[0], A.p1[1], INKS[A.ink].rgb, A.sz);
+    for (let gy = 0; gy < GR; gy++) {
+      for (let gx = 0; gx < GC; gx++) {
+        const sx  = gx * BS + Math.floor(BS / 2);
+        const sy  = gy * BS + Math.floor(BS / 2);
+        const si  = (sy * W + sx) * 4;
+        const val = alphaToLevel(live[si + 3]);
+        if (val > 0 && DOT_STAMPS[val]) CCTX.drawImage(DOT_STAMPS[val], gx * BS, gy * BS);
+      }
+    }
+  }
+  CTX.clearRect(0, 0, W, H);
+  CTX.drawImage(COMP, 0, 0);
+  if (A.showOnion && A.cur > 0) _drawOnion();
+}
+
+// renderDotFrame renders a single frame to a target canvas using dot stamps
+function renderDotFrame(f, target) {
+  const tc = target.getContext('2d');
+  tc.fillStyle = '#fff'; tc.fillRect(0, 0, W, H);
+  // Subtle ruled lines for the "paper" look
+  tc.strokeStyle = 'rgba(0,0,0,.05)'; tc.lineWidth = 0.5;
+  for (let gy = 0; gy < GR; gy++) {
+    const py = gy * BS + BS * 0.5;
+    tc.beginPath(); tc.moveTo(0, py); tc.lineTo(W, py); tc.stroke();
+  }
+  // Build source grid from video frame if present
+  let srcGrid = null;
+  if (f.src) {
+    const tmp = document.createElement('canvas'); tmp.width = GC; tmp.height = GR;
+    const tx  = tmp.getContext('2d'); tx.imageSmoothingEnabled = true;
+    tx.drawImage(f.src, 0, 0, GC, GR);
+    const px = tx.getImageData(0, 0, GC, GR).data;
+    srcGrid = new Uint8Array(GR * GC);
+    for (let i = 0; i < GR * GC; i++) {
+      const pi  = i * 4;
+      const lum = px[pi] * 0.299 + px[pi + 1] * 0.587 + px[pi + 2] * 0.114;
+      srcGrid[i] = clamp(Math.round((255 - lum) / 255 * 7), 0, 7);
+    }
+  }
+  // Stamp each grid cell: handLayer > scriptLayer > source
+  for (let gy = 0; gy < GR; gy++) {
+    for (let gx = 0; gx < GC; gx++) {
+      const sx = gx * BS + Math.floor(BS / 2);
+      const sy = gy * BS + Math.floor(BS / 2);
+      const si = (sy * W + sx) * 4;
+      let val  = 0;
+      const ha = f.hl[si + 3];
+      if (ha >= 16) {
+        val = alphaToLevel(ha);
+      } else {
+        const sa = f.sl[si + 3];
+        if (sa >= 16) val = alphaToLevel(sa);
+        else if (srcGrid) val = srcGrid[gy * GC + gx];
+      }
+      if (val > 0 && DOT_STAMPS[val]) tc.drawImage(DOT_STAMPS[val], gx * BS, gy * BS);
+    }
+  }
+}
+
+function _drawOnion() {
+  const net = get('net'); if (!net) return;
+  net.width = W; net.height = H;
+  const gc  = net.getContext('2d'); gc.clearRect(0, 0, W, H);
+  const pf  = A.frames[A.cur - 1]; if (!pf) return;
+  gc.globalAlpha = 0.18;
+  if (pf.src) gc.drawImage(pf.src, 0, 0, W, H);
+  const hd  = new ImageData(new Uint8ClampedArray(pf.hl), W, H);
+  const tc  = document.createElement('canvas'); tc.width = W; tc.height = H;
+  tc.getContext('2d').putImageData(hd, 0, 0);
+  gc.drawImage(tc, 0, 0);
+  gc.globalAlpha = 1;
+}
+
+function drawGrid() {
+  const net = get('net'); if (!net) return;
+  net.width = W; net.height = H;
+  const gc  = net.getContext('2d'); gc.clearRect(0, 0, W, H);
+  gc.strokeStyle = 'rgba(0,0,0,.06)'; gc.lineWidth = 0.5;
+  for (let gx = 0; gx <= GC; gx++) { const px = gx * BS; gc.beginPath(); gc.moveTo(px, 0); gc.lineTo(px, H); gc.stroke(); }
+  for (let gy = 0; gy <= GR; gy++) { const py = gy * BS; gc.beginPath(); gc.moveTo(0, py); gc.lineTo(W, py); gc.stroke(); }
+  gc.strokeStyle = 'rgba(0,0,0,.18)';
+  for (let gx = 0; gx <= GC; gx += 16) { const px = gx * BS; gc.beginPath(); gc.moveTo(px, 0); gc.lineTo(px, H); gc.stroke(); }
+  for (let gy = 0; gy <= GR; gy += 16) { const py = gy * BS; gc.beginPath(); gc.moveTo(0, py); gc.lineTo(W, py); gc.stroke(); }
+  gc.font = '7px monospace'; gc.textBaseline = 'top'; gc.fillStyle = 'rgba(200,0,0,.5)';
+  for (let gx = 0; gx < GC; gx += 16) gc.fillText(String(gx), gx * BS + 1, 1);
+  for (let gy = 16; gy < GR; gy += 16) gc.fillText(String(gy), 1, gy * BS + 1);
+}
+
+
+// ─────────────────────────────────────────
+// DRAWING TOOLS
+// ─────────────────────────────────────────
+
+// Write one pixel into a layer array
+function bpx(arr, x, y, c) {
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = (y * W + x) * 4;
+  if (c[3] === 0) { arr[i] = arr[i+1] = arr[i+2] = arr[i+3] = 0; return; }
+  arr[i] = c[0]; arr[i+1] = c[1]; arr[i+2] = c[2]; arr[i+3] = c[3];
+}
+
+// Paint a circular block of radius r
+function plotBlk(arr, x, y, c, r) {
+  const rad = r / 2;
+  for (let iy = -Math.ceil(rad); iy <= Math.ceil(rad); iy++) {
+    for (let ix = -Math.ceil(rad); ix <= Math.ceil(rad); ix++) {
+      if (ix * ix + iy * iy <= rad * rad) bpx(arr, Math.round(x + ix), Math.round(y + iy), c);
+    }
+  }
+}
+
+// Bresenham line — bounded at 3000 iterations
+function plotLine(arr, x0, y0, x1, y1, c, w) {
+  if (!isFinite(x0 + y0 + x1 + y1)) return;
+  let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+  let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let e  = dx + dy, lim = 3000;
+  while (lim-- > 0) {
+    plotBlk(arr, x0, y0, c, w);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * e;
+    if (e2 >= dy) { e += dy; x0 += sx; }
+    if (e2 <= dx) { e += dx; y0 += sy; }
+  }
+}
+
+// Rectangle outline
+function plotRect(arr, x0, y0, x1, y1, c, w) {
+  plotLine(arr, x0, y0, x1, y0, c, w);
+  plotLine(arr, x1, y0, x1, y1, c, w);
+  plotLine(arr, x1, y1, x0, y1, c, w);
+  plotLine(arr, x0, y1, x0, y0, c, w);
+}
+
+// Map pointer event to pixel coordinates
+function mapCoord(e) {
+  const r = CVS.getBoundingClientRect();
+  if (!r.width) return [0, 0];
+  return [
+    clamp(Math.floor((e.clientX - r.left) / r.width  * W), 0, W - 1),
+    clamp(Math.floor((e.clientY - r.top)  / r.height * H), 0, H - 1)
+  ];
+}
+
+// Commit a stroke to the hand layer of the current frame (or selection range)
+function commitStroke(p0, p1, isFinalForRect = false) {
+  const range = getSelRange();
+  const from  = range ? range.from : A.cur;
+  const to    = range ? range.to   : A.cur;
+  const col   = A.tool === 'erase' ? INKS[0].rgb : INKS[A.ink].rgb;
+  for (let i = from; i <= to; i++) {
+    const f = A.frames[i]; if (!f) continue;
+    if (A.tool === 'pen'  || A.tool === 'erase') plotLine(f.hl, p0[0], p0[1], p1[0], p1[1], col, A.sz);
+    if (A.tool === 'rect' && isFinalForRect)      plotRect(f.hl, p0[0], p0[1], p1[0], p1[1], col, A.sz);
+  }
+  renderCanvas();
+}
+
+// Set active tool and sync buttons
+function setTool(id) {
+  A.tool = id;
+  ['pen','rect','erase'].forEach(t => {
+    get('tool-' + t)?.classList.toggle('on', t === id);
+    get('dtt-'  + t)?.classList.toggle('on', t === id);
+  });
+  updateSB();
+}
+
+// Build ink swatches for Sheet C and floating toolbar
+function buildInkPalette() {
+  ['c-swatches', 'dt-swatches'].forEach(boxId => {
+    const box = get(boxId); if (!box) return;
+    box.innerHTML = '';
+    INKS.slice(1).forEach(c => {
+      const el = document.createElement('div');
+      el.className = (boxId === 'c-swatches' ? 'ink-sw' : 'dt-swatch') + (c.id === A.ink ? ' on' : '');
+      el.style.background = c.hex;
+      el.addEventListener('click', () => {
+        A.ink = c.id;
+        document.querySelectorAll('.ink-sw, .dt-swatch').forEach(s => s.classList.remove('on'));
+        document.querySelectorAll('.ink-sw, .dt-swatch').forEach(s => {
+          if (s.style.background === c.hex || s.style.backgroundColor === c.hex) s.classList.add('on');
+        });
+        if (A.tool === 'erase') setTool('pen');
+        updateSB();
+      });
+      box.appendChild(el);
+    });
+  });
+}
+
+
+// ─────────────────────────────────────────
+// PLAYBACK
+// ─────────────────────────────────────────
+function togglePlay() {
+  clack();
+  A.playing = !A.playing;
+  _syncPlayButton();
+  _syncPlayOverlay();
+  if (A.playing) {
+    _lastT  = performance.now();
+    _playRAF = requestAnimationFrame(_playStep);
+  } else {
+    cancelAnimationFrame(_playRAF);
+    renderCanvas();
+    rebuildTimeline();
+  }
+}
+
+function _playStep(now) {
+  if (!A.playing) return;
+  _playRAF = requestAnimationFrame(_playStep);
+  const elapsed = now - _lastT;
+  const dur     = 1000 / BASE_FPS;
+  if (elapsed >= dur) {
+    _lastT = now - (elapsed % dur);
+    A.cur  = (A.cur + 1) % Math.max(1, A.frames.length);
+    renderCanvas();
+    // Lightweight TL update during playback — only the current indicator
+    document.querySelectorAll('.tl-frame').forEach((el, i) => el.classList.toggle('cur', i === A.cur));
+    setT('sb-frame', String(A.cur + 1).padStart(2,'0') + '/' + String(A.frames.length).padStart(2,'0'));
+  }
+}
+
+function _syncPlayButton() {
+  const btn = get('play-btn'), lbl = get('play-lbl'), ico = get('play-ico');
+  btn?.classList.toggle('playing', A.playing);
+  if (lbl) lbl.textContent = A.playing ? 'STOP' : 'PLAY';
+  if (ico) ico.innerHTML   = A.playing
+    ? '<rect x="0" y="0" width="4" height="13"/><rect x="7" y="0" width="4" height="13"/>'
+    : '<polygon points="0,0 11,6.5 0,13"/>';
+}
+
+function _syncPlayOverlay() {
+  const ov  = get('play-ov'); if (!ov) return;
+  const has = A.frames.length > 0;
+  const drawing = A.activeSheet === 'c';
+  ov.classList.toggle('vis', has && !A.playing && !drawing);
+}
+
+
+// ─────────────────────────────────────────
+// TIMELINE
+// ─────────────────────────────────────────
+function rebuildTimeline() {
+  const strip = get('tl-strip'); if (!strip) return;
+  const range = getSelRange();
+  const shot_n  = A.frames.length;
+  const sel_txt = range ? 'SEL ' + (range.from + 1) + '–' + (range.to + 1) + ' · ' : '';
+  setT('tl-info', sel_txt + (shot_n ? shot_n + ' FR' : ''));
+  strip.innerHTML = '';
+  if (!A.frames.length) {
+    const e = document.createElement('span'); e.id = 'tl-empty';
+    e.textContent = 'NO FRAMES — generate shots or add blank';
+    strip.appendChild(e); return;
+  }
+  A.frames.forEach((f, i) => {
+    const el = document.createElement('div');
+    let cls  = 'tl-frame';
+    if (i === A.cur) cls += ' cur';
+    if (range && i >= range.from && i <= range.to) cls += ' sel';
+    if (f.clipStart) cls += ' clip-start';
+    el.className = cls;
+    // Thumbnail
+    const tc = document.createElement('canvas'); tc.width = 128; tc.height = 96; tc.className = 'tl-thumb';
+    const tx = tc.getContext('2d'); tx.fillStyle = '#fff'; tx.fillRect(0, 0, 128, 96);
+    if (f.src) { tx.globalAlpha = 0.55; tx.drawImage(f.src, 0, 0, 128, 96); tx.globalAlpha = 1; }
+    el.appendChild(tc);
+    // Frame number
+    const num = document.createElement('div'); num.className = 'tl-num'; num.textContent = i + 1;
+    el.appendChild(num);
+    // Shot label on first frame of a clip
+    if (f.shotId && f.clipStart) {
+      const shot = S.shots.find(s => s.id === f.shotId);
+      if (shot) {
+        const lbl = document.createElement('div');
+        lbl.className   = 'tl-shot-lbl';
+        lbl.textContent = (shot.title || shot.type || 'SHOT').slice(0, 10).toUpperCase();
+        el.appendChild(lbl);
+      }
+    }
+    el.addEventListener('click', () => {
+      if (A.playing) return;
+      if (A.selMode) {
+        A.selEnd = i; rebuildTimeline();
+      } else if (i === A.cur) {
+        enterSelMode();
+      } else {
+        A.cur = i; rebuildTimeline(); renderCanvas(); updateSB();
+      }
+    });
+    strip.appendChild(el);
+    if (i === A.cur) el.scrollIntoView({ inline: 'center', block: 'nearest' });
+  });
+}
+
+
+// ─────────────────────────────────────────
+// BEFLIX ENGINE
+// Processes BEFLIX code into frames, chunked to keep the event loop responsive.
+// Each line is parsed individually — a bad line is skipped, not a crash.
+// ─────────────────────────────────────────
+let _bfxRunning = false;
+
+async function executeBEFLIX(code, shotId = null) {
+  if (_bfxRunning) { showToast('Already rendering — please wait', true); return 0; }
+  _bfxRunning = true;
+  get('bfx-bar')?.classList.add('on');
+  const updateProgress = pct => {
+    setP('bfx-fill', 'style', 'width:' + clamp(pct, 0, 100) + '%');
+    setT('bfx-pct',  Math.round(pct) + '%');
+  };
+  updateProgress(0);
+  let framesGenerated = 0;
+  try {
+    const lines = String(code).toUpperCase().split('\n');
+    const total = lines.length;
+    const res   = [];  // collected grid snapshots
+    const CHUNK = 400; // lines processed per tick
+    // The current grid state — 2D array of ink levels
+    let mat = Array.from({ length: GR }, () => Array(GC).fill(0));
+
+    for (let chunk = 0; chunk < total; chunk += CHUNK) {
+      const end = Math.min(chunk + CHUNK, total);
+      for (let li = chunk; li < end; li++) {
+        const line = lines[li].trim();
+        // Skip comments and blank lines
+        if (!line || line.startsWith('C') || line.startsWith(';')) continue;
+        // Parse command and arguments
+        const parts = line.split(/\s+/);
+        const cmd   = parts[0];
+        const a     = parts.slice(1).map(Number);
+        try {
+          if (cmd === 'CLR') {
+            const v = clamp(a[0] || 0, 0, 7);
+            for (let y = 0; y < GR; y++) for (let x = 0; x < GC; x++) mat[y][x] = v;
+          } else if (cmd === 'PNT') {
+            const [px, py, pw, ph, pv] = a;
+            const iv = clamp(pv || 0, 0, 7);
+            for (let dy = py; dy < py + ph; dy++) {
+              for (let dx = px; dx < px + pw; dx++) {
+                if (dy >= 0 && dy < GR && dx >= 0 && dx < GC) mat[dy][dx] = iv;
+              }
+            }
+          } else if (cmd === 'LIN') {
+            const [x1, y1, x2, y2, lv] = a;
+            const iv = clamp(lv || 0, 0, 7);
+            let lx = x1, ly = y1;
+            const dx = Math.abs(x2 - lx), sx = lx < x2 ? 1 : -1;
+            const dy = -Math.abs(y2 - ly), sy = ly < y2 ? 1 : -1;
+            let le = dx + dy, lim = 2000;
+            while (lim-- > 0) {
+              if (lx >= 0 && lx < GC && ly >= 0 && ly < GR) mat[ly][lx] = iv;
+              if (lx === x2 && ly === y2) break;
+              const e2 = 2 * le;
+              if (e2 >= dy) { le += dy; lx += sx; }
+              if (e2 <= dx) { le += dx; ly += sy; }
+            }
+          } else if (cmd === 'REC') {
+            const n = clamp(a[0] || 1, 1, SHOT_FRAMES);
+            const available = SHOT_FRAMES - res.length;
+            const toAdd     = Math.min(n, available);
+            for (let i = 0; i < toAdd; i++) res.push(mat.map(r => [...r]));
+            if (res.length >= SHOT_FRAMES) break;
+          } else if (cmd === 'SHF') {
+            const [sdx, sdy, sn] = a;
+            const count = clamp(sn || 1, 1, SHOT_FRAMES);
+            for (let fi = 0; fi < count && res.length < SHOT_FRAMES; fi++) {
+              const nm = Array.from({ length: GR }, () => Array(GC).fill(0));
+              for (let y = 0; y < GR; y++) {
+                for (let x = 0; x < GC; x++) {
+                  const nx = x - sdx, ny = y - sdy;
+                  if (nx >= 0 && nx < GC && ny >= 0 && ny < GR) nm[y][x] = mat[ny][nx];
+                }
+              }
+              mat = nm;
+              res.push(mat.map(r => [...r]));
+            }
+          }
+        } catch (lineErr) {
+          // Skip bad lines — don't crash the entire render
+          console.warn('[BEFLIX] Line ' + (li + 1) + ' error:', lineErr.message);
+        }
+      }
+      if (total > 400 && chunk + CHUNK < total) {
+        updateProgress((end / total) * 70);
+        await new Promise(r => setTimeout(r, 0)); // yield to event loop
+      }
+    }
+
+    if (!res.length) res.push(mat.map(r => [...r]));
+
+    // Check frame budget before inserting
+    const existingOtherFrames = A.frames.filter(f => f.shotId !== shotId).length;
+    if (existingOtherFrames + res.length > FRAMES_MAX) {
+      const avail = FRAMES_MAX - existingOtherFrames;
+      if (avail <= 0) { reportError('Frame cap reached — cannot render shot'); return 0; }
+      res.splice(avail);
+      showToast('Shot trimmed to ' + avail + ' frames (cap)', true);
+    }
+
+    // Remove old frames for this shot
+    if (shotId) A.frames = A.frames.filter(f => f.shotId !== shotId);
+    const insertAt = A.frames.length;
+
+    updateProgress(75);
+
+    // Convert grid snapshots to Frame objects
+    for (let i = 0; i < res.length; i++) {
+      const f  = makeFrame(shotId);
+      f.clipStart = (i === 0);
+      f.sl.fill(0);
+      const sm = res[i];
+      for (let y = 0; y < GR; y++) {
+        for (let x = 0; x < GC; x++) {
+          if (!sm[y][x]) continue;
+          const col = INKS[sm[y][x]].rgb;
+          for (let by = 0; by < BS; by++) {
+            for (let bx = 0; bx < BS; bx++) bpx(f.sl, x * BS + bx, y * BS + by, col);
+          }
+        }
+      }
+      A.frames.push(f);
+      if (i % 30 === 0) {
+        updateProgress(75 + (i / res.length) * 25);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    A.cur = insertAt;
+    framesGenerated = res.length;
+    updateProgress(100);
+    rebuildTimeline(); renderCanvas(); updateSB();
+
+  } catch (e) {
+    reportError('BEFLIX execution failed: ' + e.message);
+    showToast('RENDER FAILED', true);
+  } finally {
+    _bfxRunning = false;
+    get('bfx-bar')?.classList.remove('on');
+  }
+  return framesGenerated;
+}
+
+
+// ─────────────────────────────────────────
+// BEFLIX GENERATION — shot-by-shot
+// Each shot gets a dedicated Claude call with shot-specific context.
+// This enables individual shot refinement and re-generation.
+// ─────────────────────────────────────────
+
+// System prompt for a single shot — much more focused than the old all-shots prompt
+function buildBEFLIXPrompt(shot, shotIndex) {
+  return `You are BEFLIX-128, a dot-matrix animation composer.
+Write BEFLIX animation code for ONE SPECIFIC SHOT only.
+
+SHOT CONTEXT:
+  Number:      ${shotIndex + 1} of ${S.shots.length}
+  Type:        ${shot.type} — ${SHOT_TYPE_DESC[shot.type] || ''}
+  Title:       "${shot.title}"
+  Description: "${shot.desc}"
+  Hint:        "${shot.bfxHint || 'use your imagination'}"
+
+FILM:
+  Title:   "${S.title || 'Untitled'}"
+  Premise: "${S.premise || 'A short film.'}"
+
+BEFLIX REFERENCE (128 columns × 96 rows, origin top-left):
+  CLR v           — Fill entire grid with intensity v (0=white, 7=black)
+  PNT x y w h v   — Paint rectangle at (x,y) size w×h at value v
+  LIN x1 y1 x2 y2 v — Draw line at value v
+  REC n           — Record current state as n frames (use 1–12 per beat)
+  SHF dx dy n     — Shift all pixels by (dx,dy) and record n frames
+
+RULES:
+  1. Total frames (sum of all REC + SHF counts) must be 40–60.
+  2. Start with CLR to set background, then layer PNT from background to foreground.
+  3. Use LIN for edges, outlines, fine detail.
+  4. Vary REC: 1–2 for fast motion, 3–6 for holds, 8–15 for pauses.
+  5. Use SHF for smooth movement (2–4 pixels per step).
+  6. Intensity gradient: 1–2 background, 4–5 midground, 6–7 foreground.
+  7. Think cinematically: establish → build → climax → resolve.
+  8. Match the shot type: ${shot.type} means ${SHOT_TYPE_DESC[shot.type] || 'compose thoughtfully'}.
+
+OUTPUT: ONLY raw BEFLIX commands. No comments. No explanation. No markdown fences.`;
+}
+
+// Generate BEFLIX for a single shot — the core new feature
+async function generateForShot(shotIndex) {
+  const shot = S.shots[shotIndex];
+  if (!shot) { reportError('Shot ' + shotIndex + ' not found'); return; }
+  if (shot.generating) { showToast('Already generating this shot', true); return; }
+
+  shot.generating = true;
+  shot.error      = null;
+  renderShotList();
+
+  setT('bfx-bar-lbl', 'SHOT ' + (shotIndex + 1) + ' — GENERATING');
+  get('bfx-bar')?.classList.add('on');
+
+  try {
+    const activeKey = getActiveKey();
+    if (!activeKey) {
+      throw new Error(`No API key configured for model "${ACTIVE_MODEL}". Tap the model button in the status bar to configure.`);
+    }
+
+    const code = await callAIForBEFLIX(shot, shotIndex);
+    if (!code) throw new Error('No BEFLIX animation code returned from API');
+
+    shot.beflix   = code;
+    shot.rendered = false;
+
+    get('bfx-bar')?.classList.remove('on');
+    setT('bfx-bar-lbl', 'RENDERING');
+
+    // Execute BEFLIX immediately after generation
+    const frameCount = await executeBEFLIX(code, shot.id);
+    shot.rendered   = frameCount > 0;
+    shot.generating = false;
+
+    // Update BEFLIX editor if this shot is currently open
+    if (_bfxModalShotId === shot.id) {
+      const ed = get('bfx-editor'); if (ed) ed.value = code;
+      _syncBFXEditorMeta();
+    }
+
+    renderShotList();
+    schedSave();
+    showToast('Shot ' + (shotIndex + 1) + ': ' + frameCount + ' frames');
+
+  } catch (e) {
+    shot.generating = false;
+    shot.error      = e.message;
+    get('bfx-bar')?.classList.remove('on');
+    renderShotList();
+    reportError('Shot ' + (shotIndex + 1) + ' failed: ' + e.message);
+  }
+}
+
+// Generate BEFLIX for all shots sequentially, one at a time
+async function generateAllShots() {
+  if (!S.shots.length) { showToast('NO SHOTS', true); return; }
+  const btn = get('btn-render-all');
+  if (btn) { btn.disabled = true; btn.textContent = 'RENDERING...'; }
+  get('reel-rotor')?.classList.add('spinning');
+
+  try {
+    for (let i = 0; i < S.shots.length; i++) {
+      setT('bfx-bar-lbl', 'SHOT ' + (i + 1) + ' / ' + S.shots.length);
+      await generateForShot(i);
+    }
+    S.boardReady = true;
+    updateAllViews();
+    schedSave();
+    showToast('ALL ' + S.shots.length + ' SHOTS RENDERED');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'RENDER ALL SHOTS'; }
+    get('reel-rotor')?.classList.remove('spinning');
+  }
+}
+
+
+// ─────────────────────────────────────────
+// BEFLIX EDITOR MODAL
+// Full-screen per-shot code editor with live run and AI regen.
+// ─────────────────────────────────────────
+function openBFXEditor(shotId) {
+  const shot = S.shots.find(s => s.id === shotId);
+  if (!shot) return;
+  _bfxModalShotId = shotId;
+  const modal = get('bfx-modal'); if (!modal) return;
+  const ed    = get('bfx-editor'); if (!ed) return;
+  ed.value    = shot.beflix || '';
+  setT('bfx-modal-title', 'BEFLIX — ' + (shot.title || 'SHOT ' + (S.shots.indexOf(shot) + 1)).toUpperCase());
+  setT('bfx-err-line', '');
+  _syncBFXEditorMeta();
+  modal.classList.add('on');
+  ed.focus();
+}
+
+// Close full-screen BEFLIX code editor
+function closeBFXEditor() {
+  get('bfx-modal')?.classList.remove('on');
+  _bfxModalShotId = null;
+}
+
+function _syncBFXEditorMeta() {
+  const ed = get('bfx-editor'); if (!ed) return;
+  const lines = ed.value.split('\n').length;
+  setT('bfx-line-count', lines + ' LINES');
+}
+
+async function runBFXFromEditor() {
+  const ed   = get('bfx-editor'); if (!ed) return;
+  const shot = S.shots.find(s => s.id === _bfxModalShotId);
+  if (!shot) return;
+  setT('bfx-err-line', '');
+  shot.beflix   = ed.value;
+  shot.rendered = false;
+  renderShotList();
+  await executeBEFLIX(shot.beflix, shot.id);
+  shot.rendered = A.frames.some(f => f.shotId === shot.id);
+  renderShotList();
+  schedSave();
+}
+
+async function regenBFXFromEditor() {
+  const shot = S.shots.find(s => s.id === _bfxModalShotId);
+  if (!shot) return;
+  const idx = S.shots.indexOf(shot);
+  setT('bfx-err-line', 'GENERATING...');
+  await generateForShot(idx);
+  const ed = get('bfx-editor');
+  if (ed && shot.beflix) { ed.value = shot.beflix; _syncBFXEditorMeta(); }
+  setT('bfx-err-line', shot.error ? 'ERROR: ' + shot.error : '');
+}
+
+
+// ─────────────────────────────────────────
+// TEXT RASTERIZER — stamps text onto frame scriptLayer
+// ─────────────────────────────────────────
+const _textCanvas  = document.createElement('canvas'); _textCanvas.width = GC; _textCanvas.height = GR;
+const _textCtx      = _textCanvas.getContext('2d', { willReadFrequently: true });
+
+function rasterizeText(text, fontSize, gx, gy, inkLevel) {
+  const grid = Array.from({ length: GR }, () => Array(GC).fill(0));
+  _textCtx.clearRect(0, 0, GC, GR);
+  _textCtx.fillStyle = '#000';
+  _textCtx.font      = `900 ${fontSize}px Helvetica, Arial, sans-serif`;
+  _textCtx.textBaseline = 'top';
+  _textCtx.textAlign    = 'left';
+  const lineH = Math.ceil(fontSize * 1.2);
+  let cy = gy;
+  for (const line of text.split('\n')) {
+    const maxW = GC - gx;
+    const words = line.split(' ');
+    let cur = '';
+    for (const word of words) {
+      const test = cur ? cur + ' ' + word : word;
+      if (_textCtx.measureText(test).width > maxW && cur) {
+        _textCtx.fillText(cur, gx, cy); cy += lineH; cur = word;
+      } else { cur = test; }
+    }
+    if (cur) { _textCtx.fillText(cur, gx, cy); cy += lineH; }
+  }
+  const px = _textCtx.getImageData(0, 0, GC, GR).data;
+  for (let y = 0; y < GR; y++) {
+    for (let x = 0; x < GC; x++) {
+      const alpha = px[(y * GC + x) * 4 + 3];
+      if (alpha > 30) grid[y][x] = clamp(Math.round((alpha / 255) * inkLevel), 1, 7);
+    }
+  }
+  return grid;
+}
+
+function applyGridToFrame(f, grid) {
+  for (let y = 0; y < GR; y++) {
+    for (let x = 0; x < GC; x++) {
+      if (!grid[y][x]) continue;
+      const col = INKS[grid[y][x]].rgb;
+      for (let by = 0; by < BS; by++) {
+        for (let bx = 0; bx < BS; bx++) bpx(f.sl, x * BS + bx, y * BS + by, col);
+      }
+    }
+  }
+}
+
+function stampText() {
+  if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+  pushUndo('stamp text');
+  const text = (get('t-text')?.value || '').toUpperCase();
+  const size = parseInt(get('t-size')?.value || '14');
+  const ink  = parseInt(get('t-ink')?.value  || '7');
+  applyGridToFrame(A.frames[A.cur], rasterizeText(text, size, 4, 40, ink));
+  renderCanvas(); rebuildTimeline();
+  showToast('TEXT STAMPED');
+}
+
+function previewText() {
+  if (!A.frames.length) return;
+  const f   = A.frames[A.cur];
+  const bkp = new Uint8ClampedArray(f.sl);
+  const text = (get('t-text')?.value || '').toUpperCase();
+  const size = parseInt(get('t-size')?.value || '14');
+  const ink  = parseInt(get('t-ink')?.value  || '7');
+  applyGridToFrame(f, rasterizeText(text, size, 4, 40, ink));
+  renderCanvas();
+  f.sl.set(bkp); // restore after preview
+  showToast('PREVIEW ONLY — use STAMP to commit');
+}
+
+
+// ─────────────────────────────────────────
+// PROCESS MODES — posterize, threshold, edge detect, halftone
+// Applied when loading video/image frames
+// ─────────────────────────────────────────
+function processFrame(f) {
+  const mode = get('proc-mode')?.value || 'posterize';
+  if (mode === 'raw' || !f.src) return;
+  const tc = document.createElement('canvas'); tc.width = GC; tc.height = GR;
+  const tx = tc.getContext('2d'); tx.imageSmoothingEnabled = true;
+  tx.drawImage(f.src, 0, 0, GC, GR);
+  const sd   = tx.getImageData(0, 0, GC, GR).data;
+  const grid = Array.from({ length: GR }, () => Array(GC).fill(0));
+
+  if (mode === 'threshold') {
+    for (let y = 0; y < GR; y++) {
+      for (let x = 0; x < GC; x++) {
+        const i = (y * GC + x) * 4;
+        grid[y][x] = (sd[i] * 0.299 + sd[i+1] * 0.587 + sd[i+2] * 0.114) < 128 ? 7 : 0;
+      }
+    }
+  } else if (mode === 'posterize') {
+    for (let y = 0; y < GR; y++) {
+      for (let x = 0; x < GC; x++) {
+        const i = (y * GC + x) * 4;
+        const l = sd[i] * 0.299 + sd[i+1] * 0.587 + sd[i+2] * 0.114;
+        grid[y][x] = clamp(Math.round((255 - l) / 255 * 7), 0, 7);
+      }
+    }
+  } else if (mode === 'edge') {
+    const lum = Array.from({ length: GR }, (_, y) =>
+      Array.from({ length: GC }, (_, x) => {
+        const i = (y * GC + x) * 4;
+        return sd[i] * 0.299 + sd[i+1] * 0.587 + sd[i+2] * 0.114;
+      })
+    );
+    for (let y = 1; y < GR - 1; y++) {
+      for (let x = 1; x < GC - 1; x++) {
+        const gx = -lum[y-1][x-1] + lum[y-1][x+1] - 2*lum[y][x-1] + 2*lum[y][x+1] - lum[y+1][x-1] + lum[y+1][x+1];
+        const gy = -lum[y-1][x-1] - 2*lum[y-1][x] - lum[y-1][x+1] + lum[y+1][x-1] + 2*lum[y+1][x] + lum[y+1][x+1];
+        grid[y][x] = (gx*gx + gy*gy) > 3600 ? 7 : 0;
+      }
+    }
+  } else if (mode === 'halftone') {
+    const b = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+    for (let y = 0; y < GR; y++) {
+      for (let x = 0; x < GC; x++) {
+        const i  = (y * GC + x) * 4;
+        const th = (b[y%4][x%4] / 16 - 0.5) * 80;
+        const l  = sd[i] * 0.299 + sd[i+1] * 0.587 + sd[i+2] * 0.114;
+        grid[y][x] = clamp(Math.round((255 - clamp(l + th, 0, 255)) / 255 * 7), 0, 7);
+      }
+    }
+  }
+
+  f.sl.fill(0);
+  for (let y = 0; y < GR; y++) {
+    for (let x = 0; x < GC; x++) {
+      if (!grid[y][x]) continue;
+      const col = INKS[grid[y][x]].rgb;
+      for (let by = 0; by < BS; by++) {
+        for (let bx = 0; bx < BS; bx++) bpx(f.sl, x * BS + bx, y * BS + by, col);
+      }
+    }
+  }
+}
+
+// Fit a source image into the canvas, maintaining aspect ratio
+function fitToCanvas(src, sw, sh) {
+  const c  = document.createElement('canvas'); c.width = W; c.height = H;
+  const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+  const a  = sw / sh;
+  let dw = W, dh = H, dx = 0, dy = 0;
+  if (a > W / H) { dh = W / a; dy = (H - dh) / 2; }
+  else            { dw = H * a; dx = (W - dw) / 2; }
+  cx.drawImage(src, 0, 0, sw, sh, dx, dy, dw, dh);
+  return c;
+}
+
+
+// ─────────────────────────────────────────
+// CAUSAL CHAIN + STATE VIEWS
+// updateAllViews() is called after every state mutation.
+// It computes what's complete and what's needed next.
+// ─────────────────────────────────────────
+function updateAllViews() {
+  enforceInvariants();
+  guardFrames();
+  _updateStatusBar();
+  _updateCausalChain();
+  _updateStateNodes();
+  _updateStageRail();
+  _syncPlayButton();
+  _syncPlayOverlay();
+  _updateScriptMeta();
+}
+
+function _updateStatusBar() {
+  const shots = S.shots || [];
+  setT('sb-frame', A.frames.length
+    ? String(A.cur + 1).padStart(2,'0') + '/' + String(A.frames.length).padStart(2,'0')
+    : '00/00');
+  setT('sb-fps', BASE_FPS);
+  // Ink badge
+  const badge = get('ink-badge'); if (badge) badge.style.background = INKS[A.ink].hex;
+  // Quick stats
+  setT('f-premise', S.premise ? 'Set.' : 'None');
+  setT('f-script',  S.script  ? S.script.split(/\s+/).length + ' words' : 'None');
+  setT('f-shots',   shots.length + ' / ' + SHOTS_MAX);
+  setT('f-frames',  A.frames.length + ' / ' + FRAMES_MAX);
+}
+
+function _updateCausalChain() {
+  const shots = S.shots || [];
+  _litNode('dn-idea',   !!S.premise);
+  _litNode('dn-script', !!S.script);
+  _litNode('dn-shots',  shots.length > 0);
+  _litNode('dn-board',  S.boardReady);
+  _litNode('dn-out',    S.pkgReady);
+}
+
+function _litNode(id, lit) {
+  get(id)?.classList.toggle('lit', lit);
+}
+
+// Update lights on Build sheet state nodes
+function _updateStateNodes() {
+  const shots = S.shots || [];
+  _litSNode('sn-idea',   !!S.premise);
+  _litSNode('sn-script', !!S.script);
+  _litSNode('sn-shots',  shots.length > 0);
+  _litSNode('sn-board',  S.boardReady);
+}
+
+function _litSNode(id, lit) {
+  const el = get(id); if (!el) return;
+  el.classList.toggle('lit', lit);
+  el.style.cursor = lit ? 'pointer' : 'default';
+}
+
+function _updateStageRail() {
+  const stageIdx = STAGES.indexOf(S.stage);
+  document.querySelectorAll('.stage-pip').forEach((el, i) => {
+    el.classList.toggle('active', el.dataset.stage === S.stage);
+    el.classList.toggle('done',   i < stageIdx);
+  });
+}
+
+function _updateScriptMeta() {
+  const wc = S.script ? S.script.split(/\s+/).length : 0;
+  setT('wc-lbl',  wc ? wc + ' words' : '0 words');
+  setT('wc-warn', wc > WORD_MAX ? 'VERY LONG' : '');
+  const fill = get('word-fill'); if (fill) fill.style.width = clamp(Math.round(wc / WORD_MAX * 100), 0, 100) + '%';
+  // Sync script editor if not being actively edited
+  const el = get('script-el');
+  if (el && document.activeElement !== el) el.value = S.script || '';
+}
+
+// updateSB is the lightweight version called during playback
+function updateSB() { _updateStatusBar(); _syncPlayOverlay(); }
+
+
+// ─────────────────────────────────────────
+// SHOT LIST RENDER
+// Each shot card shows: type, title, desc, BEFLIX status, frame count, edit/render buttons
+// ─────────────────────────────────────────
+function renderShotList() {
+  const wrap = get('shot-list'); if (!wrap) return;
+  const shots = S.shots || [];
+  if (!shots.length) {
+    wrap.innerHTML = '<div style="padding:11px;font:11px/1.5 var(--font);color:#aaa">No shots. Open Build → Chat and say "break into shots".</div>';
+    return;
+  }
+  wrap.innerHTML = shots.map((shot, i) => {
+    const isSel    = shot.id === S.selShotId;
+    const shotFr    = A.frames.filter(f => f.shotId === shot.id).length;
+    const bfxClass = shot.generating ? 'generating'
+                   : shot.error      ? 'err'
+                   : shot.rendered   ? 'rendered'
+                   : shot.beflix     ? 'has-code'
+                   : 'none';
+    const bfxLabel = shot.generating ? 'GENERATING...'
+                   : shot.error      ? 'ERROR: ' + shot.error.slice(0, 30)
+                   : shot.rendered   ? 'RENDERED (' + shotFr + ' FRAMES)'
+                   : shot.beflix     ? 'CODE READY'
+                   : 'NO CODE';
+    return `
+      <article class="shot-card${isSel ? ' sel' : ''}" data-sid="${shot.id}">
+        <div class="shot-n">${i + 1}</div>
+        <div class="shot-body">
+          <div class="shot-flds">
+            <div class="shot-fld">
+              <select data-sf="type" style="height:26px">
+                ${SHOT_TYPES.map(t => `<option${shot.type === t ? ' selected' : ''}>${t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="shot-fld">
+              <input data-sf="title" value="${esc(shot.title || '')}" placeholder="Shot title">
+            </div>
+            <div class="shot-fld">
+              <textarea data-sf="desc" rows="2">${esc(shot.desc || '')}</textarea>
+            </div>
+          </div>
+          <div class="shot-footer">
+            <span class="bfx-status ${bfxClass}">
+              <span class="bfx-dot"></span>${bfxLabel}
+            </span>
+          </div>
+          <div class="shot-actions">
+            <button class="btn b sm" data-render="${shot.id}"${shot.generating ? ' disabled' : ''}>RENDER</button>
+            <button class="btn sm"   data-edit="${shot.id}">EDIT CODE</button>
+            <button class="btn sm"   data-sup="${shot.id}">UP</button>
+            <button class="btn sm"   data-sdn="${shot.id}">DN</button>
+            <button class="btn sm"   data-sdel="${shot.id}" style="color:var(--c)">DEL</button>
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+}
+
+
+// ─────────────────────────────────────────
+// EXPORT PANEL
+// Shows what's complete and what's still needed.
+// ─────────────────────────────────────────
+function renderExportPanel() {
+  const list  = get('exp-list'); if (!list) return;
+  const shots = S.shots || [];
+  const items = [
+    { done: !!S.premise,               label: 'Premise / logline' },
+    { done: !!S.script,                label: 'Script' + (S.script ? ' · ' + S.script.split(/\s+/).length + ' words' : '') },
+    { done: shots.length > 0,          label: shots.length + ' shot' + (shots.length !== 1 ? 's' : '') + ' defined' },
+    { done: shots.some(s => s.beflix), label: 'BEFLIX code per shot' },
+    { done: shots.some(s => s.rendered), label: 'Shots rendered to frames' },
+    { done: A.frames.length > 0,       label: A.frames.length + ' canvas frames total' },
+    { done: S.boardReady,              label: 'All shots rendered (board ready)' },
+    { done: S.pkgReady,                label: 'Package complete' }
+  ];
+  list.innerHTML = items.map(item => `
+    <div class="exp-item${item.done ? ' done' : ''}">
+      <div class="exp-chk">${item.done ? '✓' : ''}</div>
+      ${esc(item.label)}
+    </div>`).join('');
+}
+
+
+// ─────────────────────────────────────────
+// CHAT SYSTEM
+// ─────────────────────────────────────────
+function addMessage(who, text) {
+  if ((S.log || []).length >= LOG_MAX) S.log = S.log.slice(5);
+  S.log.push({ who, text, time: nowTime() });
+  renderChat();
+}
+
+function renderChat() {
+  const msgs = get('chat-msgs'); if (!msgs) return;
+  msgs.innerHTML = (S.log || []).map(m => `
+    <div class="bubble ${m.who === 'you' ? 'me' : m.who === 'err' ? 'ai err' : 'ai'}">
+      <div class="bwho">${m.who === 'you' ? 'YOU' : 'CAUSALITY'}<span>${esc(m.time || '')}</span></div>
+      <p>${esc(m.text).replace(/\n/g, '<br>')}</p>
+    </div>`).join('');
+  msgs.scrollTop = 9999;
+}
+
+function addTypingIndicator() {
+  const id   = 'ty_' + Date.now();
+  const msgs = get('chat-msgs'); if (!msgs) return id;
+  const el   = document.createElement('div'); el.id = id; el.className = 'typing';
+  el.innerHTML = '<div class="dots"><span></span><span></span><span></span></div>';
+  msgs.appendChild(el); msgs.scrollTop = 9999;
+  return id;
+}
+
+function removeTypingIndicator(id) { get(id)?.remove(); }
+
+async function sendMessage(rawInput) {
+  const t = (rawInput || '').trim(); if (!t) return;
+  setP('chat-in', 'value', '');
+  addMessage('you', t);
+  const tid = addTypingIndicator();
+  setP('send-btn', 'disabled', true);
+  try {
+    const activeKey = getActiveKey();
+    if (!activeKey) {
+      removeTypingIndicator(tid);
+      addMessage('err', `No API key configured for model "${ACTIVE_MODEL}". Tap the model button in the status bar to configure.`);
+      setP('send-btn', 'disabled', false);
+      return;
+    }
+    const result = await callAI(t);
+    removeTypingIndicator(tid);
+    await applyActions(result.actions || []);
+    addMessage(result.isError ? 'err' : 'ai', result.reply || 'Done.');
+    enforceInvariants();
+    updateAllViews();
+    renderShotList();
+    schedSave();
+  } catch (e) {
+    removeTypingIndicator(tid);
+    addMessage('err', 'Error: ' + e.message);
+    reportError('Chat failed: ' + e.message);
+  } finally {
+    setP('send-btn', 'disabled', false);
+  }
+}
+
+
+// ─────────────────────────────────────────
+// AI API — story development & BEFLIX code
+// ─────────────────────────────────────────
+async function callAI(userMsg) {
+  const provider = getProvider(ACTIVE_MODEL);
+  const key = KEYS[provider];
+  if (!key) {
+    return { reply: `No API key configured for ${ACTIVE_MODEL}. Please tap KEY in the status bar to configure.`, actions: [], isError: true };
+  }
+
+  const shots = S.shots || [];
+  const sys = `You are CAUSALITY, an AI film development engine.
+
+PROJECT STATE:
+  Title:   "${S.title || 'Untitled'}"
+  Idea:    "${S.idea   || 'none'}"
+  Premise: "${S.premise || 'none'}"
+  Script:  ${S.script ? S.script.split(/\s+/).length + ' words' : 'none'}
+  Shots:   ${shots.length} / ${SHOTS_MAX}
+  Board:   ${S.boardReady ? 'ready' : 'not ready'}
+  Frames:  ${A.frames.length} / ${FRAMES_MAX}
+
+NEXT STEP HINT: ${_getNextStepHint()}
+
+Return ONLY valid JSON, no markdown:
+{"reply":"brief reply","actions":[]}
+
+STORY ACTIONS:
+SET_PREMISE:    {"type":"SET_PREMISE","payload":{"premise":"one-sentence logline"}}
+SET_SCRIPT:     {"type":"SET_SCRIPT","payload":{"script":"formatted screenplay"}}
+SET_SHOTS:      {"type":"SET_SHOTS","payload":{"shots":[{"type":"WIDE","title":"...","desc":"what the audience sees","bfxHint":"brief animation keyword"}]}}
+SET_BOARD:      {"type":"SET_BOARD","payload":{}}
+SET_PACKAGE:    {"type":"SET_PACKAGE","payload":{}}
+UPDATE_PROJECT: {"type":"UPDATE_PROJECT","payload":{"title":"...","premise":"..."}}
+RENDER_SHOTS:   {"type":"RENDER_SHOTS","payload":{}}
+NAVIGATE:       {"type":"NAVIGATE","payload":{"sheet":"a|b|c|d"}}
+
+ROUTING:
+- idea/premise → SET_PREMISE
+- script/write → SET_SCRIPT
+- shots/break  → SET_SHOTS (4–8 shots, types: ${SHOT_TYPES.join(', ')})
+- render/beflix/animate → RENDER_SHOTS
+- finish/export → SET_PACKAGE + NAVIGATE d
+- darker/twist/simpler → rewrite content
+Reply always required.`;
+
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), FETCH_MS);
+
+  try {
+    let raw = '';
+    if (provider === 'gemini') {
+      const contents = [];
+      const hist = (S.log || []).slice(-14);
+      let lastRole = null;
+      hist.forEach(m => {
+        const role = m.who === 'you' ? 'user' : 'model';
+        if (role === lastRole && contents.length > 0) {
+          contents[contents.length - 1].parts[0].text += "\n" + m.text;
+        } else {
+          contents.push({
+            role: role,
+            parts: [{ text: m.text }]
+          });
+          lastRole = role;
+        }
+      });
+      if (lastRole === 'user' && contents.length > 0) {
+        contents[contents.length - 1].parts[0].text += "\n" + userMsg;
+      } else {
+        contents.push({
+          role: 'user',
+          parts: [{ text: userMsg }]
+        });
+      }
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${key}`, {
+        method:  'POST',
+        signal:  ctrl.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          contents: contents,
+          systemInstruction: {
+            parts: [{ text: sys }]
+          },
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: 3500
+          }
+        })
+      });
+      clearTimeout(tid);
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || 'HTTP ' + res.status); }
+      const data = await res.json();
+      raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    } 
+    else if (provider === 'claude') {
+      const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
+      const msgs = [...hist, { role: 'user', content: userMsg }];
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:  'POST',
+        signal:  ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: ACTIVE_MODEL,
+          max_tokens: 3500,
+          system: sys,
+          messages: msgs
+        })
+      });
+      clearTimeout(tid);
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || 'HTTP ' + res.status); }
+      const data = await res.json();
+      raw = data.content?.[0]?.text || '{}';
+    } 
+    else if (provider === 'openai') {
+      const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
+      const msgs = [...hist, { role: 'user', content: userMsg }];
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:  'POST',
+        signal:  ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key
+        },
+        body: JSON.stringify({
+          model: ACTIVE_MODEL,
+          max_tokens: ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') ? undefined : 3500,
+          max_completion_tokens: ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') ? 3500 : undefined,
+          messages: [
+            { role: 'system', content: sys },
+            ...msgs
+          ],
+          response_format: { type: 'json_object' }
+        })
+      });
+      clearTimeout(tid);
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || 'HTTP ' + res.status); }
+      const data = await res.json();
+      raw = data.choices?.[0]?.message?.content || '{}';
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(raw.replace(/```json\n?|```\n?/g, '').trim()); }
+    catch (_) { parsed = { reply: raw.slice(0, 400), actions: [] }; }
+    return { reply: String(parsed.reply || ''), actions: Array.isArray(parsed.actions) ? parsed.actions : [], isError: false };
+  } catch (e) {
+    clearTimeout(tid);
+    const msg = e.name === 'AbortError' ? 'Request timed out (' + (FETCH_MS / 1000) + 's)' : 'API error: ' + e.message;
+    return { reply: msg, actions: [], isError: true };
+  }
+}
+
+async function callAIForBEFLIX(shot, shotIndex) {
+  const provider = getProvider(ACTIVE_MODEL);
+  const key = KEYS[provider];
+  if (!key) {
+    throw new Error(`No API key configured for model "${ACTIVE_MODEL}". Tap the model button in the status bar to configure.`);
+  }
+
+  const sys = buildBEFLIXPrompt(shot, shotIndex);
+  const userPrompt = 'Write the BEFLIX animation code for this shot now.';
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), FETCH_MS);
+
+  try {
+    let code = '';
+    if (provider === 'gemini') {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${key}`, {
+        method:  'POST',
+        signal:  ctrl.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [{ text: userPrompt }]
+          }],
+          systemInstruction: {
+            parts: [{ text: sys }]
+          },
+          generationConfig: {
+            maxOutputTokens: 2000
+          }
+        })
+      });
+      clearTimeout(tid);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || 'HTTP ' + res.status);
+      }
+      const data = await res.json();
+      code = (data.candidates?.[0]?.content?.parts?.[0]?.text || '');
+    } 
+    else if (provider === 'claude') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:  'POST',
+        signal:  ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: ACTIVE_MODEL,
+          max_tokens: 2000,
+          system: sys,
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+      clearTimeout(tid);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || 'HTTP ' + res.status);
+      }
+      const data = await res.json();
+      code = (data.content?.[0]?.text || '');
+    } 
+    else if (provider === 'openai') {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:  'POST',
+        signal:  ctrl.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key
+        },
+        body: JSON.stringify({
+          model: ACTIVE_MODEL,
+          max_tokens: ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') ? undefined : 2000,
+          max_completion_tokens: ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') ? 2000 : undefined,
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: userPrompt }
+          ]
+        })
+      });
+      clearTimeout(tid);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || 'HTTP ' + res.status);
+      }
+      const data = await res.json();
+      code = (data.choices?.[0]?.message?.content || '');
+    }
+
+    return code.replace(/```[a-z]*\n?/g, '').replace(/```/g, '').trim();
+  } catch (apiErr) {
+    clearTimeout(tid);
+    if (apiErr.name === 'AbortError') {
+      throw new Error('API timeout after ' + (FETCH_MS / 1000) + 's');
+    }
+    throw apiErr;
+  }
+}
+
+// Returns a hint about what to do next — surfacing the invisible
+function _getNextStepHint() {
+  if (!S.premise)            return 'No premise yet — generate an idea first';
+  if (!S.script)             return 'Premise set — write the script next';
+  if (!S.shots.length)       return 'Script ready — break it into shots next';
+  if (!S.shots.some(s => s.rendered)) return 'Shots defined — render BEFLIX animation next';
+  if (!S.pkgReady)           return 'Shots rendered — finish the package to export';
+  return 'Package complete — export is ready';
+}
+
+
+// ─────────────────────────────────────────
+// APPLY ACTIONS — dispatches story actions from Claude
+// ─────────────────────────────────────────
+async function applyActions(acts) {
+  for (const a of (acts || [])) {
+    try {
+      switch (a.type) {
+        case 'SET_PREMISE':
+          S.premise = String(a.payload?.premise || '').slice(0, 1000);
+          break;
+        case 'SET_SCRIPT':
+          S.script  = String(a.payload?.script  || '').slice(0, 60000);
+          _updateScriptMeta();
+          break;
+        case 'SET_SHOTS': {
+          const raw = Array.isArray(a.payload?.shots) ? a.payload.shots : [];
+          S.shots = raw.slice(0, SHOTS_MAX).map((s, i) => ({
+            id:         uid(),
+            order:      i + 1,
+            type:       SHOT_TYPES.includes(s.type) ? s.type : 'SHOT',
+            title:      String(s.title   || '').slice(0, 100),
+            desc:       String(s.desc    || '').slice(0, 400),
+            bfxHint:   String(s.bfxHint || '').slice(0, 100),
+            beflix:     '',
+            rendered:   false,
+            generating: false,
+            error:      null,
+          }));
+          S.boardReady  = false;
+          S.pkgReady    = false;
+          S.selShotId   = null;
+          renderShotList();
+          break;
+        }
+        case 'SET_BOARD':   S.boardReady = true;  break;
+        case 'SET_PACKAGE': S.pkgReady   = true;  break;
+        case 'UPDATE_PROJECT':
+          if (a.payload?.title)   { S.title   = String(a.payload.title).slice(0, 120); setP('proj-title', 'value', S.title); }
+          if (a.payload?.premise) { S.premise = String(a.payload.premise).slice(0, 1000); }
+          break;
+        case 'RENDER_SHOTS':
+          // Trigger shot-by-shot generation after current actions complete
+          setTimeout(() => generateAllShots(), 100);
+          break;
+        case 'NAVIGATE':
+          openSheet(a.payload?.sheet || 'b', true);
+          break;
+        default:
+          console.warn('[CAUSALITY] Unknown action:', a.type);
+      }
+    } catch (e) {
+      reportError('Action ' + a.type + ' failed: ' + e.message);
+    }
+  }
+}
+
+
+
+
+function _doReset() {
+  if (!confirm('Reset project? All story data will be cleared.')) return { reply: 'Cancelled.', actions: [] };
+  safe(() => localStorage.removeItem(SK));
+  S = jc(BASE_STORY);
+  updateAllViews(); renderShotList(); renderChat(); renderExportPanel();
+  return { reply: 'Project reset.', actions: [] };
+}
+
+
+// ─────────────────────────────────────────
+// SHEET / NAV MANAGEMENT
+// ─────────────────────────────────────────
+function openSheet(id, silent = false) {
+  if (!silent) tick();
+  const wasAlreadyOpen = A.activeSheet === id;
+  closeSheets();
+  if (!wasAlreadyOpen) {
+    A.activeSheet = id;
+    get('sheet-' + id)?.classList.add('on');
+    get('backdrop')?.classList.add('on');
+    // Highlight tab and side nav
+    ['a','b','c','d'].forEach(x => {
+      get('tab-' + x)?.classList.remove('on-a','on-b','on-c','on-d');
+      get('snav-' + x)?.classList.remove('on-a','on-b','on-c','on-d');
+    });
+    get('tab-' + id)?.classList.add('on-' + id);
+    get('snav-' + id)?.classList.add('on-' + id);
+    // Show draw toolbar if entering Color mode
+    if (id === 'c') get('draw-tb')?.classList.add('on');
+    // Side effects per sheet
+    if (id === 'a') { renderShotList(); }
+    if (id === 'b') { renderChat(); _updateScriptMeta(); setTimeout(() => get('chat-in')?.focus(), 150); }
+    if (id === 'd') { renderExportPanel(); }
+  }
+  _syncPlayOverlay();
+  requestAnimationFrame(scaleWorkspace);
+}
+
+function closeSheets() {
+  ['a','b','c','d'].forEach(id => {
+    get('sheet-' + id)?.classList.remove('on');
+    get('tab-' + id)?.classList.remove('on-a','on-b','on-c','on-d');
+    get('snav-' + id)?.classList.remove('on-a','on-b','on-c','on-d');
+  });
+  get('backdrop')?.classList.remove('on');
+  if (A.activeSheet !== 'c') get('draw-tb')?.classList.remove('on');
+  A.activeSheet = null;
+  _syncPlayOverlay();
+}
+
+// Inner-tab navigation within a sheet
+function openInnerTab(sheetId, tabId) {
+  const sheet = get('sheet-' + sheetId); if (!sheet) return;
+  sheet.querySelectorAll('.sh-tab').forEach(b => b.classList.toggle('on', b.dataset.stab === tabId));
+  // All inner panels in this sheet
+  const allPanelIds = {
+    a: ['a-shots', 'a-media', 'a-info'],
+    b: ['b-chat', 'b-script'],
+  };
+  (allPanelIds[sheetId] || []).forEach(pid => {
+    const el = get(pid); if (!el) return;
+    el.style.display = pid === tabId ? (tabId === 'b-chat' ? 'flex' : '') : 'none';
+  });
+  // Side effects
+  if (tabId === 'b-script') _updateScriptMeta();
+}
+
+
+// ─────────────────────────────────────────
+// VIDEO IMPORT
+// ─────────────────────────────────────────
+async function ripVideoFrames(source, shotId = null) {
+  lockSys('LOADING VIDEO', 0);
+  const url = source instanceof Blob ? URL.createObjectURL(source) : source;
+  const vid = document.createElement('video');
+  vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = url;
+  try {
+    await new Promise((res, rej) => {
+      vid.onloadedmetadata = res;
+      vid.onerror = () => rej(new Error('Video unreadable'));
+      setTimeout(() => rej(new Error('Metadata timeout')), 8000);
+    });
+  } catch (e) {
+    unlockSys(); reportError('Video load failed: ' + e.message);
+    if (source instanceof Blob) URL.revokeObjectURL(url);
+    return;
+  }
+  const dur = vid.duration;
+  if (!isFinite(dur) || dur <= 0) { unlockSys(); reportError('Video has no valid duration'); return; }
+  A.audioBlob = source instanceof Blob ? source : null;
+  const maxF    = clamp(Math.ceil(dur * BASE_FPS), 1, SHOT_FRAMES);
+  const interval = 1 / BASE_FPS;
+  const frames  = [];
+  let lastCap   = -Infinity;
+  lockSys('RIPPING FRAMES', 0);
+  const capture = () => { if (vid.videoWidth) frames.push(fitToCanvas(vid, vid.videoWidth, vid.videoHeight)); setLockN(frames.length); };
+  if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+    await new Promise(res => {
+      const onF = (_, meta) => {
+        if (frames.length >= maxF || vid.ended) { res(); return; }
+        if (meta.mediaTime - lastCap >= interval - 0.001) { lastCap = meta.mediaTime; capture(); }
+        vid.requestVideoFrameCallback(onF);
+      };
+      vid.requestVideoFrameCallback(onF); vid.play().catch(() => {}); setTimeout(res, (dur + 3) * 1000);
+    });
+  } else {
+    await new Promise(res => {
+      const onR = () => {
+        if (frames.length >= maxF || vid.ended) { res(); return; }
+        if (vid.videoWidth && vid.currentTime - lastCap >= interval - 0.001) { lastCap = vid.currentTime; capture(); }
+        requestAnimationFrame(onR);
+      };
+      requestAnimationFrame(onR); vid.play().catch(() => {}); setTimeout(res, (dur + 3) * 1000);
+    });
+  }
+  vid.pause();
+  if (source instanceof Blob) URL.revokeObjectURL(url);
+  if (!frames.length) { unlockSys(); reportError('No frames captured from video'); return; }
+  if (A.frames.length + frames.length > FRAMES_MAX) {
+    const avail = FRAMES_MAX - A.frames.length;
+    if (avail <= 0) { unlockSys(); reportError('Frame cap reached'); return; }
+    frames.splice(avail); showToast('Clip trimmed to ' + avail + ' frames', true);
+  }
+  const insertAt = A.frames.length;
+  frames.forEach((src, i) => {
+    const f = makeFrame(shotId); f.src = src; f.clipStart = (i === 0); processFrame(f); A.frames.push(f);
+  });
+  A.cur = insertAt; unlockSys(); rebuildTimeline(); renderCanvas(); updateSB();
+  showToast(frames.length + ' FRAMES RIPPED');
+}
+
+
+// ─────────────────────────────────────────
+// CAMERA
+// ─────────────────────────────────────────
+let _camStream = null, _camRec = null, _camChunks = [], _camActive = false;
+
+async function openCamera() {
+  try {
+    _camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const vid  = get('cam-vid'); if (vid) vid.srcObject = _camStream;
+    const feed = get('cam-feed'); if (feed) feed.style.display = 'flex';
+  } catch (e) { reportError('Camera denied: ' + e.message); }
+}
+
+function closeCamera() {
+  _camStream?.getTracks().forEach(t => t.stop());
+  const feed = get('cam-feed'); if (feed) feed.style.display = 'none';
+}
+
+function toggleRecord() {
+  const btn = get('btn-rec');
+  if (!_camActive) {
+    _camChunks = []; _camRec = new MediaRecorder(_camStream);
+    _camRec.ondataavailable = e => { if (e.data?.size) _camChunks.push(e.data); };
+    _camRec.start(100); _camActive = true;
+    if (btn) { btn.textContent = 'STOP'; btn.style.background = '#000'; }
+  } else {
+    _camRec.onstop = async () => {
+      const bl = new Blob(_camChunks, { type: 'video/webm' });
+      closeCamera(); await ripVideoFrames(bl);
+    };
+    _camRec.stop(); _camActive = false;
+    if (btn) { btn.textContent = 'RECORD'; btn.style.background = 'var(--c)'; }
+  }
+}
+
+// Film leader — useful for testing playback
+function loadFilmLeader() {
+  thud();
+  const insertAt = A.frames.length;
+  lockSys('GENERATING LEADER', 0);
+  setTimeout(() => {
+    const SECS = 6, TOTAL = SECS * BASE_FPS;
+    for (let i = 0; i < TOTAL; i++) {
+      const c   = document.createElement('canvas'); c.width = W; c.height = H;
+      const cx  = c.getContext('2d');
+      const sec = SECS - Math.floor(i / BASE_FPS);
+      const prog = (i % BASE_FPS) / BASE_FPS;
+      cx.fillStyle = '#666'; cx.fillRect(0, 0, W, H);
+      cx.strokeStyle = '#000'; cx.lineWidth = 2;
+      cx.beginPath(); cx.moveTo(W/2, 0); cx.lineTo(W/2, H); cx.stroke();
+      cx.beginPath(); cx.moveTo(0, H/2); cx.lineTo(W, H/2); cx.stroke();
+      cx.beginPath(); cx.arc(W/2, H/2, H/2.2, 0, Math.PI * 2); cx.stroke();
+      cx.save(); cx.translate(W/2, H/2); cx.rotate(-Math.PI/2 + prog * Math.PI * 2);
+      cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(H/2.2, 0); cx.lineWidth = 4; cx.stroke(); cx.restore();
+      cx.fillStyle = '#000'; cx.font = '900 ' + (H/2.5) + 'px Helvetica';
+      cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(sec, W/2, H/2 + 5);
+      const f = makeFrame(); f.src = c; f.clipStart = (i === 0); A.frames.push(f);
+    }
+    A.cur = insertAt; rebuildTimeline(); renderCanvas(); unlockSys(); updateSB();
+    showToast('LEADER READY');
+  }, 50);
+}
+
+
+// ─────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────
+const EW = W * 2, EH = H * 2;
+const GIF_WORKER = 'https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js';
+
+function _pickMimeType(fmt) {
+  const webm = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  const mp4  = ['video/mp4;codecs=h264','video/mp4'];
+  const list = fmt === 'mp4' ? mp4 : webm;
+  for (const m of list) if (window.MediaRecorder?.isTypeSupported?.(m)) return m;
+  return '';
+}
+
+function _buildExportText() {
+  const shots = S.shots || [];
+  return [
+    (S.title || 'UNTITLED').toUpperCase(),
+    '\nLOGLINE\n' + (S.premise || 'A short film.'),
+    '\nSCRIPT\n'  + (S.script  || 'No script.'),
+    '\nSHOT LIST\n' + shots.map((s, i) => `${i+1}. ${s.type} — ${s.title}: ${s.desc}`).join('\n'),
+    '\nPRODUCTION NOTES\nSingle location. Minimal cast. BEFLIX dot-matrix animation.'
+  ].join('\n');
+}
+
+function _copyText(t) {
+  if (navigator.clipboard) { navigator.clipboard.writeText(t).catch(() => _fallbackCopy(t)); }
+  else _fallbackCopy(t);
+}
+function _fallbackCopy(t) {
+  const a = document.createElement('textarea'); a.value = t;
+  document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove();
+}
+
+function _downloadFile(name, text, type = 'text/plain') {
+  const b = new Blob([text], { type }), u = URL.createObjectURL(b);
+  const a = document.createElement('a'); a.href = u; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);
+}
+
+function exportPNG() {
+  if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  renderDotFrame(A.frames[A.cur], tmp);
+  const a = document.createElement('a');
+  a.download = 'CAUSALITY_' + String(A.cur + 1).padStart(3,'0') + '.png';
+  a.href     = tmp.toDataURL(); a.click();
+  showToast('PNG SAVED');
+}
+
+async function exportVideo(fmt) {
+  if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+  if (A.playing) togglePlay();
+  const mime = _pickMimeType(fmt);
+  if (!mime) { showToast(fmt.toUpperCase() + ' UNSUPPORTED', true); return; }
+  lockSys('ENCODING ' + fmt.toUpperCase(), 0);
+  const ec  = document.createElement('canvas'); ec.width = EW; ec.height = EH;
+  const tmp = document.createElement('canvas'); tmp.width = W;  tmp.height = H;
+  const stream = ec.captureStream(BASE_FPS);
+  let eAC = null, srcN = null;
+  if (A.audioBlob) {
+    try {
+      eAC  = new (window.AudioContext || window.webkitAudioContext)();
+      const ab  = await A.audioBlob.arrayBuffer();
+      const buf = await eAC.decodeAudioData(ab);
+      const dest = eAC.createMediaStreamDestination();
+      srcN = eAC.createBufferSource(); srcN.buffer = buf;
+      const outDur = A.frames.length / BASE_FPS;
+      if (buf.duration > 0) srcN.playbackRate.value = clamp(buf.duration / outDur, 0.25, 4);
+      srcN.connect(dest);
+      const tracks = dest.stream.getAudioTracks();
+      if (tracks.length) stream.addTrack(tracks[0]);
+    } catch (_) {}
+  }
+  const rec    = new MediaRecorder(stream, { mimeType: mime });
+  const chunks = []; rec.ondataavailable = e => { if (e.data?.size) chunks.push(e.data); };
+  const done   = new Promise(r => { rec.onstop = r; });
+  try { srcN?.start(0); } catch (_) {}
+  rec.start();
+  const t0 = performance.now();
+  for (let i = 0; i < A.frames.length; i++) {
+    renderDotFrame(A.frames[i], tmp); ec.getContext('2d').drawImage(tmp, 0, 0, EW, EH);
+    setLockN(i + 1);
+    const target = t0 + (i + 1) * (1000 / BASE_FPS);
+    const delay  = target - performance.now();
+    await new Promise(r => setTimeout(r, Math.max(0, delay)));
+  }
+  await new Promise(r => setTimeout(r, 80)); rec.stop();
+  try { srcN?.stop(); } catch (_) {}
+  try { eAC?.close();  } catch (_) {}
+  await done; stream.getTracks().forEach(t => t.stop());
+  const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+  const bl  = new Blob(chunks, { type: mime });
+  const a   = document.createElement('a');
+  a.download = 'CAUSALITY_' + Date.now() + '.' + ext;
+  a.href     = URL.createObjectURL(bl); a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  unlockSys(); showToast(ext.toUpperCase() + ' SAVED');
+}
+
+function exportGIF() {
+  if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+  if (typeof GIF === 'undefined') { showToast('GIF LIBRARY NOT LOADED', true); return; }
+  lockSys('ENCODING GIF', 0);
+  const gif = new GIF({ workers: 1, quality: 12, width: EW, height: EH, workerScript: GIF_WORKER });
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  for (let i = 0; i < A.frames.length; i++) {
+    renderDotFrame(A.frames[i], tmp);
+    const fc = document.createElement('canvas'); fc.width = EW; fc.height = EH;
+    fc.getContext('2d').drawImage(tmp, 0, 0, EW, EH);
+    gif.addFrame(fc, { delay: 1000 / BASE_FPS, copy: true });
+  }
+  gif.on('progress', p => setLockN(Math.round(p * 100) + '%'));
+  gif.on('finished', blob => {
+    const a = document.createElement('a');
+    a.download = 'CAUSALITY_' + Date.now() + '.gif';
+    a.href = URL.createObjectURL(blob); a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    unlockSys(); showToast('GIF SAVED');
+  });
+  gif.render();
+}
+
+function exportContactSheet() {
+  if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+  lockSys('CONTACT SHEET', 0);
+  setTimeout(() => {
+    const cols = Math.min(5, A.frames.length);
+    const rows = Math.ceil(A.frames.length / cols);
+    const sc   = document.createElement('canvas'); sc.width = cols * W; sc.height = rows * H;
+    const sctx = sc.getContext('2d');
+    for (let i = 0; i < A.frames.length; i++) {
+      const tc = document.createElement('canvas'); tc.width = W; tc.height = H;
+      renderDotFrame(A.frames[i], tc);
+      sctx.drawImage(tc, (i % cols) * W, Math.floor(i / cols) * H);
+    }
+    const a = document.createElement('a'); a.download = 'CAUSALITY_SHEET.png'; a.href = sc.toDataURL(); a.click();
+    unlockSys(); showToast('SHEET SAVED');
+  }, 50);
+}
+
+// Decompile all frames back to BEFLIX text
+function decompileToCode() {
+  let code = `; CAUSALITY BEFLIX EXPORT\n; FRAMES: ${A.frames.length}\n; GRID: ${GC}x${GR}\n;\n`;
+  for (let fi = 0; fi < A.frames.length; fi++) {
+    const f    = A.frames[fi];
+    code += `C FRAME ${fi + 1}\n`;
+    const grid = Array.from({ length: GR }, () => Array(GC).fill(0));
+    let srcGrid = null;
+    if (f.src) {
+      const tc = document.createElement('canvas'); tc.width = GC; tc.height = GR;
+      const tx = tc.getContext('2d'); tx.drawImage(f.src, 0, 0, GC, GR);
+      const px = tx.getImageData(0, 0, GC, GR).data;
+      srcGrid = new Uint8Array(GR * GC);
+      for (let i = 0; i < GR * GC; i++) {
+        const pi = i * 4, lum = px[pi] * 0.299 + px[pi+1] * 0.587 + px[pi+2] * 0.114;
+        srcGrid[i] = clamp(Math.round((255 - lum) / 255 * 7), 0, 7);
+      }
+    }
+    for (let y = 0; y < GR; y++) {
+      for (let x = 0; x < GC; x++) {
+        const sx = x * BS + Math.floor(BS / 2), sy = y * BS + Math.floor(BS / 2);
+        const si = (sy * W + sx) * 4;
+        const ha = f.hl[si + 3];
+        if (ha >= 16)        grid[y][x] = alphaToLevel(ha);
+        else { const sa = f.sl[si + 3]; if (sa >= 16) grid[y][x] = alphaToLevel(sa); else if (srcGrid) grid[y][x] = srcGrid[y * GC + x]; }
+      }
+    }
+    const counts = Array(8).fill(0);
+    for (let y = 0; y < GR; y++) for (let x = 0; x < GC; x++) counts[grid[y][x]]++;
+    const bg = counts.indexOf(Math.max(...counts));
+    code += `CLR ${bg}\n`;
+    for (let y = 0; y < GR; y++) {
+      let x = 0;
+      while (x < GC) {
+        const ink = grid[y][x];
+        if (ink !== bg) {
+          const sx = x; while (x < GC && grid[y][x] === ink) x++;
+          code += `PNT ${sx} ${y} ${x - sx} 1 ${ink}\n`;
+        } else x++;
+      }
+    }
+    code += `REC 1\n`;
+  }
+  return code;
+}
+
+
+// ─────────────────────────────────────────
+// DOM WIRING — all event listeners in one place
+// ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ── Initialize canvas ──
+  CVS  = get('cvs');
+  CTX  = CVS.getContext('2d', { willReadFrequently: true });
+  COMP = document.createElement('canvas'); COMP.width = W; COMP.height = H;
+  CCTX = COMP.getContext('2d', { willReadFrequently: true });
+
+  buildDotStamps();
+  buildInkPalette();
+  addFrame(true);
+  scaleWorkspace();
+
+  document.body.addEventListener('pointerdown', initAudio, { once: true });
+  window.addEventListener('resize', () => requestAnimationFrame(scaleWorkspace));
+
+  // ── Canvas drawing ──
+  CVS.addEventListener('pointerdown', e => {
+    const drawActive = A.activeSheet === 'c' || get('draw-tb')?.classList.contains('on');
+    if (!drawActive) return;
+    pushUndo('draw'); CVS.setPointerCapture(e.pointerId);
+    A.dragging = true; A.p0 = mapCoord(e); A.p1 = [...A.p0];
+    if (A.tool !== 'rect') commitStroke(A.p0, A.p0);
+    else renderCanvas();
+  });
+  CVS.addEventListener('pointermove', e => {
+    if (!A.dragging) return;
+    const prev = [...A.p1]; A.p1 = mapCoord(e);
+    if (A.tool === 'rect') renderCanvas();
+    else commitStroke(prev, A.p1);
+  });
+  CVS.addEventListener('pointerup', () => {
+    if (!A.dragging) return;
+    if (A.tool === 'rect') commitStroke(A.p0, A.p1, true);
+    A.dragging = false; renderCanvas(); rebuildTimeline();
+  });
+
+  // ── Playback ──
+  get('play-btn')?.addEventListener('click', togglePlay);
+  get('play-ov-btn')?.addEventListener('click', togglePlay);
+
+  // ── FPS ──
+  get('fps-up')?.addEventListener('click', () => { BASE_FPS = Math.min(30, BASE_FPS + 1); updateSB(); });
+  get('fps-dn')?.addEventListener('click', () => { BASE_FPS = Math.max(1,  BASE_FPS - 1); updateSB(); });
+
+  // ── Grid / onion toggle ──
+  get('grid-btn')?.addEventListener('click', () => {
+    const net = get('net'); if (!net) return;
+    if (!A.showGrid && !A.showOnion) {
+      A.showGrid = true; setT('grid-btn', 'GRID: ON'); net.classList.add('on'); drawGrid();
+    } else if (A.showGrid) {
+      A.showGrid = false; A.showOnion = true; setT('grid-btn', 'ONION: ON'); _drawOnion();
+    } else {
+      A.showGrid = false; A.showOnion = false; setT('grid-btn', 'GRID: OFF'); net.classList.remove('on');
+    }
+  });
+
+  // ── Error overlay dismiss ──
+  get('err-x')?.addEventListener('click', clearError);
+
+  // ── Timeline controls ──
+  get('tl-prev')?.addEventListener('click', () => { clearSel(); stepFrame(-1); });
+  get('tl-next')?.addEventListener('click', () => { clearSel(); stepFrame(1);  });
+  get('tl-blk')?.addEventListener('click', addFrame);
+  get('tl-dup')?.addEventListener('click', dupFrame);
+  get('tl-del')?.addEventListener('click', deleteSelected);
+  get('tl-undo')?.addEventListener('click', popUndo);
+  get('tl-sel')?.addEventListener('click', () => { if (A.selMode) clearSel(); else enterSelMode(); });
+  get('tl-clr')?.addEventListener('click', clearSel);
+
+  // ── Tab bar + side nav ──
+  ['a','b','c','d'].forEach(id => {
+    get('tab-' + id)?.addEventListener('click', () => openSheet(id));
+    get('snav-' + id)?.addEventListener('click', () => openSheet(id));
+  });
+  get('tab-help')?.addEventListener('click',  () => get('m-help')?.classList.add('on'));
+  get('backdrop')?.addEventListener('click',  closeSheets);
+
+  // ── Sheet close buttons ──
+  ['a','b','c','d'].forEach(id => get('sh-' + id + '-x')?.addEventListener('click', closeSheets));
+
+  // ── Inner sheet tabs ──
+  document.querySelectorAll('.sh-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sheet = btn.closest('.sheet')?.id?.replace('sheet-', '');
+      if (sheet) openInnerTab(sheet, btn.dataset.stab);
+    });
+  });
+
+  // ── Stage rail navigation ──
+  document.querySelectorAll('.stage-pip').forEach(el => {
+    el.addEventListener('click', () => {
+      const stage = el.dataset.stage;
+      // Navigate to the sheet that manages this stage
+      if (stage === 'script') { openSheet('b'); openInnerTab('b', 'b-script'); }
+      else if (stage === 'shots' || stage === 'board') { openSheet('a'); }
+      else if (stage === 'export') { openSheet('d'); }
+      else { openSheet('b'); }
+    });
+  });
+
+  // ── Composer ──
+  get('composer')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const ci = get('chat-in'), t = ci?.value.trim() || '';
+    if (!t) return;
+    sendMessage(t);
+  });
+
+  // ── Chips (delegated) ──
+  document.querySelectorAll('[data-cmd]').forEach(el => {
+    el.addEventListener('click', () => sendMessage(el.dataset.cmd));
+  });
+
+  // ── State node / dep node navigation ──
+  get('b-chat')?.addEventListener('click', e => {
+    const sn = e.target.closest('.snode.lit, .dep-node.lit');
+    if (sn) { openSheet('a'); }
+  });
+
+  // ── Shot card delegation ──
+  document.addEventListener('click', e => {
+
+    // Render single shot
+    const render = e.target.closest('[data-render]');
+    if (render) {
+      const idx = S.shots.findIndex(s => s.id === render.dataset.render);
+      if (idx >= 0) generateForShot(idx);
+      return;
+    }
+
+    // Open BEFLIX editor
+    const edit = e.target.closest('[data-edit]');
+    if (edit) { openBFXEditor(edit.dataset.edit); return; }
+
+    // Shot card select (click on card, not on controls)
+    const card = e.target.closest('.shot-card');
+    if (card) {
+      const inControls = e.target.closest('.shot-actions, .shot-flds, [data-render], [data-edit]');
+      if (!inControls) {
+        S.selShotId = S.selShotId === card.dataset.sid ? null : card.dataset.sid;
+        // Navigate timeline to shot's first frame
+        if (S.selShotId) {
+          const fi = A.frames.findIndex(f => f.shotId === S.selShotId && f.clipStart);
+          if (fi >= 0) { A.cur = fi; rebuildTimeline(); renderCanvas(); updateSB(); }
+        }
+        renderShotList();
+      }
+      return;
+    }
+
+    // Shot reorder / delete
+    const sup  = e.target.closest('[data-sup]');
+    if (sup)  { const idx = S.shots.findIndex(s => s.id === sup.dataset.sup);  if (idx > 0)                  { [S.shots[idx-1],S.shots[idx]] = [S.shots[idx],S.shots[idx-1]]; renderShotList(); schedSave(); } return; }
+    const sdn  = e.target.closest('[data-sdn]');
+    if (sdn)  { const idx = S.shots.findIndex(s => s.id === sdn.dataset.sdn);  if (idx < S.shots.length - 1) { [S.shots[idx+1],S.shots[idx]] = [S.shots[idx],S.shots[idx+1]]; renderShotList(); schedSave(); } return; }
+    const sdel = e.target.closest('[data-sdel]');
+    if (sdel) {
+      S.shots = S.shots.filter(s => s.id !== sdel.dataset.sdel).map((s, i) => ({ ...s, order: i + 1 }));
+      if (S.selShotId === sdel.dataset.sdel) S.selShotId = null;
+      renderShotList(); schedSave(); return;
+    }
+
+    // Modal overlay close
+    if (e.target.id === 'm-api')  get('m-api')?.classList.remove('on');
+    if (e.target.id === 'm-help') get('m-help')?.classList.remove('on');
+  });
+
+  // ── Input delegation ──
+  document.addEventListener('input', e => {
+    const pt = get('proj-title'); if (pt && e.target === pt) { S.title = pt.value.slice(0,120); schedSave(); }
+    const pi = get('proj-idea');  if (pi && e.target === pi) { S.idea  = pi.value.slice(0,5000); schedSave(); }
+    // Script live update
+    const se = get('script-el');
+    if (se && e.target === se) {
+      S.script = se.value;
+      const wc = S.script ? S.script.split(/\s+/).length : 0;
+      setT('wc-lbl',  wc + ' words');
+      setT('wc-warn', wc > WORD_MAX ? 'VERY LONG' : '');
+      const fill = get('word-fill'); if (fill) fill.style.width = clamp(Math.round(wc / WORD_MAX * 100), 0, 100) + '%';
+      schedSave();
+    }
+    // Shot field inline edit
+    const sf = e.target.closest('[data-sf]');
+    if (sf) {
+      const row  = sf.closest('[data-sid]');
+      const shot = row ? S.shots.find(s => s.id === row.dataset.sid) : null;
+      if (shot) { shot[sf.dataset.sf] = sf.value; shot.rendered = false; schedSave(); }
+    }
+    // BEFLIX editor line count
+    const be = get('bfx-editor');
+    if (be && e.target === be) _syncBFXEditorMeta();
+  });
+
+  // ── BEFLIX editor controls ──
+  get('bfx-run')?.addEventListener('click',   runBFXFromEditor);
+  get('bfx-regen')?.addEventListener('click', regenBFXFromEditor);
+  get('bfx-close')?.addEventListener('click', closeBFXEditor);
+  get('bfx-ref-toggle')?.addEventListener('click', () => get('bfx-ref')?.classList.toggle('on'));
+
+  // ── Sheet A controls ──
+  get('btn-add-shot')?.addEventListener('click', () => {
+    if ((S.shots || []).length >= SHOTS_MAX) { showToast('Maximum ' + SHOTS_MAX + ' shots', true); return; }
+    S.shots.push({ id: uid(), order: S.shots.length + 1, type: 'SHOT', title: 'New beat', desc: '', bfxHint: '', beflix: '', rendered: false, generating: false, error: null });
+    renderShotList(); schedSave();
+  });
+  get('btn-render-all')?.addEventListener('click', generateAllShots);
+  get('btn-save-proj')?.addEventListener('click',  () => {
+    const t = get('proj-title'), i = get('proj-idea');
+    if (t) S.title = t.value.slice(0, 120);
+    if (i) S.idea  = i.value.slice(0, 5000);
+    schedSave(); showToast('PROJECT SAVED');
+  });
+  get('btn-reset')?.addEventListener('click', () => {
+    const r = _doReset(); addMessage('ai', r.reply); updateAllViews(); renderShotList();
+  });
+  get('btn-load-clips')?.addEventListener('click', () => get('file-in')?.click());
+  get('file-in')?.addEventListener('change', async e => {
+    const files = Array.from(e.target.files); e.target.value = '';
+    for (const f of files) {
+      if (f.type.startsWith('video/')) { A.audioBlob = f; await ripVideoFrames(f); }
+      else {
+        lockSys('LOADING IMAGE', 0);
+        const url = URL.createObjectURL(f);
+        const img = new Image(); img.src = url;
+        try {
+          await new Promise((r, j) => { img.onload = r; img.onerror = j; setTimeout(j, 5000); });
+          if (A.frames.length >= FRAMES_MAX) { reportError('Frame cap reached'); } else {
+            addFrame(true);
+            const fr = A.frames[A.frames.length - 1];
+            fr.src = fitToCanvas(img, img.naturalWidth, img.naturalHeight);
+            processFrame(fr);
+            rebuildTimeline(); renderCanvas(); updateSB();
+          }
+        } catch (_) { reportError('Image failed: ' + f.name); }
+        URL.revokeObjectURL(url); unlockSys();
+      }
+    }
+    showToast(files.length + ' FILE' + (files.length > 1 ? 'S' : '') + ' LOADED');
+  });
+  get('btn-camera')?.addEventListener('click',  () => { openCamera(); closeSheets(); });
+  get('btn-rec')?.addEventListener('click',     toggleRecord);
+  get('btn-cam-abort')?.addEventListener('click', closeCamera);
+  get('btn-leader')?.addEventListener('click',  () => { loadFilmLeader(); closeSheets(); });
+  get('btn-reprocess')?.addEventListener('click', () => {
+    if (!A.frames.length) { showToast('NO FRAMES', true); return; }
+    lockSys('REPROCESSING', 0); let i = 0;
+    const next = () => { if (i >= A.frames.length) { rebuildTimeline(); renderCanvas(); unlockSys(); showToast('REPROCESSED'); return; } processFrame(A.frames[i]); i++; setLockN(i); setTimeout(next, 2); };
+    next();
+  });
+
+  // ── Sheet B controls ──
+  get('btn-save-script')?.addEventListener('click', () => {
+    const el = get('script-el'); if (!el) return;
+    const t  = el.value.trim();
+    if (t && t.length > 5) { S.script = t; schedSave(); showToast('SCRIPT SAVED'); updateAllViews(); }
+  });
+  get('btn-push-shots')?.addEventListener('click', () => { const el = get('script-el'); if (el) { S.script = el.value; schedSave(); } sendMessage('break into shots'); });
+  get('btn-simpler')?.addEventListener('click',    () => sendMessage('rewrite simpler'));
+
+  // ── Sheet C controls ──
+  get('tool-pen')?.addEventListener('click',   () => setTool('pen'));
+  get('tool-rect')?.addEventListener('click',  () => setTool('rect'));
+  get('tool-erase')?.addEventListener('click', () => setTool('erase'));
+  get('dtt-pen')?.addEventListener('click',    () => setTool('pen'));
+  get('dtt-rect')?.addEventListener('click',   () => setTool('rect'));
+  get('dtt-erase')?.addEventListener('click',  () => setTool('erase'));
+  get('btn-wipe')?.addEventListener('click', () => {
+    if (!A.frames.length) return;
+    pushUndo('wipe ink');
+    const r = getSelRange(), from = r ? r.from : A.cur, to = r ? r.to : A.cur;
+    for (let i = from; i <= to; i++) A.frames[i]?.hl.fill(0);
+    renderCanvas(); rebuildTimeline(); showToast('INK WIPED');
+  });
+  get('brush-sz')?.addEventListener('input', e => { A.sz = parseInt(e.target.value); });
+  get('btn-stamp')?.addEventListener('click',       () => { pushUndo('stamp text'); stampText(); });
+  get('btn-preview-txt')?.addEventListener('click', previewText);
+
+  // ── Sheet D controls ──
+  get('btn-webm')?.addEventListener('click',    () => exportVideo('webm'));
+  get('btn-mp4')?.addEventListener('click',     () => exportVideo('mp4'));
+  get('btn-gif')?.addEventListener('click',     exportGIF);
+  get('btn-png')?.addEventListener('click',     exportPNG);
+  get('btn-sheet')?.addEventListener('click',   exportContactSheet);
+  get('btn-copy-all')?.addEventListener('click', () => { _copyText(_buildExportText()); showToast('COPIED'); });
+  get('btn-dl-txt')?.addEventListener('click',   () => { _downloadFile(slugify(S.title || 'film') + '-package.txt', _buildExportText()); showToast('DOWNLOADED'); });
+  get('btn-dl-code')?.addEventListener('click',  () => {
+    lockSys('GENERATING CODE', 0);
+    setTimeout(() => { _downloadFile(slugify(S.title || 'film') + '-beflix.txt', decompileToCode()); unlockSys(); showToast('CODE DOWNLOADED'); }, 50);
+  });
+  get('btn-load-code')?.addEventListener('click', () => get('code-in')?.click());
+  get('code-in')?.addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return; e.target.value = '';
+    const r = new FileReader();
+    r.onerror = () => reportError('File read failed');
+    r.onload  = ev => executeBEFLIX(ev.target.result).then(() => showToast('BEFLIX LOADED & RAN'));
+    r.readAsText(f);
+  });
+  get('btn-dup-range')?.addEventListener('click', dupSelRange);
+  get('btn-rev-range')?.addEventListener('click', reverseSelRange);
+
+  // ── API key modal ──
+  get('key-btn')?.addEventListener('click', () => {
+    setP('model-select', 'value', ACTIVE_MODEL);
+    setP('api-gemini', 'value', KEYS.gemini);
+    setP('api-claude', 'value', KEYS.claude);
+    setP('api-openai', 'value', KEYS.openai);
+    get('m-api')?.classList.add('on');
+  });
+  get('api-cancel')?.addEventListener('click', () => get('m-api')?.classList.remove('on'));
+  get('api-save')?.addEventListener('click',   () => {
+    const m = get('model-select')?.value || 'claude-3-5-sonnet-20241022';
+    const g = get('api-gemini')?.value.trim() || '';
+    const c = get('api-claude')?.value.trim() || '';
+    const o = get('api-openai')?.value.trim() || '';
+    ACTIVE_MODEL = m;
+    KEYS.gemini = g;
+    KEYS.claude = c;
+    KEYS.openai = o;
+    safe(() => {
+      localStorage.setItem('cau_active_model', m);
+      localStorage.setItem('cau_gemini_key', g);
+      localStorage.setItem('cau_claude_key', c);
+      localStorage.setItem('cau_openai_key', o);
+    });
+    updateKeyButton();
+    get('m-api')?.classList.remove('on');
+    showToast('AI CONFIG SAVED');
+  });
+
+  // ── Help modal ──
+  get('help-x')?.addEventListener('click', () => get('m-help')?.classList.remove('on'));
+
+  // ── Keyboard shortcuts ──
+  document.addEventListener('keydown', e => {
+    const active = document.activeElement;
+    const inInput = active?.tagName === 'INPUT' || active?.tagName === 'TEXTAREA' || active?.isContentEditable;
+    if (inInput) return;
+    switch (e.key) {
+      case ' ':          e.preventDefault(); togglePlay();   break;
+      case 'ArrowLeft':  e.preventDefault(); if (e.shiftKey && A.selMode) { A.selEnd = clamp(A.selEnd - 1, 0, A.frames.length - 1); rebuildTimeline(); } else { clearSel(); stepFrame(-1); } break;
+      case 'ArrowRight': e.preventDefault(); if (e.shiftKey && A.selMode) { A.selEnd = clamp(A.selEnd + 1, 0, A.frames.length - 1); rebuildTimeline(); } else { clearSel(); stepFrame(1);  } break;
+      case '1': openSheet('a'); break;
+      case '2': openSheet('b'); break;
+      case '3': openSheet('c'); break;
+      case '4': openSheet('d'); break;
+      case 'Escape': closeSheets(); closeBFXEditor(); get('m-api')?.classList.remove('on'); get('m-help')?.classList.remove('on'); clearError(); break;
+      case 'Delete': case 'Backspace': deleteSelected(); break;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); popUndo(); }
+  });
+
+
+  // ─────────────────────────────────────────
+  // INIT — first run
+  // ─────────────────────────────────────────
+
+  // Restore project title and idea fields
+  setP('proj-title', 'value', S.title || '');
+  setP('proj-idea',  'value', S.idea  || '');
+
+  // Welcome message if no chat history
+  if (!(S.log || []).length) {
+    S.log.push({
+      who:  'ai',
+      text: 'Describe your film idea.\\n\\nSay:\\n· "make a movie idea"\\n· "write the script"\\n· "break into shots"\\n· "render all shots"\\n\\nEach shot gets its own BEFLIX animation program, generated individually. You can re-render or hand-edit each one.\\n\\nConfigure your API key via the KEY button in the status bar to enable the AI engine.',
+      time: 'now'
+    });
+  }
+
+  // Full initial render
+  renderChat();
+  renderShotList();
+  updateAllViews();
+  updateKeyButton();
+
+  // Open chat if no frames exist yet
+  if (!A.frames.length) openSheet('b', true);
+
+}); // end DOMContentLoaded
+</script>
+</body>
+</html>
