@@ -2,71 +2,496 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ABC-CINEOSIS · SYSTEM MAIN CONTROL</title>
+  <title>ABC CINEOSIS · SYSTEM MAIN CONTROL</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Oswald:wght@700&family=Share+Tech+Mono&display=swap');
+
     :root {
       --ink: #000000;
       --paper: #ffffff;
-      --font: ui-monospace, SFMono-Regular, Menlo, monospace;
+      --soft: #f9f9f9;
+      --gray-light: #e0e0e0;
+      --gray-medium: #888888;
+      --gray-dark: #333333;
+      
+      --font-display: 'Oswald', sans-serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      
+      --bw: 1px;
+      --bw2: 2px;
+      --bw3: 3px;
     }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
+
     body {
       background-color: var(--paper);
       color: var(--ink);
-      font-family: var(--font);
+      font-family: var(--font-sans);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* ── SIDEBAR NAVIGATION ── */
+    #sidebar {
+      width: 250px;
+      border-right: var(--bw2) solid var(--ink);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: var(--paper);
+    }
+
+    .logo-container {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .logo-main {
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 0.9;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .logo-sub {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .nav-list {
+      list-style: none;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-grow: 1;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      color: var(--ink);
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .menu-item svg {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+    }
+
+    .menu-item:hover {
+      background: var(--soft);
+    }
+
+    .menu-item.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .sidebar-footer {
+      border-top: var(--bw) solid var(--gray-light);
       padding: 20px;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      gap: 8px;
     }
-    /* Absolute White and Black Stripe Background (Preserves density, rejects glassmorphism) */
-    .stripe-pattern {
-      background: repeating-linear-gradient(
-        -45deg,
-        var(--ink),
-        var(--ink) 4px,
-        var(--paper) 4px,
-        var(--paper) 8px
-      );
-      height: 12px;
-      border: 2px solid var(--ink);
-      margin-bottom: 10px;
-    }
-    header {
-      border: 4px solid var(--ink);
-      background-color: var(--paper);
-      padding: 15px;
-      margin-bottom: 15px;
-      position: relative;
-    }
-    h1 {
-      font-size: 18px;
+
+    .status-title {
+      font-family: var(--font-mono);
+      font-size: 9px;
       font-weight: 900;
+      color: var(--gray-medium);
       text-transform: uppercase;
-      letter-spacing: .08em;
-      background-color: var(--ink);
-      color: var(--paper);
-      display: inline-block;
-      padding: 4px 8px;
+      letter-spacing: 0.05em;
     }
-    .meta-subtitle {
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
-      margin-top: 8px;
+      font-weight: 700;
       text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink);
+    }
+
+    .status-text {
+      font-size: 10px;
+      color: var(--gray-medium);
+      font-family: var(--font-mono);
+    }
+
+    .system-version {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--gray-medium);
+      margin-top: 10px;
+    }
+
+    /* ── MAIN CONTENT WINDOW ── */
+    #main-window {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    /* Top Control Bar */
+    .top-control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 40px;
+      border-bottom: var(--bw) solid var(--gray-light);
+    }
+
+    .control-left {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .control-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border: var(--bw) solid transparent;
+      transition: border-color 0.1s;
+    }
+    
+    .control-action:hover {
+      border-color: var(--ink);
+    }
+
+    .control-divider {
+      color: var(--gray-light);
+      font-weight: 400;
+    }
+
+    /* View Views Wrapper */
+    .views-wrapper {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 30px 40px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Standard tab view style */
+    .tab-view {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    /* ── HOME VIEW ── */
+    #view-home {
+      display: flex;
+    }
+
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 50px;
+      font-weight: 700;
+      line-height: 0.95;
+      letter-spacing: 0.01em;
+      margin: 10px 0 6px 0;
+      text-transform: uppercase;
+    }
+
+    .page-subtitle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink);
+      margin-bottom: 25px;
+    }
+
+    .horizontal-rule {
+      border-bottom: var(--bw2) solid var(--ink);
+      margin-bottom: 25px;
+    }
+
+    .grid-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .grid-title {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .group-by-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .group-dropdown {
+      border: var(--bw) solid var(--ink);
+      background: var(--paper);
+      padding: 6px 30px 6px 12px;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+      background-repeat: no-repeat;
+      background-position: calc(100% - 8px) center;
+      background-size: 14px;
+    }
+
+    /* Project grid matrix styling */
+    .project-grid-matrix {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .matrix-row {
+      display: grid;
+      grid-template-columns: 30px 1fr 1fr 1fr;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .matrix-row-num {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .matrix-row-num.dots {
+      font-family: var(--font-sans);
+      font-size: 16px;
       font-weight: 900;
     }
-    #workspace-grid {
-      display: grid;
+
+    /* Core Card Style */
+    .module-card {
+      display: flex;
+      align-items: center;
+      border: var(--bw) solid var(--gray-light);
+      background: var(--paper);
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s, color 0.15s;
+      text-decoration: none;
+      color: var(--ink);
+      user-select: none;
+    }
+
+    .module-card:hover {
+      border-color: var(--ink);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .module-card.offline {
+      border: var(--bw) solid var(--gray-light);
+    }
+    
+    .module-card.offline:hover {
+      background: var(--soft);
+      border-color: var(--gray-medium);
+    }
+
+    .module-card.dashed {
+      border: var(--bw) dashed var(--gray-light);
+      background: transparent;
+      cursor: default;
+    }
+    
+    .module-card.dashed:hover {
+      box-shadow: none;
+      border-color: var(--gray-light);
+    }
+
+    .card-prefix-box {
+      width: 40px;
+      height: 40px;
+      background: var(--ink);
+      color: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      margin-right: 12px;
+      flex-shrink: 0;
+      transition: background-color 0.15s, color 0.15s;
+    }
+
+    .module-card:hover .card-prefix-box {
+      background: var(--paper);
+      color: var(--ink);
+      border: var(--bw) solid var(--ink);
+    }
+
+    .module-card.dashed .card-prefix-box {
+      background: transparent;
+      color: var(--ink);
+      border: var(--bw) dashed var(--gray-light);
+    }
+
+    .card-content {
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .card-title-line {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .card-id {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+
+    .card-desc {
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gray-medium);
+      margin-top: 1px;
+    }
+    
+    .module-card:hover .card-desc {
+      color: var(--ink);
+    }
+
+    .card-meta {
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--gray-medium);
+      margin-top: 2px;
+    }
+
+    .module-card:hover .card-meta {
+      color: var(--ink);
+    }
+
+    .card-chevron {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--gray-medium);
+      margin-left: 8px;
+      flex-shrink: 0;
+      transition: transform 0.12s, color 0.12s;
+    }
+
+    .module-card:hover .card-chevron {
+      color: var(--ink);
+      transform: translateX(2px);
+    }
+
+    /* Info footer panel */
+    .info-footer-alert {
+      border: var(--bw) solid var(--ink);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: var(--paper);
+      margin-top: auto;
+    }
+
+    .info-icon-circle {
+      width: 20px;
+      height: 20px;
+      border: var(--bw) solid var(--ink);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .info-alert-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    /* ── GRID VIEW (Original POML stack layout) ── */
+    #view-grid-view {
+      display: none;
       grid-template-columns: 320px 1fr 1fr;
       gap: 15px;
-      flex: 1;
+      height: calc(100vh - 120px);
       min-height: 0;
     }
+
     .pane {
       border: 4px solid var(--ink);
       display: flex;
@@ -77,7 +502,7 @@
     .pane-title {
       background-color: var(--ink);
       color: var(--paper);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
       padding: 8px 12px;
       text-transform: uppercase;
@@ -91,7 +516,6 @@
       display: flex;
       flex-direction: column;
     }
-    /* Spatial Stack: Anchored to the Ground Line at the Base */
     .stack-wrapper {
       display: flex;
       flex-direction: column;
@@ -100,7 +524,7 @@
     }
     .file-stack {
       display: flex;
-      flex-direction: column-reverse; /* Bottom-up rendering: a1 at bottom, c2 at top */
+      flex-direction: column-reverse;
       gap: 10px;
     }
     .ground-line {
@@ -117,11 +541,7 @@
       cursor: pointer;
       transition: background-color 0.05s, color 0.05s;
     }
-    .file-card:hover {
-      background-color: var(--ink);
-      color: var(--paper);
-    }
-    .file-card.active {
+    .file-card:hover, .file-card.active {
       background-color: var(--ink);
       color: var(--paper);
     }
@@ -135,7 +555,6 @@
       margin-top: 4px;
       line-height: 1.3;
     }
-    /* Layout Viewport / Schematic Grid */
     .viewport-container {
       display: flex;
       flex-direction: column;
@@ -174,16 +593,13 @@
       justify-content: center;
       transition: background-color 0.05s, color 0.05s;
     }
-    .schematic-box:hover {
+    .schematic-box:hover, .schematic-box.highlight {
       background-color: var(--ink);
       color: var(--paper);
     }
     .schematic-box.highlight {
-      background-color: var(--ink);
-      color: var(--paper);
       box-shadow: inset 0 0 0 3px var(--paper);
     }
-    /* XML Script View (Text operates as a physical control surface) */
     .xml-container {
       display: flex;
       flex-direction: column;
@@ -200,17 +616,12 @@
       transition: background-color 0.05s, color 0.05s;
       white-space: pre-wrap;
     }
-    .xml-line:hover {
-      background-color: var(--ink);
-      color: var(--paper);
-    }
-    .xml-line.highlight {
+    .xml-line:hover, .xml-line.highlight {
       background-color: var(--ink);
       color: var(--paper);
     }
     .tag-blue { font-weight: 900; }
     .attr-name { font-weight: 900; }
-    
     .action-container {
       margin-top: auto;
       padding-top: 10px;
@@ -236,51 +647,426 @@
       background-color: var(--paper);
       color: var(--ink);
     }
+
+    /* ── PLACEHOLDER TAB VIEW ── */
+    .placeholder-card {
+      border: var(--bw) solid var(--gray-light);
+      background: var(--paper);
+      padding: 30px;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .placeholder-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .placeholder-text {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--gray-dark);
+    }
+
+    .placeholder-code {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: var(--soft);
+      padding: 12px;
+      border-left: 3px solid var(--ink);
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
-  <div class="stripe-pattern"></div>
-  <header>
-    <h1>ABC-CINEOSIS SYSTEM</h1>
-    <div class="meta-subtitle">Tactile Multi-Module Workspace Launcher &amp; Bidirectional Control Surface</div>
-  </header>
 
-  <div id="workspace-grid">
-    <!-- FILE LIST PANEL (SPATIAL STACK) -->
-    <div class="pane">
-      <div class="pane-title">🗂️ Workspace Stack (Ground Anchored)</div>
-      <div class="pane-content">
-        <div class="stack-wrapper">
-          <div class="file-stack" id="file-stack">
-            <!-- Populated dynamically: stacked from bottom up -->
-          </div>
-          <div class="ground-line"></div>
+  <div id="app-container" style="display: flex; height: 100vh; width: 100vw; overflow: hidden;">
+    
+    <!-- LEFT SIDEBAR -->
+    <div id="sidebar">
+      <div class="logo-container">
+        <div class="logo-main">ABC</div>
+        <div class="logo-sub">Cineosis</div>
+      </div>
+      
+      <ul class="nav-list">
+        <li class="menu-item active" id="menu-home" onclick="showTab('home')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Home
+        </li>
+        <li class="menu-item" id="menu-grid-view" onclick="showTab('grid-view')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          Grid View
+        </li>
+        <li class="menu-item" id="menu-projects" onclick="showTab('projects')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+          Projects
+        </li>
+        <li class="menu-item" id="menu-script" onclick="showTab('script')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Script
+        </li>
+        <li class="menu-item" id="menu-preview" onclick="showTab('preview')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          Preview
+        </li>
+        <li class="menu-item" id="menu-exports" onclick="showTab('exports')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+          Exports
+        </li>
+        <li class="menu-item" id="menu-settings" onclick="showTab('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </li>
+      </ul>
+      
+      <div class="sidebar-footer">
+        <div style="border-top: 1px solid var(--gray-light); margin-bottom: 12px;"></div>
+        <div class="status-title">System Status</div>
+        <div class="status-indicator">
+          <div class="status-dot"></div>
+          Ready
         </div>
+        <div class="status-text">No Active Project</div>
+        <div class="system-version">v1.0.0</div>
       </div>
     </div>
-
-    <!-- VIEWPORT PANELS -->
-    <div class="pane">
-      <div class="pane-title">🖥️ Viewport Schematic (Click Box)</div>
-      <div class="pane-content">
-        <div class="viewport-container" id="viewport-container">
-          <div class="schematic-grid" id="schematic-grid">
-            <!-- Rendered dynamically -->
+    
+    <!-- MAIN CONTENT WINDOW -->
+    <div id="main-window">
+      
+      <!-- Top Header Row -->
+      <div class="top-control-bar">
+        <div class="control-left">System Main Control</div>
+        <div class="control-right">
+          <div class="control-action" onclick="showToast('Search panel offline in local workspace.')">
+            Search 
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </div>
-          <div class="action-container">
-            <a class="launch-btn" id="launch-button" href="#" target="_blank">Launch Module ↗</a>
+          <div class="control-divider">|</div>
+          <div class="control-action" onclick="showTab('grid-view')">
+            View
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+            v
+          </div>
+          <div class="control-divider">|</div>
+          <div class="control-action" onclick="showToast('Active license does not support multiple cloud projects.')">
+            New Project +
           </div>
         </div>
       </div>
-    </div>
+      
+      <!-- Views Content Area -->
+      <div class="views-wrapper">
+        
+        <!-- HOME VIEW (PROJECT GRID) -->
+        <div class="tab-view" id="view-home" style="display: flex;">
+          <h1 class="page-title">ABC Cineosis</h1>
+          <div class="page-subtitle">A system for language, computation, and moving image.</div>
+          
+          <div class="horizontal-rule"></div>
+          
+          <div class="grid-header-row">
+            <div class="grid-title">Project Grid</div>
+            <div class="group-by-selector">
+              Group By
+              <select class="group-dropdown" onchange="showToast('Grouping configuration updated.')">
+                <option value="sequence">Sequence</option>
+                <option value="alphabetic">Alphabetic</option>
+                <option value="updated">Date Updated</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Matrix Rows -->
+          <div class="project-grid-matrix">
+            <!-- Row 1 -->
+            <div class="matrix-row">
+              <div class="matrix-row-num">1</div>
+              <a class="module-card" href="a1.html" target="_blank">
+                <div class="card-prefix-box">A</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">a1</span>
+                  </div>
+                  <div class="card-desc">Language / Input</div>
+                  <div class="card-meta">Updated 2m ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </a>
+              <a class="module-card" href="b1.html" target="_blank">
+                <div class="card-prefix-box">B</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">b1</span>
+                  </div>
+                  <div class="card-desc">Computation / Process</div>
+                  <div class="card-meta">Updated 2m ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </a>
+              <a class="module-card" href="c1.html" target="_blank">
+                <div class="card-prefix-box">C</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">c1</span>
+                  </div>
+                  <div class="card-desc">Moving Image / Output</div>
+                  <div class="card-meta">Updated 2m ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </a>
+            </div>
+            
+            <!-- Row 2 -->
+            <div class="matrix-row">
+              <div class="matrix-row-num">2</div>
+              <div class="module-card offline" onclick="triggerOfflineModule('a2')">
+                <div class="card-prefix-box">A</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">a2</span>
+                  </div>
+                  <div class="card-desc">Language / Input</div>
+                  <div class="card-meta">Updated 1h ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <a class="module-card" href="b2.html" target="_blank">
+                <div class="card-prefix-box">B</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">b2</span>
+                  </div>
+                  <div class="card-desc">Computation / Process</div>
+                  <div class="card-meta">Updated 1h ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </a>
+              <a class="module-card" href="c2.html" target="_blank">
+                <div class="card-prefix-box">C</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">c2</span>
+                  </div>
+                  <div class="card-desc">Moving Image / Output</div>
+                  <div class="card-meta">Updated 1h ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </a>
+            </div>
 
-    <!-- CODE VIEW PANELS -->
-    <div class="pane">
-      <div class="pane-title">📜 POML XML Logic (Click Line)</div>
-      <div class="pane-content" style="padding: 0;">
-        <div class="xml-container" id="xml-editor">
-          <!-- Rendered dynamically -->
+            <!-- Row 3 -->
+            <div class="matrix-row">
+              <div class="matrix-row-num">3</div>
+              <div class="module-card offline" onclick="triggerOfflineModule('a3')">
+                <div class="card-prefix-box">A</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">a3</span>
+                  </div>
+                  <div class="card-desc">Language / Input</div>
+                  <div class="card-meta">Updated 3h ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <div class="module-card offline" onclick="triggerOfflineModule('b3')">
+                <div class="card-prefix-box">B</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">b3</span>
+                  </div>
+                  <div class="card-desc">Computation / Process</div>
+                  <div class="card-meta">Updated 3h ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <div class="module-card offline" onclick="triggerOfflineModule('c3')">
+                <div class="card-prefix-box">C</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">c3</span>
+                  </div>
+                  <div class="card-desc">Moving Image / Output</div>
+                  <div class="card-meta">Updated 3h ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+            </div>
+
+            <!-- Row 4 -->
+            <div class="matrix-row">
+              <div class="matrix-row-num">4</div>
+              <div class="module-card offline" onclick="triggerOfflineModule('a4')">
+                <div class="card-prefix-box">A</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">a4</span>
+                  </div>
+                  <div class="card-desc">Language / Input</div>
+                  <div class="card-meta">Updated 1d ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <div class="module-card offline" onclick="triggerOfflineModule('b4')">
+                <div class="card-prefix-box">B</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">b4</span>
+                  </div>
+                  <div class="card-desc">Computation / Process</div>
+                  <div class="card-meta">Updated 1d ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <div class="module-card offline" onclick="triggerOfflineModule('c4')">
+                <div class="card-prefix-box">C</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">c4</span>
+                  </div>
+                  <div class="card-desc">Moving Image / Output</div>
+                  <div class="card-meta">Updated 1d ago</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+            </div>
+
+            <!-- Row 5 (Dashed) -->
+            <div class="matrix-row">
+              <div class="matrix-row-num dots">...</div>
+              <div class="module-card dashed">
+                <div class="card-prefix-box">A</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">...</span>
+                  </div>
+                  <div class="card-desc" style="color: var(--gray-light);">Dashed slot</div>
+                </div>
+                <div class="card-chevron" style="color: var(--gray-light);">&gt;</div>
+              </div>
+              <div class="module-card dashed">
+                <div class="card-prefix-box">B</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">...</span>
+                  </div>
+                  <div class="card-desc" style="color: var(--gray-light);">Dashed slot</div>
+                </div>
+                <div class="card-chevron" style="color: var(--gray-light);">&gt;</div>
+              </div>
+              <div class="module-card dashed">
+                <div class="card-prefix-box">C</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">...</span>
+                  </div>
+                  <div class="card-desc" style="color: var(--gray-light);">Dashed slot</div>
+                </div>
+                <div class="card-chevron" style="color: var(--gray-light);">&gt;</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Alert Banner -->
+          <div class="info-footer-alert">
+            <div class="info-icon-circle">i</div>
+            <div class="info-alert-text">
+              ABC CINEOSIS: A says. B computes. C appears. Meaning happens in the crossing.
+            </div>
+          </div>
         </div>
+
+        <!-- GRID VIEW (ORIGINAL COMPILER TOOLS) -->
+        <div class="tab-view" id="view-grid-view">
+          <!-- FILE LIST PANEL (SPATIAL STACK) -->
+          <div class="pane">
+            <div class="pane-title">🗂️ Workspace Stack (Ground Anchored)</div>
+            <div class="pane-content">
+              <div class="stack-wrapper">
+                <div class="file-stack" id="file-stack">
+                  <!-- Populated dynamically -->
+                </div>
+                <div class="ground-line"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEWPORT PANELS -->
+          <div class="pane">
+            <div class="pane-title">🖥️ Viewport Schematic (Click Box)</div>
+            <div class="pane-content">
+              <div class="viewport-container" id="viewport-container">
+                <div class="schematic-grid" id="schematic-grid">
+                  <!-- Rendered dynamically -->
+                </div>
+                <div class="action-container">
+                  <a class="launch-btn" id="launch-button" href="#" target="_blank">Launch Module ↗</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CODE VIEW PANELS -->
+          <div class="pane">
+            <div class="pane-title">📜 POML XML Logic (Click Line)</div>
+            <div class="pane-content" style="padding: 0;">
+              <div class="xml-container" id="xml-editor">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROJECTS VIEW PLACEHOLDER -->
+        <div class="tab-view" id="view-projects">
+          <div class="placeholder-card">
+            <h2 class="placeholder-title">Projects Archive</h2>
+            <p class="placeholder-text">Manage your active script configurations and storyboard packages. This tab lists all historical and exported timelines archived on this station.</p>
+            <div class="placeholder-code">No archived projects found in the current workspace.</div>
+          </div>
+        </div>
+
+        <!-- SCRIPT VIEW PLACEHOLDER -->
+        <div class="tab-view" id="view-script">
+          <div class="placeholder-card">
+            <h2 class="placeholder-title">Script Outline</h2>
+            <p class="placeholder-text">Open script editor files to review raw dialogue scripts and scene descriptors. Auto-saving binds changes locally in your browser.</p>
+            <div class="placeholder-code">Active Script: None. Initialize a script module (e.g. b2.html) to begin editing.</div>
+          </div>
+        </div>
+
+        <!-- PREVIEW VIEW PLACEHOLDER -->
+        <div class="tab-view" id="view-preview">
+          <div class="placeholder-card">
+            <h2 class="placeholder-title">Render Preview</h2>
+            <p class="placeholder-text">Observe dot-matrix frames and compiled video layers before compiling the final sequence packages.</p>
+            <div class="placeholder-code">Compile active shots to enable dynamic workspace preview render pipelines.</div>
+          </div>
+        </div>
+
+        <!-- EXPORTS VIEW PLACEHOLDER -->
+        <div class="tab-view" id="view-exports">
+          <div class="placeholder-card">
+            <h2 class="placeholder-title">Package Exports</h2>
+            <p class="placeholder-text">Export compiled WebM sequences, frame sheets, print flipbooks, and absolute POML schema representations of your stories.</p>
+            <div class="placeholder-code">No files queued for export. Run compilation in sheets first.</div>
+          </div>
+        </div>
+
+        <!-- SETTINGS VIEW PLACEHOLDER -->
+        <div class="tab-view" id="view-settings">
+          <div class="placeholder-card">
+            <h2 class="placeholder-title">System Settings</h2>
+            <p class="placeholder-text">Configure workspace parameters, styling overrides, API routes, and base font configurations.</p>
+            <div class="placeholder-code">Terminal Session ID: local-cineosis-session-v1.0.0
+Node Runtime: Active</div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -391,10 +1177,30 @@
 
     let currentModuleId = "c2";
 
+    // Tab switching routing logic
+    function showTab(tabId) {
+      document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      const activeItem = document.getElementById('menu-' + tabId);
+      if (activeItem) activeItem.classList.add('active');
+
+      document.querySelectorAll('.tab-view').forEach(view => {
+        view.style.display = 'none';
+      });
+      const activeView = document.getElementById('view-' + tabId);
+      if (activeView) {
+        if (tabId === 'grid-view') {
+          activeView.style.display = 'grid';
+        } else {
+          activeView.style.display = 'flex';
+        }
+      }
+    }
+
     function selectModule(id) {
       currentModuleId = id;
       
-      // Update Stack Selection UI
       document.querySelectorAll('.file-card').forEach(card => card.classList.remove('active'));
       const activeCard = document.getElementById(`card-${id}`);
       if (activeCard) activeCard.classList.add('active');
@@ -402,12 +1208,10 @@
       const mod = modules.find(m => m.id === id);
       if (!mod) return;
 
-      // Update Launch Button Link
       const btn = document.getElementById('launch-button');
       btn.href = mod.path;
       btn.textContent = `Launch ${mod.name} ↗`;
 
-      // Render Viewport Layout
       const grid = document.getElementById('schematic-grid');
       grid.innerHTML = '';
       mod.viewport.forEach(item => {
@@ -426,7 +1230,6 @@
         }
       });
 
-      // Render POML XML Lines
       const xml = document.getElementById('xml-editor');
       xml.innerHTML = `
         <div style="padding: 10px; border-bottom: 2px solid var(--ink); font-weight: 900; font-size: 12px; background-color: var(--ink); color: var(--paper);">
@@ -450,17 +1253,13 @@
       `;
     }
 
-    // Bidirectional highlighting mechanism
     function highlightBinding(targetId) {
-      // Clear previous highlights
       document.querySelectorAll('.schematic-box').forEach(box => box.classList.remove('highlight'));
       document.querySelectorAll('.xml-line').forEach(line => line.classList.remove('highlight'));
 
-      // Highlight the box
       const boxEl = document.getElementById(`box-${targetId}`);
       if (boxEl) boxEl.classList.add('highlight');
 
-      // Highlight the xml line
       const lineEl = document.getElementById(`line-${targetId}`);
       if (lineEl) {
         lineEl.classList.add('highlight');
@@ -476,6 +1275,40 @@
           <p>${m.description}</p>
         </div>
       `).join('');
+    }
+
+    // Dynamic offline module warning toasts
+    function triggerOfflineModule(modId) {
+      showToast(`SYSTEM NOTICE: Module [${modId}] is offline in this installation.`);
+    }
+
+    // Custom monochrome toast warnings
+    function showToast(message) {
+      const existing = document.querySelector('.custom-toast');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'custom-toast';
+      toast.style.position = 'fixed';
+      toast.style.bottom = '30px';
+      toast.style.right = '30px';
+      toast.style.background = '#000000';
+      toast.style.color = '#ffffff';
+      toast.style.border = '1px solid #ffffff';
+      toast.style.padding = '12px 20px';
+      toast.style.fontFamily = 'var(--font-mono)';
+      toast.style.fontSize = '10px';
+      toast.style.fontWeight = 'bold';
+      toast.style.zIndex = '10000';
+      toast.style.boxShadow = '3px 3px 0px rgba(0,0,0,0.15)';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
     }
 
     // Initialize

@@ -794,11 +794,16 @@ input[type=range]::-webkit-slider-runnable-track { height: 26px; }
   border: var(--bw) solid transparent;
   padding: 6px;
   margin-bottom: 8px;
-  transition: border-color .15s, box-shadow .15s;
+  transition: border-color .15s, box-shadow .15s, opacity .15s;
+  opacity: 0.45;
 }
 .key-box.active-key-required {
   border: var(--bw3) solid var(--ink);
   box-shadow: var(--sh-sm);
+  background: var(--paper);
+  opacity: 1;
+}
+.key-box.active-key-required .inp {
   background: var(--paper);
 }
 </style>
@@ -1237,19 +1242,28 @@ Lines beginning with C or ; are comments and are ignored.
     </div>
 
     <div class="key-box" id="api-gemini-box">
-      <div class="lbl">Gemini API Key</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="lbl" style="margin-bottom: 0;">Gemini API Key</div>
+        <span class="key-status" id="status-gemini" style="font-size: 8px; font-weight: 900; text-transform: uppercase; font-family: var(--font);"></span>
+      </div>
       <input class="inp" id="api-gemini" type="password" placeholder="AIzaSy..." style="margin-bottom: 4px;">
       <span style="font-size: 9px; color: #888;">Get at <a href="https://aistudio.google.com" target="_blank" rel="noopener" style="color:var(--a)">aistudio.google.com</a></span>
     </div>
 
     <div class="key-box" id="api-claude-box">
-      <div class="lbl">Claude API Key</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="lbl" style="margin-bottom: 0;">Claude API Key</div>
+        <span class="key-status" id="status-claude" style="font-size: 8px; font-weight: 900; text-transform: uppercase; font-family: var(--font);"></span>
+      </div>
       <input class="inp" id="api-claude" type="password" placeholder="sk-ant-..." style="margin-bottom: 4px;">
       <span style="font-size: 9px; color: #888;">Get at <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:var(--a)">console.anthropic.com</a></span>
     </div>
 
     <div class="key-box" id="api-openai-box">
-      <div class="lbl">OpenAI API Key</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="lbl" style="margin-bottom: 0;">OpenAI API Key</div>
+        <span class="key-status" id="status-openai" style="font-size: 8px; font-weight: 900; text-transform: uppercase; font-family: var(--font);"></span>
+      </div>
       <input class="inp" id="api-openai" type="password" placeholder="sk-proj-..." style="margin-bottom: 4px;">
       <span style="font-size: 9px; color: #888;">Get at <a href="https://platform.openai.com" target="_blank" rel="noopener" style="color:var(--a)">platform.openai.com</a></span>
     </div>
@@ -1446,27 +1460,27 @@ let KEYS = {
 let ACTIVE_MODEL = safe(() => localStorage.getItem('cau_active_model')) || 'gemini-3.5-flash';
 
 const MODEL_DETAILS = {
-  'gpt-5.5-pro': { provider: 'openai', name: 'OpenAI gpt-5.5-pro', desc: 'Highest-intelligence OpenAI API option.', price: '$30.00 / $180.00', context: '1M / 128K' },
-  'gpt-5.5': { provider: 'openai', name: 'OpenAI gpt-5.5', desc: 'Default flagship reasoning/coding.', price: '$5.00 / $30.00', context: '1M / 128K' },
-  'gpt-5.4-pro': { provider: 'openai', name: 'OpenAI gpt-5.4-pro', desc: 'Pro 5.4-family option.', price: '$30.00 / $180.00', context: '1M / 128K' },
-  'gpt-5.4': { provider: 'openai', name: 'OpenAI gpt-5.4', desc: 'Cheaper strong reasoning.', price: '$2.50 / $15.00', context: '1M / 128K' },
-  'gpt-5.4-mini': { provider: 'openai', name: 'OpenAI gpt-5.4-mini', desc: 'Low-cost, lower-latency reasoning.', price: '$0.75 / $4.50', context: '400K / 128K' },
-  'gpt-5.4-nano': { provider: 'openai', name: 'OpenAI gpt-5.4-nano', desc: 'Cheapest high-volume reasoning.', price: '$0.20 / $1.25', context: '400K / 128K' },
-  'gpt-5.3-codex': { provider: 'openai', name: 'OpenAI gpt-5.3-codex', desc: 'Codex/coding specialist model.', price: '$1.75 / $14.00', context: '128K' },
-  'o3-deep-research': { provider: 'openai', name: 'OpenAI o3-deep-research', desc: 'Batch-only deep research model.', price: '$5.00 / $20.00', context: '200K' },
-  'o4-mini-deep-research': { provider: 'openai', name: 'OpenAI o4-mini-deep-research', desc: 'Batch-only mini deep research.', price: '$1.00 / $4.00', context: '200K' },
-  'computer-use-preview': { provider: 'openai', name: 'OpenAI computer-use-preview', desc: 'Agentic computer use preview.', price: '$1.50 / $6.00', context: '128K' },
-  'claude-opus-4-8': { provider: 'claude', name: 'Claude Opus 4.8', desc: 'Most capable complex-reasoning / agentic-coding model.', price: '$5.00 / $25.00', context: '1M / 128K' },
-  'claude-sonnet-4-6': { provider: 'claude', name: 'Claude Sonnet 4.6', desc: 'Best default speed/intelligence balance.', price: '$3.00 / $15.00', context: '1M / 64K' },
-  'claude-haiku-4-5': { provider: 'claude', name: 'Claude Haiku 4.5', desc: 'Fastest near-frontier reasoning model.', price: '$1.00 / $5.00', context: '200K / 64K' },
-  'gemini-3.1-pro-preview': { provider: 'gemini', name: 'Gemini 3.1 Pro Preview', desc: 'Advanced intelligence for complex reasoning/agentic coding.', price: '$2.00 / $12.00', context: '1.04M / 65K' },
-  'gemini-3.1-pro-preview-customtools': { provider: 'gemini', name: 'Gemini 3.1 Pro (Custom Tools)', desc: 'Gemini 3.1 Pro custom-tools endpoint.', price: '$2.00 / $12.00', context: '1.04M / 65K' },
-  'gemini-3.5-flash': { provider: 'gemini', name: 'Gemini 3.5 Flash', desc: 'Stable high-performance agentic/coding model.', price: '$1.50 / $9.00', context: '1.04M / 65K' },
-  'gemini-3-flash-preview': { provider: 'gemini', name: 'Gemini 3 Flash Preview', desc: 'Preview, frontier-class speed/cost model.', price: '$0.50 / $3.00', context: '1.04M / 65K' },
-  'gemini-3.1-flash-lite': { provider: 'gemini', name: 'Gemini 3.1 Flash Lite', desc: 'Stable low-cost Gemini 3.1 model.', price: '$0.25 / $1.50', context: '1.04M / 65K' },
-  'gemini-2.5-pro': { provider: 'gemini', name: 'Gemini 2.5 Pro', desc: 'Older complex-reasoning/coding model.', price: '$1.25 / $10.00', context: '1M' },
-  'gemini-2.5-flash': { provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Hybrid reasoning and price-performance model.', price: '$0.30 / $2.50', context: '1M' },
-  'gemini-2.5-flash-lite': { provider: 'gemini', name: 'Gemini 2.5 Flash Lite', desc: 'Cheapest Gemini 2.5 family model.', price: '$0.10 / $0.40', context: '1M' }
+  'gpt-5.5-pro': { provider: 'openai', tier: 'max', name: 'OpenAI gpt-5.5-pro', desc: 'Highest-intelligence OpenAI API option.', price: '$30.00 / $180.00', context: '1M / 128K' },
+  'gpt-5.5': { provider: 'openai', tier: 'balanced', name: 'OpenAI gpt-5.5', desc: 'Default flagship reasoning/coding.', price: '$5.00 / $30.00', context: '1M / 128K' },
+  'gpt-5.4-pro': { provider: 'openai', tier: 'max', name: 'OpenAI gpt-5.4-pro', desc: 'Pro 5.4-family option.', price: '$30.00 / $180.00', context: '1M / 128K' },
+  'gpt-5.4': { provider: 'openai', tier: 'balanced', name: 'OpenAI gpt-5.4', desc: 'Cheaper strong reasoning.', price: '$2.50 / $15.00', context: '1M / 128K' },
+  'gpt-5.4-mini': { provider: 'openai', tier: 'lite', name: 'OpenAI gpt-5.4-mini', desc: 'Low-cost, lower-latency reasoning.', price: '$0.75 / $4.50', context: '400K / 128K' },
+  'gpt-5.4-nano': { provider: 'openai', tier: 'lite', name: 'OpenAI gpt-5.4-nano', desc: 'Cheapest high-volume reasoning.', price: '$0.20 / $1.25', context: '400K / 128K' },
+  'gpt-5.3-codex': { provider: 'openai', tier: 'balanced', name: 'OpenAI gpt-5.3-codex', desc: 'Codex/coding specialist model.', price: '$1.75 / $14.00', context: '128K' },
+  'o3-deep-research': { provider: 'openai', tier: 'max', name: 'OpenAI o3-deep-research', desc: 'Batch-only deep research model.', price: '$5.00 / $20.00', context: '200K' },
+  'o4-mini-deep-research': { provider: 'openai', tier: 'lite', name: 'OpenAI o4-mini-deep-research', desc: 'Batch-only mini deep research.', price: '$1.00 / $4.00', context: '200K' },
+  'computer-use-preview': { provider: 'openai', tier: 'balanced', name: 'OpenAI computer-use-preview', desc: 'Agentic computer use preview.', price: '$1.50 / $6.00', context: '128K' },
+  'claude-opus-4-8': { provider: 'claude', tier: 'max', name: 'Claude Opus 4.8', desc: 'Most capable complex-reasoning / agentic-coding model.', price: '$5.00 / $25.00', context: '1M / 128K' },
+  'claude-sonnet-4-6': { provider: 'claude', tier: 'balanced', name: 'Claude Sonnet 4.6', desc: 'Best default speed/intelligence balance.', price: '$3.00 / $15.00', context: '1M / 64K' },
+  'claude-haiku-4-5': { provider: 'claude', tier: 'lite', name: 'Claude Haiku 4.5', desc: 'Fastest near-frontier reasoning model.', price: '$1.00 / $5.00', context: '200K / 64K' },
+  'gemini-3.1-pro-preview': { provider: 'gemini', tier: 'max', name: 'Gemini 3.1 Pro Preview', desc: 'Advanced intelligence for complex reasoning/agentic coding.', price: '$2.00 / $12.00', context: '1.04M / 65K' },
+  'gemini-3.1-pro-preview-customtools': { provider: 'gemini', tier: 'max', name: 'Gemini 3.1 Pro (Custom Tools)', desc: 'Gemini 3.1 Pro custom-tools endpoint.', price: '$2.00 / $12.00', context: '1.04M / 65K' },
+  'gemini-3.5-flash': { provider: 'gemini', tier: 'balanced', name: 'Gemini 3.5 Flash', desc: 'Stable high-performance agentic/coding model.', price: '$1.50 / $9.00', context: '1.04M / 65K' },
+  'gemini-3-flash-preview': { provider: 'gemini', tier: 'balanced', name: 'Gemini 3 Flash Preview', desc: 'Preview, frontier-class speed/cost model.', price: '$0.50 / $3.00', context: '1.04M / 65K' },
+  'gemini-3.1-flash-lite': { provider: 'gemini', tier: 'lite', name: 'Gemini 3.1 Flash Lite', desc: 'Stable low-cost Gemini 3.1 model.', price: '$0.25 / $1.50', context: '1.04M / 65K' },
+  'gemini-2.5-pro': { provider: 'gemini', tier: 'max', name: 'Gemini 2.5 Pro', desc: 'Older complex-reasoning/coding model.', price: '$1.25 / $10.00', context: '1M' },
+  'gemini-2.5-flash': { provider: 'gemini', tier: 'balanced', name: 'Gemini 2.5 Flash', desc: 'Hybrid reasoning and price-performance model.', price: '$0.30 / $2.50', context: '1M' },
+  'gemini-2.5-flash-lite': { provider: 'gemini', tier: 'lite', name: 'Gemini 2.5 Flash Lite', desc: 'Cheapest Gemini 2.5 family model.', price: '$0.10 / $0.40', context: '1M' }
 };
 
 function getProvider(model) {
@@ -1490,6 +1504,20 @@ function updateKeyButton() {
   keyBtn.style.color = hasKey ? 'var(--g)' : '';
 }
 
+function updateKeyStatus() {
+  ['gemini', 'claude', 'openai'].forEach(p => {
+    const input = get('api-' + p);
+    const statusEl = get('status-' + p);
+    if (input && statusEl) {
+      if (input.value.trim()) {
+        statusEl.innerHTML = `<span style="color: var(--g);">✓ SAVED</span>`;
+      } else {
+        statusEl.innerHTML = `<span style="color: var(--c);">✗ NOT SET</span>`;
+      }
+    }
+  });
+}
+
 function updateModelInfoCard() {
   const modelSelect = get('model-select');
   const infoCard = get('model-info-card');
@@ -1497,11 +1525,34 @@ function updateModelInfoCard() {
   const modelId = modelSelect.value;
   const detail = MODEL_DETAILS[modelId];
   if (detail) {
+    let colorVar = 'var(--ink)';
+    let tierBadge = '';
+    
+    if (detail.provider === 'gemini') colorVar = 'var(--a)';
+    else if (detail.provider === 'claude') colorVar = 'var(--b)';
+    else if (detail.provider === 'openai') colorVar = 'var(--g)';
+    
+    if (detail.tier === 'max') {
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--c); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">🧠 MAX REASONING</span>`;
+    } else if (detail.tier === 'balanced') {
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--b); color: var(--ink); font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">⚖️ BALANCED</span>`;
+    } else if (detail.tier === 'lite') {
+      tierBadge = `<span style="display:inline-block; padding: 2px 5px; background: var(--g); color: #fff; font-size: 8px; font-weight:900; border: 1px solid var(--ink); vertical-align: middle;">⚡ SPEED/COST</span>`;
+    }
+    
+    infoCard.style.borderLeft = `4px solid ${colorVar}`;
+    infoCard.style.paddingLeft = '8px';
+    
     infoCard.innerHTML = `
-      <div style="font-weight:900; text-transform:uppercase; margin-bottom:3px;">${detail.name}</div>
-      <div style="margin-bottom:4px; font-weight:500;">${detail.desc}</div>
-      <div style="font-size:9px;"><strong>Price (In/Out per 1M):</strong> ${detail.price}</div>
-      <div style="font-size:9px;"><strong>Context / Max Output:</strong> ${detail.context}</div>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-family: var(--font);">
+        <span style="font-weight:900; text-transform:uppercase; font-size:10px;">${detail.name}</span>
+        ${tierBadge}
+      </div>
+      <div style="margin-bottom:6px; font-weight:500; font-size:9px; color:#666;">${detail.desc}</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size:8px; border-top: 1px solid var(--ink); padding-top: 4px; font-family: var(--font);">
+        <div><strong>PRICE PER 1M (IN/OUT):</strong><br>${detail.price}</div>
+        <div><strong>CONTEXT / MAX OUTPUT:</strong><br>${detail.context}</div>
+      </div>
     `;
     
     get('api-gemini-box')?.classList.remove('active-key-required');
@@ -3982,8 +4033,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setP('api-openai', 'value', KEYS.openai);
     get('m-api')?.classList.add('on');
     updateModelInfoCard();
+    updateKeyStatus();
   });
   get('model-select')?.addEventListener('change', updateModelInfoCard);
+  get('api-gemini')?.addEventListener('input', updateKeyStatus);
+  get('api-claude')?.addEventListener('input', updateKeyStatus);
+  get('api-openai')?.addEventListener('input', updateKeyStatus);
   get('api-cancel')?.addEventListener('click', () => get('m-api')?.classList.remove('on'));
   get('api-save')?.addEventListener('click',   () => {
     const m = get('model-select')?.value || 'gemini-3.5-flash';
