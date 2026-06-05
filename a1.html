@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-    <title>CAUSALITY · GEMINI PRO</title>
+    <title>CINEOSIS · GEMINI PRO</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23000%22/><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%228%22 stroke-dasharray=%2210 10%22/><circle cx=%2250%22 cy=%2250%22 r=%2210%22 fill=%22%23fff%22/></svg>">
     <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
     <style>
         :root {
@@ -670,6 +671,8 @@
         @media (min-width: 768px) {
             #app {
                 flex-direction: row;
+                margin-left: 50px;
+                width: calc(100% - 50px);
             }
 
             #tabs {
@@ -706,12 +709,7 @@
             }
         }
 
-        #side-nav {
-            position: fixed;
-            left: 0;
-            top: var(--sb-h);
-            bottom: 0;
-            width: 50px;
+        #side-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 50px;
             background: var(--paper);
             border-right: var(--bw3) solid var(--ink);
             flex-direction: column;
@@ -2424,7 +2422,7 @@
             <input type="range" id="brush-sz" min="1" max="24" value="5">
 
             <div class="sep-lbl">TEXT STAMP</div>
-            <textarea class="ta" id="t-text" rows="2">CAUSALITY</textarea>
+            <textarea class="ta" id="t-text" rows="2">CINEOSIS</textarea>
             <div class="btn-row">
                 <div style="flex:1">
                     <div class="lbl">SIZE</div>
@@ -2523,7 +2521,7 @@
         </div>
     </div>
 
-    <!-- API KEY MODAL (GEMINI CANVAS PRO) -->
+    <!-- API KEY MODAL (CINEOSIS PRO) -->
     <div class="modal" id="m-api">
         <div class="modal-box">
             <h3>Google Gemini API Key</h3>
@@ -3480,17 +3478,37 @@
             }
             return framesGenerated;
         }
+        function getCurrentFrameBase64() {
+            if (typeof COMP === 'undefined' || !COMP || !A.frames || !A.frames.length) return null;
+            try {
+                return COMP.toDataURL('image/jpeg', 0.85).split(',')[1];
+            } catch (_) {
+                return null;
+            }
+        }
+
         async function callGemini(systemPrompt, userPrompt, isJson = false) {
             if (!KEY) {
                 return { error: "No API Key saved." };
             }
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
 
+            const parts = [{ text: userPrompt }];
+            const imgB64 = getCurrentFrameBase64();
+            if (imgB64) {
+                parts.push({
+                    inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: imgB64
+                    }
+                });
+            }
+
             const payload = {
                 contents: [
                     {
                         role: "user",
-                        parts: [{ text: userPrompt }]
+                        parts: parts
                     }
                 ],
                 systemInstruction: {
@@ -3521,7 +3539,19 @@
         }
 
         async function handleChat(userMsg) {
-            const sys = `You are CAUSALITY, an AI film development engine.
+            const sys = `You are CINEOSIS, a Cybernetic cinema system. You only output valid JSON mapping to story actions.
+
+When generating scene descriptions or breaking a script into shots (via SET_SHOTS), you MUST construct exactly 7 shots representing the 7 Deleuzian cinema concepts from the Cineosis Scenario Construction Guide (structured under the Who, Where, What, What, How model):
+1. Perception-Image: Subjective gaze blending with objective reality. (e.g., Protagonist peering through camera lens, blending their gaze with neighbors' lives).
+2. Action-Image: Focus on dynamic motion and physical interaction with a hostile landscape/environment. (e.g., Desert car chase with dust swirling).
+3. Affection-Image: Close-up on face reflecting whimsical inner world, emotion, and introspection.
+4. Opsigns: Mysterious/desolate landscape void of movement, stimulating a sense of timelessness and inviting a meditative gaze.
+5. Sonsigns: Empty setting with ghostly echoes/soundscapes, evoking the past bleeding into the present.
+6. Crystal-Image: Coexistence of multiple layers of time, past, present, and potential future unfolding simultaneously.
+7. Recollection-Image: Layered dreamscape/memory where lines between reality and memory blur.
+
+Each shot description must detail the Who, Where, What, What, and How.
+When responding, you must use one of the STORY ACTIONS and return a JSON object with "reply" and "actions".
 Always return VALID JSON matches this format:
 {"reply": "Brief narrative advice or critique.", "actions": []}
 
@@ -3541,7 +3571,7 @@ Logline: "${S.premise}"
 Script Word Count: ${S.script ? S.script.split(/\\s+/).length : 0}
 Defined Shots: ${S.shots.length}
 
-Match user intent exactly. If they say "make an idea" trigger SET_PREMISE. If "write script" trigger SET_SCRIPT. "break into shots" -> SET_SHOTS. "render" -> RENDER_SHOTS. Ensure strictly correct JSON structure with no formatting wrappers.`;
+Match user intent exactly. If they say "make an idea" trigger SET_PREMISE. If "write script" trigger SET_SCRIPT. "break into shots" -> SET_SHOTS (generate exactly 7 shots representing the Deleuzian categories). "render" -> RENDER_SHOTS. Ensure strictly correct JSON structure with no formatting wrappers.`;
 
             try {
                 const raw = await callGemini(sys, userMsg, true);
@@ -3697,33 +3727,13 @@ OUTPUT: Use C for comment lines. Output ONLY raw BEFLIX code. NO markdown. NO ba
             { type: 'CLOSE', title: 'Dashboard dead', desc: 'Stereo lights die. Total cabin darkness.', bfxHint: 'radio interface click' },
         ];
         const SEED_BFX = [
-            `C SHOT 1
-CLR 0
-PNT 0 80 128 16 7
-PNT 20 40 40 20 5
-REC 10
-SHF 4 0 20`,
-            `C SHOT 2
-CLR 1
-PNT 40 20 48 50 6
-REC 15
-LIN 40 20 88 70 7
-REC 15`,
-            `C SHOT 3
-CLR 0
-PNT 44 8 40 80 4
-REC 20`,
-            `C SHOT 4
-CLR 0
-PNT 0 80 128 16 7
-PNT 40 40 48 24 5
-REC 5
-SHF -2 1 15`,
-            `C SHOT 5
-CLR 7
-REC 20
-CLR 0
-REC 10`
+            `C SHOT 1\nCLR 0\nPNT 0 80 128 16 7\nPNT 20 40 40 20 5\nREC 10\nSHF 4 0 20`,
+            `C SHOT 2\nCLR 1\nPNT 40 20 48 50 6\nREC 15\nLIN 40 20 88 70 7\nREC 15`,
+            `C SHOT 3\nCLR 0\nPNT 44 8 40 80 4\nREC 20`,
+            `C SHOT 4\nCLR 0\nPNT 0 80 128 16 7\nPNT 40 40 48 24 5\nREC 5\nSHF -2 1 15`,
+            `C SHOT 5\nCLR 7\nREC 20\nCLR 0\nREC 10`,
+            `C SHOT 6\nCLR 3\nPNT 10 10 100 80 6\nREC 10\nSHF 1 -1 10`,
+            `C SHOT 7\nCLR 4\nREC 15\nCLR 2\nREC 15`
         ];
 
         async function sendMessage(txt) {
@@ -3776,7 +3786,7 @@ REC 10`
             const msgs = get('chat-msgs'); if (!msgs) return;
             msgs.innerHTML = S.log.map(m => `
     <div class="bubble ${m.who === 'you' ? 'me' : m.who === 'err' ? 'ai err' : 'ai'}">
-      <div class="bwho">${m.who === 'you' ? 'YOU' : 'GEMINI CANVAS'}<span>${esc(m.time || '')}</span></div>
+      <div class="bwho">${m.who === 'you' ? 'YOU' : 'CINEOSIS'}<span>${esc(m.time || '')}</span></div>
       <p>${esc(m.text).replace(/\n/g, '<br>')}</p>
     </div>`).join('');
             msgs.scrollTop = 9999;
@@ -4072,7 +4082,24 @@ REC 10`
                 if (source instanceof Blob) URL.revokeObjectURL(url);
                 return;
             }
-            const dur = vid.duration;
+            let dur = vid.duration;
+            if (!isFinite(dur) || dur <= 0) {
+                try {
+                    vid.currentTime = 1e9;
+                    await new Promise(res => {
+                        const onSeek = () => { vid.removeEventListener('seeked', onSeek); res(); };
+                        vid.addEventListener('seeked', onSeek);
+                        setTimeout(onSeek, 400);
+                    });
+                    dur = vid.duration;
+                    vid.currentTime = 0;
+                    await new Promise(res => {
+                        const onSeek = () => { vid.removeEventListener('seeked', onSeek); res(); };
+                        vid.addEventListener('seeked', onSeek);
+                        setTimeout(onSeek, 400);
+                    });
+                } catch (_) {}
+            }
             if (!isFinite(dur) || dur <= 0) { unlockSys(); showToast('No duration', true); return; }
             A.audioBlob = source instanceof Blob ? source : null;
             A.audioDuration = dur;
@@ -4328,7 +4355,7 @@ REC 10`
             const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
             renderDotFrame(A.frames[A.cur], tmp);
             const a = document.createElement('a');
-            a.download = 'CAUSALITY_' + String(A.cur + 1).padStart(3, '0') + '.png';
+            a.download = 'CINEOSIS_' + String(A.cur + 1).padStart(3, '0') + '.png';
             a.href = tmp.toDataURL(); a.click();
         }
 
@@ -4376,7 +4403,7 @@ REC 10`
             const ext = mime.includes('mp4') ? 'mp4' : 'webm';
             const bl = new Blob(chunks, { type: mime });
             const a = document.createElement('a');
-            a.download = 'CAUSALITY_' + Date.now() + '.' + ext;
+            a.download = 'CINEOSIS_' + Date.now() + '.' + ext;
             a.href = URL.createObjectURL(bl); a.click();
             unlockSys(); showToast(ext.toUpperCase() + ' SAVED');
         }
@@ -4403,7 +4430,7 @@ REC 10`
             gif.on('progress', p => setLockN(Math.round(p * 100) + '%'));
             gif.on('finished', blob => {
                 const a = document.createElement('a');
-                a.download = 'CAUSALITY_' + Date.now() + '.gif';
+                a.download = 'CINEOSIS_' + Date.now() + '.gif';
                 a.href = URL.createObjectURL(blob); a.click();
                 unlockSys(); showToast('GIF SAVED');
             });
@@ -4423,13 +4450,13 @@ REC 10`
                     renderDotFrame(A.frames[i], tc);
                     sctx.drawImage(tc, (i % cols) * W, Math.floor(i / cols) * H);
                 }
-                const a = document.createElement('a'); a.download = 'CAUSALITY_SHEET.png'; a.href = sc.toDataURL(); a.click();
+                const a = document.createElement('a'); a.download = 'CINEOSIS_SHEET.png'; a.href = sc.toDataURL(); a.click();
                 unlockSys(); showToast('SHEET SAVED');
             }, 50);
         }
 
         function decompileToCode() {
-            let code = `; CAUSALITY BEFLIX EXPORT\n; FRAMES: ${A.frames.length}\n;\n`;
+            let code = `; CINEOSIS BEFLIX EXPORT\n; FRAMES: ${A.frames.length}\n;\n`;
             for (let fi = 0; fi < A.frames.length; fi++) {
                 const f = A.frames[fi];
                 code += `C FRAME ${fi + 1}\n`;

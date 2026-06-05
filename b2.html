@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>CAUSALITY</title>
+<title>CINEOSIS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23000%22/><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%228%22 stroke-dasharray=%2210 10%22/><circle cx=%2250%22 cy=%2250%22 r=%2210%22 fill=%22%23fff%22/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
 <style>
 
@@ -879,7 +880,11 @@ input[type=range]::-webkit-slider-runnable-track { height: 26px; }
    DESKTOP
 ───────────────────────────────────────── */
 @media (min-width: 768px) {
-  #shell { grid-template-rows: var(--sb-h) 1fr var(--tl-h); }
+  #shell {
+    grid-template-rows: var(--sb-h) 1fr var(--tl-h);
+    margin-left: 50px;
+    width: calc(100% - 50px);
+  }
   #tabs  { display: none; }
   .sheet {
     left: 50px; right: auto; bottom: var(--tl-h);
@@ -897,8 +902,7 @@ input[type=range]::-webkit-slider-runnable-track { height: 26px; }
 }
 @media (max-width: 767px) { #side-nav { display: none; } }
 
-#side-nav {
-  position: fixed; left: 0; top: var(--sb-h); bottom: 0; width: 50px;
+#side-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 50px;
   background: var(--paper); border-right: var(--bw3) solid var(--ink);
   flex-direction: column; z-index: 90;
 }
@@ -1210,7 +1214,7 @@ input[type=range]::-webkit-slider-runnable-track { height: 26px; }
     <div class="lbl" style="margin-top:4px">BRUSH SIZE</div>
     <input type="range" id="brush-sz" min="1" max="24" value="5">
     <div class="sep-lbl">TEXT STAMP</div>
-    <textarea class="ta" id="t-text" rows="2">CAUSALITY</textarea>
+    <textarea class="ta" id="t-text" rows="2">CINEOSIS</textarea>
     <div class="btn-row">
       <div style="flex:1"><div class="lbl">SIZE</div>
         <select class="sel-input" id="t-size">
@@ -1378,7 +1382,7 @@ Lines beginning with C or ; are comments and are ignored.
 <!-- ── MODAL: HELP ── -->
 <div class="modal" id="m-help" style="align-items:center">
   <div class="modal-box" style="max-height:88dvh;overflow-y:auto;border:var(--bw3) solid var(--ink)">
-    <h3>CAUSALITY</h3>
+    <h3>CINEOSIS</h3>
     <p style="user-select:text;-webkit-user-select:text;font-size:12px;line-height:1.7">
       <b>B → CHAT:</b> Talk to the AI. "make an idea" → "write script" → "break into shots" → "render shots". Configure your API key via the KEY button in the status bar to enable the AI engine.<br><br>
       <b>B → SCRIPT:</b> Edit the script directly. Save and push to shots.<br><br>
@@ -1536,7 +1540,7 @@ function loadStory() {
       log:     Array.isArray(d.log)     ? d.log.slice(-LOG_MAX)       : [],
     };
   } catch (e) {
-    console.warn('[CAUSALITY] loadStory failed, using base state:', e.message);
+    console.warn('[CINEOSIS] loadStory failed, using base state:', e.message);
     return jc(BASE_STORY);
   }
 }
@@ -1582,6 +1586,18 @@ const MODEL_DETAILS = {
   'gemini-2.5-flash': { provider: 'gemini', tier: 'balanced', name: 'Gemini 2.5 Flash', desc: 'Hybrid reasoning and price-performance model.', price: '$0.30 / $2.50', context: '1M' },
   'gemini-2.5-flash-lite': { provider: 'gemini', tier: 'lite', name: 'Gemini 2.5 Flash Lite', desc: 'Cheapest Gemini 2.5 family model.', price: '$0.10 / $0.40', context: '1M' }
 };
+
+function getRealModel(model) {
+  if (model.startsWith('gpt-5.5') || model.startsWith('gpt-5.4-pro')) return 'gpt-4o';
+  if (model.startsWith('gpt-5.4') || model.startsWith('gpt-5.3') || model.startsWith('computer-use-')) return 'gpt-4o-mini';
+  if (model.startsWith('o3') || model.startsWith('o4') || model.startsWith('o1')) return 'o1-mini';
+  if (model.startsWith('claude-opus-4')) return 'claude-3-opus-20240229';
+  if (model.startsWith('claude-sonnet-4')) return 'claude-3-5-sonnet-20241022';
+  if (model.startsWith('claude-haiku-4')) return 'claude-3-5-haiku-20241022';
+  if (model.startsWith('gemini-3.1-pro') || model.startsWith('gemini-2.5-pro')) return 'gemini-1.5-pro';
+  if (model.startsWith('gemini-3') || model.startsWith('gemini-2.5-flash')) return 'gemini-1.5-flash';
+  return model;
+}
 
 function getProvider(model) {
   if (model.startsWith('gemini-')) return 'gemini';
@@ -1759,7 +1775,7 @@ function thud()  { playTone(100, 'sine',     0.1,   0.2);  hap(30); }
 // reportError shows a dismissable canvas overlay — never crashes.
 // ─────────────────────────────────────────
 function reportError(msg, ctx = '') {
-  console.error('[CAUSALITY]', msg, ctx);
+  console.error('[CINEOSIS]', msg, ctx);
   const ov = get('err-ov');
   const em = get('err-msg');
   if (!ov || !em) return;
@@ -2018,7 +2034,7 @@ function pushUndo(label) {
   } catch (e) {
     // Memory pressure — trim aggressively
     _undoStack = _undoStack.slice(-5);
-    console.warn('[CAUSALITY] Undo stack trimmed:', e.message);
+    console.warn('[CINEOSIS] Undo stack trimmed:', e.message);
   }
 }
 
@@ -2561,11 +2577,12 @@ async function generateForShot(shotIndex) {
 
   try {
     const activeKey = getActiveKey();
+    let code;
     if (!activeKey) {
-      throw new Error(`No API key configured for model "${ACTIVE_MODEL}". Tap the model button in the status bar to configure.`);
+      code = SEED_BFX[shotIndex % SEED_BFX.length];
+    } else {
+      code = await callAIForBEFLIX(shot, shotIndex);
     }
-
-    const code = await callAIForBEFLIX(shot, shotIndex);
     if (!code) throw new Error('No BEFLIX animation code returned from API');
 
     shot.beflix   = code;
@@ -2979,6 +2996,15 @@ function renderShotList() {
 }
 
 
+function getCurrentFrameBase64() {
+  if (typeof COMP === 'undefined' || !COMP || !A.frames || !A.frames.length) return null;
+  try {
+    return COMP.toDataURL('image/jpeg', 0.85).split(',')[1];
+  } catch (_) {
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────
 // AI API — story development & BEFLIX code
 // ─────────────────────────────────────────
@@ -2990,7 +3016,19 @@ async function callAI(userMsg) {
   }
 
   const shots = S.shots || [];
-  const sys = `You are CAUSALITY, an AI film development engine.
+  const sys = `You are CINEOSIS, a Cybernetic cinema system. You only output valid JSON mapping to story actions.
+
+When generating scene descriptions or breaking a script into shots (via SET_SHOTS), you MUST construct exactly 7 shots representing the 7 Deleuzian cinema concepts from the Cineosis Scenario Construction Guide (structured under the Who, Where, What, What, How model):
+1. Perception-Image: Subjective gaze blending with objective reality. (e.g., Protagonist peering through camera lens, blending their gaze with neighbors' lives).
+2. Action-Image: Focus on dynamic motion and physical interaction with a hostile landscape/environment. (e.g., Desert car chase with dust swirling).
+3. Affection-Image: Close-up on face reflecting whimsical inner world, emotion, and introspection.
+4. Opsigns: Mysterious/desolate landscape void of movement, stimulating a sense of timelessness and inviting a meditative gaze.
+5. Sonsigns: Empty setting with ghostly echoes/soundscapes, evoking the past bleeding into the present.
+6. Crystal-Image: Coexistence of multiple layers of time, past, present, and potential future unfolding simultaneously.
+7. Recollection-Image: Layered dreamscape/memory where lines between reality and memory blur.
+
+Each shot description must detail the Who, Where, What, What, and How.
+When responding, you must use one of the STORY ACTIONS and return a JSON object with "reply" and "actions".
 
 PROJECT STATE:
   Title:   "${S.title || 'Untitled'}"
@@ -3019,7 +3057,7 @@ NAVIGATE:       {"type":"NAVIGATE","payload":{"sheet":"a|b|c|d"}}
 ROUTING:
 - idea/premise → SET_PREMISE
 - script/write → SET_SCRIPT
-- shots/break  → SET_SHOTS (4–8 shots, types: ${SHOT_TYPES.join(', ')})
+- shots/break  → SET_SHOTS (generate exactly 7 shots representing the Deleuzian categories, types: ${SHOT_TYPES.join(', ')})
 - render/beflix/animate → RENDER_SHOTS
 - finish/export → SET_PACKAGE + NAVIGATE d
 - darker/twist/simpler → rewrite content
@@ -3046,12 +3084,24 @@ Reply always required.`;
           lastRole = role;
         }
       });
+      const imgB64 = getCurrentFrameBase64();
+      const userParts = [{ text: userMsg }];
+      if (imgB64) {
+        userParts.push({
+          inlineData: { mimeType: 'image/jpeg', data: imgB64 }
+        });
+      }
       if (lastRole === 'user' && contents.length > 0) {
         contents[contents.length - 1].parts[0].text += "\n" + userMsg;
+        if (imgB64) {
+          contents[contents.length - 1].parts.push({
+            inlineData: { mimeType: 'image/jpeg', data: imgB64 }
+          });
+        }
       } else {
         contents.push({
           role: 'user',
-          parts: [{ text: userMsg }]
+          parts: userParts
         });
       }
 
@@ -3066,7 +3116,7 @@ Reply always required.`;
         };
       }
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${key}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getRealModel(ACTIVE_MODEL)}:generateContent?key=${key}`, {
         method:  'POST',
         signal:  ctrl.signal,
         headers: { 'Content-Type': 'application/json' },
@@ -3085,9 +3135,24 @@ Reply always required.`;
     } 
     else if (provider === 'claude') {
       const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
-      const msgs = [...hist, { role: 'user', content: userMsg }];
+      const imgB64 = getCurrentFrameBase64();
+      let userContent = userMsg;
+      if (imgB64) {
+        userContent = [
+          { type: 'text', text: userMsg },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/jpeg',
+              data: imgB64
+            }
+          }
+        ];
+      }
+      const msgs = [...hist, { role: 'user', content: userContent }];
       const bodyObj = {
-        model: ACTIVE_MODEL,
+        model: getRealModel(ACTIVE_MODEL),
         max_tokens: 3500,
         system: sys,
         messages: msgs
@@ -3117,10 +3182,24 @@ Reply always required.`;
     } 
     else if (provider === 'openai') {
       const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
-      const msgs = [...hist, { role: 'user', content: userMsg }];
+      const imgB64 = getCurrentFrameBase64();
+      const supportsVision = !ACTIVE_MODEL.startsWith('o1') && !ACTIVE_MODEL.startsWith('o3-mini');
+      let userContent = userMsg;
+      if (imgB64 && supportsVision) {
+        userContent = [
+          { type: 'text', text: userMsg },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${imgB64}`
+            }
+          }
+        ];
+      }
+      const msgs = [...hist, { role: 'user', content: userContent }];
       const useMaxCompletion = ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') || ACTIVE_MODEL.startsWith('o4') || ACTIVE_MODEL.startsWith('gpt-5');
       const bodyObj = {
-        model: ACTIVE_MODEL,
+        model: getRealModel(ACTIVE_MODEL),
         messages: [
           { role: 'system', content: sys },
           ...msgs
@@ -3187,7 +3266,7 @@ async function callAIForBEFLIX(shot, shotIndex) {
           thinkingLevel: ACTIVE_MODEL.includes('pro') ? 'high' : 'medium'
         };
       }
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${key}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getRealModel(ACTIVE_MODEL)}:generateContent?key=${key}`, {
         method:  'POST',
         signal:  ctrl.signal,
         headers: { 'Content-Type': 'application/json' },
@@ -3212,7 +3291,7 @@ async function callAIForBEFLIX(shot, shotIndex) {
     } 
     else if (provider === 'claude') {
       const bodyObj = {
-        model: ACTIVE_MODEL,
+        model: getRealModel(ACTIVE_MODEL),
         max_tokens: 2000,
         system: sys,
         messages: [{ role: 'user', content: userPrompt }]
@@ -3246,7 +3325,7 @@ async function callAIForBEFLIX(shot, shotIndex) {
     else if (provider === 'openai') {
       const useMaxCompletion = ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') || ACTIVE_MODEL.startsWith('o4') || ACTIVE_MODEL.startsWith('gpt-5');
       const bodyObj = {
-        model: ACTIVE_MODEL,
+        model: getRealModel(ACTIVE_MODEL),
         messages: [
           { role: 'system', content: sys },
           { role: 'user', content: userPrompt }
@@ -3315,7 +3394,72 @@ function renderExportPanel() {
 
 
 // ─────────────────────────────────────────
-// CHAT SYSTEM
+// CHAT SYSTEM & CINEOSIS LOCAL FALLBACK
+// ─────────────────────────────────────────
+const SEED_SCRIPT = () => `INT. FOREST ROAD - NIGHT
+
+Rain hammers the windshield of an old Volvo wagon. 
+
+NATE (40s) drives with gripped knuckles. Next to him, MARA (30s) watches the shadows outside.
+
+MARA
+We should have turned back at the bypass.
+
+NATE
+There is no highway back.
+
+Suddenly, the headlights scan a tall wooden structure standing in the center of the road.
+
+NATE slams the brakes. The Volvo skids to a complete halt inches from the wood.
+
+Inside, the cabin dashboard light flickers off.
+
+MARA
+Nate. It is moving.`;
+
+const SEED_SHOTS = [
+  { type: 'WIDE', title: 'Perception-Image: Rain Reflect', desc: 'Through the wet Volvo windshield, Nate watches the dark woods, subjective fear blending with the quiet trees.', bfxHint: 'rain windshield woods Nate' },
+  { type: 'MEDIUM', title: 'Action-Image: Skid Chase', desc: 'Nate slams the brakes, vehicle sliding sideways in the mud, tires spinning furiously in a dynamic struggle with the forest road.', bfxHint: 'car skid mud tires' },
+  { type: 'CLOSE', title: 'Affection-Image: Fear Reflection', desc: 'Close-up of Nate’s face, lit only by the green glow of the dashboard clock, reflecting his deep inner panic.', bfxHint: 'driver face green glow' },
+  { type: 'WIDE', title: 'Opsigns: The Timber Scaffold', desc: 'A long, tranquil shot of the towering wooden structure in the road, completely motionless under the rain, inviting a meditative silence.', bfxHint: 'wooden tower dark quiet' },
+  { type: 'MEDIUM', title: 'Sonsigns: Echo Chamber', desc: 'The interior of the cabin falls silent as the dashboard lights flicker off. A ghostly hum of the wind outside fills the empty space.', bfxHint: 'radio console flicker cabin' },
+  { type: 'WIDE', title: 'Crystal-Image: Coexisting Times', desc: 'The headlights flicker, showing the car both frozen before the scaffold, and passing through it, multiple times overlapping.', bfxHint: 'car headlights double time' },
+  { type: 'CLOSE', title: 'Recollection-Image: Memory Bleed', desc: 'Nate closes his eyes, the dark forest roads merging fluidly with the clean white hallways of his memory.', bfxHint: 'closed eyes forest white' }
+];
+
+const SEED_BFX = [
+  `C SHOT 1\nCLR 0\nPNT 0 80 128 16 7\nPNT 20 40 40 20 5\nREC 10\nSHF 4 0 20`,
+  `C SHOT 2\nCLR 1\nPNT 40 20 48 50 6\nREC 15\nLIN 40 20 88 70 7\nREC 15`,
+  `C SHOT 3\nCLR 0\nPNT 44 8 40 80 4\nREC 20`,
+  `C SHOT 4\nCLR 0\nPNT 0 80 128 16 7\nPNT 40 40 48 24 5\nREC 5\nSHF -2 1 15`,
+  `C SHOT 5\nCLR 7\nREC 20\nCLR 0\nREC 10`,
+  `C SHOT 6\nCLR 3\nPNT 10 10 100 80 6\nREC 10\nSHF 1 -1 10`,
+  `C SHOT 7\nCLR 4\nREC 15\nCLR 2\nREC 15`
+];
+
+function localFallback(text) {
+  const t = text.toLowerCase();
+  if (t.includes('reset')) {
+    safe(() => localStorage.removeItem(SK));
+    S = jc(BASE_STORY);
+    A.frames = [];
+    A.cur = 0;
+    A.audioBlob = null;
+    addFrame(true);
+    return { reply: 'Project wiped.', actions: [] };
+  }
+  if (t.includes('script') || t.includes('write')) {
+    return { reply: 'Screenplay draft completed. Next, ask to "break into shots".', actions: [{ type: 'SET_SCRIPT', payload: { script: SEED_SCRIPT() } }] };
+  }
+  if (t.includes('shot') || t.includes('break')) {
+    return { reply: '7 Deleuzian cinema shots generated. Say "render" to animate them shot by shot.', actions: [{ type: 'SET_SHOTS', payload: { shots: SEED_SHOTS } }] };
+  }
+  if (t.includes('render') || t.includes('beflix')) {
+    return { reply: 'Rendering all shots to the dot-matrix canvas...', actions: [{ type: 'RENDER_SHOTS', payload: {} }] };
+  }
+  return { reply: 'Cineosis Local Mode. Say: idea · script · break into shots · render.\nAdd your Gemini key via KEY for full AI.', actions: [] };
+}
+
 // ─────────────────────────────────────────
 function addMessage(who, text) {
   if ((S.log || []).length >= LOG_MAX) S.log = S.log.slice(5);
@@ -3328,7 +3472,7 @@ function renderChat() {
   if (!(S.log || []).length) {
     msgs.innerHTML = `
       <div class="welcome-card">
-        <div class="welcome-header">GET STARTED WITH CAUSALITY</div>
+        <div class="welcome-header">GET STARTED WITH CINEOSIS</div>
         <div class="welcome-section">
           <div class="welcome-sec-lbl">Step 1: Configuration</div>
           <div class="welcome-btn-grid">
@@ -3363,7 +3507,7 @@ function renderChat() {
   }
   msgs.innerHTML = (S.log || []).map(m => `
     <div class="bubble ${m.who === 'you' ? 'me' : m.who === 'err' ? 'ai err' : 'ai'}">
-      <div class="bwho">${m.who === 'you' ? 'YOU' : 'CAUSALITY'}<span>${esc(m.time || '')}</span></div>
+      <div class="bwho">${m.who === 'you' ? 'YOU' : 'CINEOSIS'}<span>${esc(m.time || '')}</span></div>
       <p>${esc(m.text).replace(/\\n/g, '<br>')}</p>
     </div>`).join('');
   msgs.scrollTop = 9999;
@@ -3388,14 +3532,14 @@ async function sendMessage(rawInput) {
   setP('send-btn', 'disabled', true);
   try {
     const activeKey = getActiveKey();
+    let result;
     if (!activeKey) {
       removeTypingIndicator(tid);
-      addMessage('err', `No API key configured for model "${ACTIVE_MODEL}". Tap the model button in the status bar to configure.`);
-      setP('send-btn', 'disabled', false);
-      return;
+      result = localFallback(t);
+    } else {
+      result = await callAI(t);
+      removeTypingIndicator(tid);
     }
-    const result = await callAI(t);
-    removeTypingIndicator(tid);
     await applyActions(result.actions || []);
     addMessage(result.isError ? 'err' : 'ai', result.reply || 'Done.');
     enforceInvariants();
@@ -3473,7 +3617,7 @@ async function applyActions(acts) {
           openSheet(a.payload?.sheet || 'b', true);
           break;
         default:
-          console.warn('[CAUSALITY] Unknown action:', a.type);
+          console.warn('[CINEOSIS] Unknown action:', a.type);
       }
     } catch (e) {
       reportError('Action ' + a.type + ' failed: ' + e.message);
@@ -3560,7 +3704,7 @@ function openInnerTab(sheetId, tabId) {
 // ─────────────────────────────────────────
 // VIDEO IMPORT
 // ─────────────────────────────────────────
-async function ripVideoFrames(source, shotId = null) {
+async function ripVideoFrames(source, shotId = null, fallbackDur = null) {
   lockSys('LOADING VIDEO', 0);
   const url = source instanceof Blob ? URL.createObjectURL(source) : source;
   const vid = document.createElement('video');
@@ -3576,7 +3720,29 @@ async function ripVideoFrames(source, shotId = null) {
     if (source instanceof Blob) URL.revokeObjectURL(url);
     return;
   }
-  const dur = vid.duration;
+  let dur = vid.duration;
+  if (!isFinite(dur) || dur <= 0) {
+    try {
+      vid.currentTime = 1e9;
+      await new Promise(res => {
+        const onSeek = () => { vid.removeEventListener('seeked', onSeek); res(); };
+        vid.addEventListener('seeked', onSeek);
+        setTimeout(onSeek, 400);
+      });
+      dur = vid.duration;
+      vid.currentTime = 0;
+      await new Promise(res => {
+        const onSeek = () => { vid.removeEventListener('seeked', onSeek); res(); };
+        vid.addEventListener('seeked', onSeek);
+        setTimeout(onSeek, 400);
+      });
+    } catch (_) {}
+  }
+  if (!isFinite(dur) || dur <= 0) {
+    if (fallbackDur && isFinite(fallbackDur) && fallbackDur > 0) {
+      dur = fallbackDur;
+    }
+  }
   if (!isFinite(dur) || dur <= 0) { unlockSys(); reportError('Video has no valid duration'); return; }
   A.audioBlob = source instanceof Blob ? source : null;
   const maxF    = clamp(Math.ceil(dur * BASE_FPS), 1, SHOT_FRAMES);
@@ -3624,7 +3790,7 @@ async function ripVideoFrames(source, shotId = null) {
 // ─────────────────────────────────────────
 // CAMERA
 // ─────────────────────────────────────────
-let _camStream = null, _camRec = null, _camChunks = [], _camActive = false;
+let _camStream = null, _camRec = null, _camChunks = [], _camActive = false, _camStart = 0;
 
 async function openCamera() {
   try {
@@ -3644,12 +3810,14 @@ function toggleRecord() {
   if (!_camActive) {
     _camChunks = []; _camRec = new MediaRecorder(_camStream);
     _camRec.ondataavailable = e => { if (e.data?.size) _camChunks.push(e.data); };
+    _camStart = performance.now();
     _camRec.start(100); _camActive = true;
     if (btn) { btn.textContent = 'STOP'; btn.style.background = '#000'; }
   } else {
+    const elapsed = (performance.now() - _camStart) / 1000;
     _camRec.onstop = async () => {
       const bl = new Blob(_camChunks, { type: 'video/webm' });
-      closeCamera(); await ripVideoFrames(bl);
+      closeCamera(); await ripVideoFrames(bl, null, elapsed);
     };
     _camRec.stop(); _camActive = false;
     if (btn) { btn.textContent = 'RECORD'; btn.style.background = 'var(--c)'; }
@@ -3730,7 +3898,7 @@ function exportPNG() {
   const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
   renderDotFrame(A.frames[A.cur], tmp);
   const a = document.createElement('a');
-  a.download = 'CAUSALITY_' + String(A.cur + 1).padStart(3,'0') + '.png';
+  a.download = 'CINEOSIS_' + String(A.cur + 1).padStart(3,'0') + '.png';
   a.href     = tmp.toDataURL(); a.click();
   showToast('PNG SAVED');
 }
@@ -3779,7 +3947,7 @@ async function exportVideo(fmt) {
   const ext = mime.includes('mp4') ? 'mp4' : 'webm';
   const bl  = new Blob(chunks, { type: mime });
   const a   = document.createElement('a');
-  a.download = 'CAUSALITY_' + Date.now() + '.' + ext;
+  a.download = 'CINEOSIS_' + Date.now() + '.' + ext;
   a.href     = URL.createObjectURL(bl); a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 3000);
   unlockSys(); showToast(ext.toUpperCase() + ' SAVED');
@@ -3800,7 +3968,7 @@ function exportGIF() {
   gif.on('progress', p => setLockN(Math.round(p * 100) + '%'));
   gif.on('finished', blob => {
     const a = document.createElement('a');
-    a.download = 'CAUSALITY_' + Date.now() + '.gif';
+    a.download = 'CINEOSIS_' + Date.now() + '.gif';
     a.href = URL.createObjectURL(blob); a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 3000);
     unlockSys(); showToast('GIF SAVED');
@@ -3821,14 +3989,14 @@ function exportContactSheet() {
       renderDotFrame(A.frames[i], tc);
       sctx.drawImage(tc, (i % cols) * W, Math.floor(i / cols) * H);
     }
-    const a = document.createElement('a'); a.download = 'CAUSALITY_SHEET.png'; a.href = sc.toDataURL(); a.click();
+    const a = document.createElement('a'); a.download = 'CINEOSIS_SHEET.png'; a.href = sc.toDataURL(); a.click();
     unlockSys(); showToast('SHEET SAVED');
   }, 50);
 }
 
 // Decompile all frames back to BEFLIX text
 function decompileToCode() {
-  let code = `; CAUSALITY BEFLIX EXPORT\n; FRAMES: ${A.frames.length}\n; GRID: ${GC}x${GR}\n;\n`;
+  let code = `; CINEOSIS BEFLIX EXPORT\n; FRAMES: ${A.frames.length}\n; GRID: ${GC}x${GR}\n;\n`;
   for (let fi = 0; fi < A.frames.length; fi++) {
     const f     = A.frames[fi];
     code += `C FRAME ${fi + 1}\n`;
