@@ -3071,7 +3071,7 @@ Reply always required.`;
     else if (provider === 'openai') {
       const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
       const imgB64 = getCurrentFrameBase64();
-      const supportsVision = !ACTIVE_MODEL.startsWith('o1') && !ACTIVE_MODEL.startsWith('o3-mini');
+      const supportsVision = (getRealModel(ACTIVE_MODEL) !== 'o1-mini');
       let userContent = userMsg;
       if (imgB64 && supportsVision) {
         userContent = [
