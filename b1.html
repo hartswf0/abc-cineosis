@@ -3095,9 +3095,6 @@ Reply always required.`;
       };
       if (useMaxCompletion) {
         bodyObj.max_completion_tokens = 3500;
-        if (ACTIVE_MODEL.startsWith('gpt-5') || ACTIVE_MODEL.startsWith('o3') || ACTIVE_MODEL.startsWith('o4')) {
-          bodyObj.reasoning = { effort: "medium" };
-        }
       } else {
         bodyObj.max_tokens = 3500;
       }
@@ -3221,9 +3218,6 @@ async function callAIForBEFLIX(shot, shotIndex) {
       };
       if (useMaxCompletion) {
         bodyObj.max_completion_tokens = 2000;
-        if (ACTIVE_MODEL.startsWith('gpt-5') || ACTIVE_MODEL.startsWith('o3') || ACTIVE_MODEL.startsWith('o4')) {
-          bodyObj.reasoning = { effort: "medium" };
-        }
       } else {
         bodyObj.max_tokens = 2000;
       }
