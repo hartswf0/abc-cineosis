@@ -3107,25 +3107,26 @@ Reply always required.`;
 
       const isG3 = ACTIVE_MODEL.startsWith('gemini-3');
       const genConfig = {
-        responseMimeType: 'application/json',
-        maxOutputTokens: 3500
+        response_mime_type: 'application/json',
+        max_output_tokens: 3500
       };
       if (isG3) {
-        genConfig.thinkingConfig = {
-          thinkingLevel: ACTIVE_MODEL.includes('pro') ? 'high' : 'medium'
+        genConfig.thinking_config = {
+          thinking_level: ACTIVE_MODEL.includes('pro') ? 'high' : 'medium'
         };
       }
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getRealModel(ACTIVE_MODEL)}:generateContent?key=${key}`, {
+      const realModel = getRealModel(ACTIVE_MODEL);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${realModel}:generateContent?key=${key}`, {
         method:  'POST',
         signal:  ctrl.signal,
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           contents: contents,
-          systemInstruction: {
+          system_instruction: {
             parts: [{ text: sys }]
           },
-          generationConfig: genConfig
+          generation_config: genConfig
         })
       });
       clearTimeout(tid);
@@ -3134,7 +3135,16 @@ Reply always required.`;
       raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     } 
     else if (provider === 'claude') {
-      const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
+      const rawHist = (S.log || []).filter(m => m.who === 'you' || m.who === 'ai');
+      const hist = [];
+      rawHist.forEach(m => {
+        const role = m.who === 'you' ? 'user' : 'assistant';
+        if (hist.length > 0 && hist[hist.length - 1].role === role) {
+          hist[hist.length - 1].content += "\n" + m.text;
+        } else {
+          hist.push({ role: role, content: m.text });
+        }
+      });
       const imgB64 = getCurrentFrameBase64();
       let userContent = userMsg;
       if (imgB64) {
@@ -3150,9 +3160,16 @@ Reply always required.`;
           }
         ];
       }
-      const msgs = [...hist, { role: 'user', content: userContent }];
+      if (hist.length > 0 && hist[hist.length - 1].role === 'user') {
+        const lastUserMsg = hist.pop();
+        userContent = typeof userContent === 'string'
+          ? lastUserMsg.content + "\n" + userContent
+          : [{ type: 'text', text: lastUserMsg.content + "\n" + userMsg }, ...userContent.filter(c => c.type !== 'text')];
+      }
+      const msgs = [...hist.slice(-14), { role: 'user', content: userContent }];
+      const realModel = getRealModel(ACTIVE_MODEL);
       const bodyObj = {
-        model: getRealModel(ACTIVE_MODEL),
+        model: realModel,
         max_tokens: 3500,
         system: sys,
         messages: msgs
@@ -3181,7 +3198,16 @@ Reply always required.`;
       raw = data.content?.[0]?.text || '{}';
     } 
     else if (provider === 'openai') {
-      const hist = (S.log || []).slice(-14).map(m => ({ role: m.who === 'you' ? 'user' : 'assistant', content: m.text }));
+      const rawHist = (S.log || []).filter(m => m.who === 'you' || m.who === 'ai');
+      const hist = [];
+      rawHist.forEach(m => {
+        const role = m.who === 'you' ? 'user' : 'assistant';
+        if (hist.length > 0 && hist[hist.length - 1].role === role) {
+          hist[hist.length - 1].content += "\n" + m.text;
+        } else {
+          hist.push({ role: role, content: m.text });
+        }
+      });
       const imgB64 = getCurrentFrameBase64();
       const supportsVision = (getRealModel(ACTIVE_MODEL) !== 'o1-mini');
       let userContent = userMsg;
@@ -3196,12 +3222,20 @@ Reply always required.`;
           }
         ];
       }
-      const msgs = [...hist, { role: 'user', content: userContent }];
-      const useMaxCompletion = ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') || ACTIVE_MODEL.startsWith('o4') || ACTIVE_MODEL.startsWith('gpt-5');
+      if (hist.length > 0 && hist[hist.length - 1].role === 'user') {
+        const lastUserMsg = hist.pop();
+        userContent = typeof userContent === 'string'
+          ? lastUserMsg.content + "\n" + userContent
+          : [{ type: 'text', text: lastUserMsg.content + "\n" + userMsg }, ...userContent.filter(c => c.type !== 'text')];
+      }
+      const msgs = [...hist.slice(-14), { role: 'user', content: userContent }];
+      const realModel = getRealModel(ACTIVE_MODEL);
+      const useMaxCompletion = realModel.startsWith('o1') || realModel.startsWith('o3') || realModel.startsWith('o4');
+      const isReasoning = useMaxCompletion;
       const bodyObj = {
-        model: getRealModel(ACTIVE_MODEL),
+        model: realModel,
         messages: [
-          { role: 'system', content: sys },
+          { role: isReasoning ? 'developer' : 'system', content: sys },
           ...msgs
         ]
       };
@@ -3210,7 +3244,7 @@ Reply always required.`;
       } else {
         bodyObj.max_tokens = 3500;
       }
-      if (!ACTIVE_MODEL.startsWith('o1') && !ACTIVE_MODEL.startsWith('o3') && !ACTIVE_MODEL.startsWith('o4')) {
+      if (!useMaxCompletion) {
         bodyObj.response_format = { type: 'json_object' };
       }
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -3256,14 +3290,15 @@ async function callAIForBEFLIX(shot, shotIndex) {
     if (provider === 'gemini') {
       const isG3 = ACTIVE_MODEL.startsWith('gemini-3');
       const genConfig = {
-        maxOutputTokens: 2000
+        max_output_tokens: 2000
       };
       if (isG3) {
-        genConfig.thinkingConfig = {
-          thinkingLevel: ACTIVE_MODEL.includes('pro') ? 'high' : 'medium'
+        genConfig.thinking_config = {
+          thinking_level: ACTIVE_MODEL.includes('pro') ? 'high' : 'medium'
         };
       }
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${getRealModel(ACTIVE_MODEL)}:generateContent?key=${key}`, {
+      const realModel = getRealModel(ACTIVE_MODEL);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${realModel}:generateContent?key=${key}`, {
         method:  'POST',
         signal:  ctrl.signal,
         headers: { 'Content-Type': 'application/json' },
@@ -3272,10 +3307,10 @@ async function callAIForBEFLIX(shot, shotIndex) {
             role: 'user',
             parts: [{ text: userPrompt }]
           }],
-          systemInstruction: {
+          system_instruction: {
             parts: [{ text: sys }]
           },
-          generationConfig: genConfig
+          generation_config: genConfig
         })
       });
       clearTimeout(tid);
@@ -3287,8 +3322,9 @@ async function callAIForBEFLIX(shot, shotIndex) {
       code = (data.candidates?.[0]?.content?.parts?.[0]?.text || '');
     } 
     else if (provider === 'claude') {
+      const realModel = getRealModel(ACTIVE_MODEL);
       const bodyObj = {
-        model: getRealModel(ACTIVE_MODEL),
+        model: realModel,
         max_tokens: 2000,
         system: sys,
         messages: [{ role: 'user', content: userPrompt }]
@@ -3320,11 +3356,13 @@ async function callAIForBEFLIX(shot, shotIndex) {
       code = (data.content?.[0]?.text || '');
     } 
     else if (provider === 'openai') {
-      const useMaxCompletion = ACTIVE_MODEL.startsWith('o1') || ACTIVE_MODEL.startsWith('o3') || ACTIVE_MODEL.startsWith('o4') || ACTIVE_MODEL.startsWith('gpt-5');
+      const realModel = getRealModel(ACTIVE_MODEL);
+      const useMaxCompletion = realModel.startsWith('o1') || realModel.startsWith('o3') || realModel.startsWith('o4');
+      const isReasoning = useMaxCompletion;
       const bodyObj = {
-        model: getRealModel(ACTIVE_MODEL),
+        model: realModel,
         messages: [
-          { role: 'system', content: sys },
+          { role: isReasoning ? 'developer' : 'system', content: sys },
           { role: 'user', content: userPrompt }
         ]
       };

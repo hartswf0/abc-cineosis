@@ -3511,14 +3511,14 @@
                         parts: parts
                     }
                 ],
-                systemInstruction: {
+                system_instruction: {
                     parts: [{ text: systemPrompt }]
                 }
             };
 
             if (isJson) {
-                payload.generationConfig = {
-                    responseMimeType: "application/json"
+                payload.generation_config = {
+                    response_mime_type: "application/json"
                 };
             }
 
