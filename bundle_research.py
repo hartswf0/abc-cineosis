@@ -48,6 +48,18 @@ def bundle():
                     data[fid] = file.read()
                     print(f"Bundled: {filepath} -> {fid}")
 
+    # Bundle HAPPY HORSE/FORM files
+    form_dir = os.path.join("HAPPY HORSE", "FORM")
+    if os.path.exists(form_dir):
+        files = os.listdir(form_dir)
+        for f in files:
+            if f.endswith(".txt") and "abc-macro" in f:
+                fid = f.replace("abc-macro (", "macro").replace(").txt", "")
+                filepath = os.path.join(form_dir, f)
+                with open(filepath, "r", encoding="utf-8") as file:
+                    data[fid] = file.read()
+                    print(f"Bundled: {filepath} -> {fid}")
+
     # Bundle workspace root d1-d3.md files
     for d in ["d1.md", "d2.md", "d3.md"]:
         if os.path.exists(d):
