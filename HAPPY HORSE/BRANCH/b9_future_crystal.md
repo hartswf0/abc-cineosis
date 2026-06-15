@@ -1,0 +1,140 @@
+C ============================================================
+C  NARRATIVE BRANCH: b9_future_crystal
+C  TITLE: Beat 9 / FUTURE / Crystal-Image
+C  DESCRIPTION: The rolling cart wheel reflects a horse eye, a server fan, and a human face in successive rotations.
+C  ============================================================
+
+C --- FRAME 1 ---
+CLR 0
+C Server units
+PNT 20 20 14 36 5
+LIN 20 26 33 26 0
+LIN 20 32 33 32 0
+LIN 20 38 33 38 0
+LIN 20 44 33 44 0
+PNT 22 23 1 1 1
+PNT 22 29 1 1 1
+PNT 22 35 1 1 1
+PNT 22 41 1 1 1
+PNT 22 47 1 1 1
+PNT 22 53 1 1 1
+PNT 50 20 14 36 5
+LIN 50 26 63 26 0
+LIN 50 32 63 32 0
+LIN 50 38 63 38 0
+LIN 50 44 63 44 0
+PNT 52 23 1 1 1
+PNT 52 29 1 1 1
+PNT 52 35 1 1 1
+PNT 52 41 1 1 1
+PNT 52 47 1 1 1
+PNT 52 53 1 1 1
+C Rolling cart
+PNT 40 52 24 8 5
+LIN 44 58 44 62 6
+LIN 58 58 58 62 6
+LIN 42 60 46 60 6
+LIN 56 60 60 60 6
+C Extreme close up of horse details
+PNT 40 25 48 48 5
+PNT 52 35 24 24 1
+PNT 58 40 6 6 7
+LIN 40 65 88 65 2
+C Animated human figure
+PNT 85 40 4 8 6
+PNT 86 35 2 2 7
+LIN 86 48 84 54 6
+LIN 87 48 89 54 6
+LIN 84 41 83 45 6
+REC 6
+C
+
+C --- FRAME 2 ---
+CLR 0
+C Server units
+PNT 20 20 14 36 5
+LIN 20 26 33 26 0
+LIN 20 32 33 32 0
+LIN 20 38 33 38 0
+LIN 20 44 33 44 0
+PNT 22 23 1 1 7
+PNT 22 29 1 1 7
+PNT 22 35 1 1 7
+PNT 22 41 1 1 7
+PNT 22 47 1 1 7
+PNT 22 53 1 1 7
+PNT 50 20 14 36 5
+LIN 50 26 63 26 0
+LIN 50 32 63 32 0
+LIN 50 38 63 38 0
+LIN 50 44 63 44 0
+PNT 52 23 1 1 7
+PNT 52 29 1 1 7
+PNT 52 35 1 1 7
+PNT 52 41 1 1 7
+PNT 52 47 1 1 7
+PNT 52 53 1 1 7
+C Rolling cart
+PNT 44 52 24 8 5
+LIN 48 58 48 62 6
+LIN 62 58 62 62 6
+LIN 48 58 48 62 6
+LIN 62 58 62 62 6
+C Extreme close up of horse details
+PNT 40 25 48 48 5
+PNT 52 35 24 24 1
+PNT 58 40 6 6 3
+LIN 40 66 88 66 2
+C Animated human figure
+PNT 85 40 4 8 6
+PNT 86 36 2 2 7
+LIN 86 48 87 54 6
+LIN 87 48 86 54 6
+LIN 84 41 83 45 6
+REC 6
+C
+
+C --- FRAME 3 ---
+CLR 0
+C Server units
+PNT 20 20 14 36 5
+LIN 20 26 33 26 0
+LIN 20 32 33 32 0
+LIN 20 38 33 38 0
+LIN 20 44 33 44 0
+PNT 22 23 1 1 1
+PNT 22 29 1 1 1
+PNT 22 35 1 1 1
+PNT 22 41 1 1 1
+PNT 22 47 1 1 1
+PNT 22 53 1 1 1
+PNT 50 20 14 36 5
+LIN 50 26 63 26 0
+LIN 50 32 63 32 0
+LIN 50 38 63 38 0
+LIN 50 44 63 44 0
+PNT 52 23 1 1 1
+PNT 52 29 1 1 1
+PNT 52 35 1 1 1
+PNT 52 41 1 1 1
+PNT 52 47 1 1 1
+PNT 52 53 1 1 1
+C Rolling cart
+PNT 48 52 24 8 5
+LIN 52 58 52 62 6
+LIN 66 58 66 62 6
+LIN 50 60 54 60 6
+LIN 64 60 68 60 6
+C Extreme close up of horse details
+PNT 40 25 48 48 5
+PNT 52 35 24 24 1
+PNT 58 40 6 6 7
+LIN 40 65 88 65 2
+C Animated human figure
+PNT 85 40 4 8 6
+PNT 86 35 2 2 7
+LIN 86 48 84 54 6
+LIN 87 48 89 54 6
+LIN 84 41 83 45 6
+REC 12
+C

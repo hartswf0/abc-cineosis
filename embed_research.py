@@ -47,6 +47,18 @@ def embed():
                     data[fid] = file.read()
                     print(f"Read: {filepath} -> {fid}")
 
+    # Bundle HAPPY HORSE/BRANCH directory files
+    branch_dir = os.path.join("HAPPY HORSE", "BRANCH")
+    if os.path.exists(branch_dir):
+        files = os.listdir(branch_dir)
+        for f in files:
+            if f.endswith(".md"):
+                fid = f.replace(".md", "")
+                filepath = os.path.join(branch_dir, f)
+                with open(filepath, "r", encoding="utf-8") as file:
+                    data[fid] = file.read()
+                    print(f"Read: {filepath} -> {fid}")
+
     # Bundle HAPPY HORSE/FORM files
     form_dir = os.path.join("HAPPY HORSE", "FORM")
     if os.path.exists(form_dir):
@@ -80,45 +92,44 @@ def embed():
                 data[rid] = file.read()
                 print(f"Read: {r} -> {rid}")
                 
-    # Read index.html
-    index_path = "index.html"
-    with open(index_path, "r", encoding="utf-8") as file:
-        content = file.read()
-        
     # JSON payload
     json_payload = json.dumps(data, ensure_ascii=False, indent=2)
-    
-    # Form the data script block
     data_script = f'<script id="preloaded-research-data" type="application/json">\n{json_payload}\n</script>'
-    
-    # Check if the script block is already in the file
-    pattern = r'<script id="preloaded-research-data" type="application/json">[\s\S]*?</script>'
-    if re.search(pattern, content):
-        # Replace the existing block using a lambda to prevent backslash escaping issues
-        content = re.sub(pattern, lambda m: data_script, content)
-        print("Replaced existing preloaded-research-data script block in index.html")
-    else:
-        # If it doesn't exist, remove the old research_data.js script tag if present
-        old_tag = '<script src="research_data.js"></script>'
-        if old_tag in content:
-            content = content.replace(old_tag, data_script)
-            print("Replaced research_data.js script tag with embedded JSON script block in index.html")
+
+    for index_path in ["index.html", "c3.html"]:
+        if not os.path.exists(index_path):
+            continue
+        with open(index_path, "r", encoding="utf-8") as file:
+            content = file.read()
+            
+        # Check if the script block is already in the file
+        pattern = r'<script id="preloaded-research-data" type="application/json">[\s\S]*?</script>'
+        if re.search(pattern, content):
+            # Replace the existing block using a lambda to prevent backslash escaping issues
+            content = re.sub(pattern, lambda m: data_script, content)
+            print(f"Replaced existing preloaded-research-data script block in {index_path}")
         else:
-            # Otherwise, insert before the main script tag
-            # Find the first <script> tag without src
-            script_match = re.search(r'<script\b[^>]*>', content)
-            if script_match:
-                start_idx = script_match.start()
-                content = content[:start_idx] + data_script + "\n  " + content[start_idx:]
-                print("Inserted embedded JSON script block before the main script tag in index.html")
+            # If it doesn't exist, remove the old research_data.js script tag if present
+            old_tag = '<script src="research_data.js"></script>'
+            if old_tag in content:
+                content = content.replace(old_tag, data_script)
+                print(f"Replaced research_data.js script tag with embedded JSON script block in {index_path}")
             else:
-                print("Error: Could not find any script tag in index.html to insert before!")
-                return
-                
-    # Write updated index.html
-    with open(index_path, "w", encoding="utf-8") as file:
-        file.write(content)
-    print("Embedded research data into index.html successfully!")
+                # Otherwise, insert before the main script tag
+                # Find the first <script> tag without src
+                script_match = re.search(r'<script\b[^>]*>', content)
+                if script_match:
+                    start_idx = script_match.start()
+                    content = content[:start_idx] + data_script + "\n  " + content[start_idx:]
+                    print(f"Inserted embedded JSON script block before the main script tag in {index_path}")
+                else:
+                    print(f"Error: Could not find any script tag in {index_path} to insert before!")
+                    continue
+                    
+        # Write updated file
+        with open(index_path, "w", encoding="utf-8") as file:
+            file.write(content)
+        print(f"Embedded research data into {index_path} successfully!")
 
 if __name__ == "__main__":
     embed()

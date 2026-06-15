@@ -1,0 +1,89 @@
+C ============================================================
+C  NARRATIVE BRANCH: b6_future_crystal
+C  TITLE: Beat 6 / FUTURE / Crystal-Image
+C  DESCRIPTION: A compost heap and a server-drive pile reflect together in rainwater, both forms of residue waiting for a new claim.
+C  ============================================================
+
+C --- FRAME 1 ---
+CLR 0
+C Server units
+PNT 20 20 14 36 5
+LIN 20 26 33 26 0
+LIN 20 32 33 32 0
+LIN 20 38 33 38 0
+LIN 20 44 33 44 0
+PNT 22 23 1 1 1
+PNT 22 29 1 1 1
+PNT 22 35 1 1 1
+PNT 22 41 1 1 1
+PNT 22 47 1 1 1
+PNT 22 53 1 1 1
+PNT 50 20 14 36 5
+LIN 50 26 63 26 0
+LIN 50 32 63 32 0
+LIN 50 38 63 38 0
+LIN 50 44 63 44 0
+PNT 52 23 1 1 1
+PNT 52 29 1 1 1
+PNT 52 35 1 1 1
+PNT 52 41 1 1 1
+PNT 52 47 1 1 1
+PNT 52 53 1 1 1
+REC 6
+C
+
+C --- FRAME 2 ---
+CLR 0
+C Server units
+PNT 20 20 14 36 5
+LIN 20 26 33 26 0
+LIN 20 32 33 32 0
+LIN 20 38 33 38 0
+LIN 20 44 33 44 0
+PNT 22 23 1 1 7
+PNT 22 29 1 1 7
+PNT 22 35 1 1 7
+PNT 22 41 1 1 7
+PNT 22 47 1 1 7
+PNT 22 53 1 1 7
+PNT 50 20 14 36 5
+LIN 50 26 63 26 0
+LIN 50 32 63 32 0
+LIN 50 38 63 38 0
+LIN 50 44 63 44 0
+PNT 52 23 1 1 7
+PNT 52 29 1 1 7
+PNT 52 35 1 1 7
+PNT 52 41 1 1 7
+PNT 52 47 1 1 7
+PNT 52 53 1 1 7
+REC 6
+C
+
+C --- FRAME 3 ---
+CLR 0
+C Server units
+PNT 20 20 14 36 5
+LIN 20 26 33 26 0
+LIN 20 32 33 32 0
+LIN 20 38 33 38 0
+LIN 20 44 33 44 0
+PNT 22 23 1 1 1
+PNT 22 29 1 1 1
+PNT 22 35 1 1 1
+PNT 22 41 1 1 1
+PNT 22 47 1 1 1
+PNT 22 53 1 1 1
+PNT 50 20 14 36 5
+LIN 50 26 63 26 0
+LIN 50 32 63 32 0
+LIN 50 38 63 38 0
+LIN 50 44 63 44 0
+PNT 52 23 1 1 1
+PNT 52 29 1 1 1
+PNT 52 35 1 1 1
+PNT 52 41 1 1 1
+PNT 52 47 1 1 1
+PNT 52 53 1 1 1
+REC 12
+C

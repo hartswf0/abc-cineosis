@@ -48,6 +48,18 @@ def bundle():
                     data[fid] = file.read()
                     print(f"Bundled: {filepath} -> {fid}")
 
+    # Bundle HAPPY HORSE/BRANCH directory files
+    branch_dir = os.path.join("HAPPY HORSE", "BRANCH")
+    if os.path.exists(branch_dir):
+        files = os.listdir(branch_dir)
+        for f in files:
+            if f.endswith(".md"):
+                fid = f.replace(".md", "")
+                filepath = os.path.join(branch_dir, f)
+                with open(filepath, "r", encoding="utf-8") as file:
+                    data[fid] = file.read()
+                    print(f"Bundled: {filepath} -> {fid}")
+
     # Bundle HAPPY HORSE/FORM files
     form_dir = os.path.join("HAPPY HORSE", "FORM")
     if os.path.exists(form_dir):

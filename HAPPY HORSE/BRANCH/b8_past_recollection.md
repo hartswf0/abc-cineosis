@@ -1,0 +1,128 @@
+C ============================================================
+C  NARRATIVE BRANCH: b8_past_recollection
+C  TITLE: Beat 8 / PAST / Recollection-Image
+C  DESCRIPTION: A battlefield, plowed field, postal road, and city street flicker across the workhorse’s body, every use of the species remembered as load.
+C  ============================================================
+
+C --- FRAME 1 ---
+CLR 0
+C Pasture background
+LIN 0 54 127 54 3
+PNT 0 55 128 20 2
+C Road ruts
+LIN 10 55 30 95 3
+LIN 18 55 42 95 3
+LIN 80 55 90 95 3
+LIN 88 55 102 95 3
+C Grass stipples
+LIN 4 65 4 62 4
+LIN 16 65 16 62 4
+LIN 28 65 28 62 4
+LIN 40 65 40 62 4
+LIN 52 65 52 62 4
+LIN 64 65 64 62 4
+LIN 76 65 76 62 4
+LIN 88 65 88 62 4
+LIN 100 65 100 62 4
+LIN 112 65 112 62 4
+LIN 124 65 124 62 4
+C Animated horse figure
+PNT 25 40 14 7 5
+PNT 27 41 10 5 6
+PNT 23 42 4 4 4
+PNT 28 36 4 5 5
+PNT 29 37 2 3 6
+PNT 32 34 5 4 5
+PNT 34 35 2 2 6
+PNT 33 35 1 1 6
+PNT 30 31 1 3 5
+PNT 31 31 1 3 6
+LIN 26 47 26 54 5
+LIN 30 47 30 54 6
+LIN 34 47 33 54 5
+LIN 37 47 38 54 6
+LIN 25 42 21 48 4
+REC 6
+C
+
+C --- FRAME 2 ---
+CLR 0
+C Pasture background
+LIN 0 54 127 54 3
+PNT 0 55 128 20 2
+C Road ruts
+LIN 10 55 30 95 3
+LIN 18 55 42 95 3
+LIN 80 55 90 95 3
+LIN 88 55 102 95 3
+C Grass stipples
+LIN 5 65 5 62 4
+LIN 17 65 17 62 4
+LIN 29 65 29 62 4
+LIN 41 65 41 62 4
+LIN 53 65 53 62 4
+LIN 65 65 65 62 4
+LIN 77 65 77 62 4
+LIN 89 65 89 62 4
+LIN 101 65 101 62 4
+LIN 113 65 113 62 4
+LIN 125 65 125 62 4
+C Animated horse figure
+PNT 25 40 14 7 5
+PNT 27 41 10 5 6
+PNT 23 42 4 4 4
+PNT 28 36 4 5 5
+PNT 29 37 2 3 6
+PNT 32 35 5 4 5
+PNT 34 36 2 2 6
+PNT 33 36 1 1 6
+PNT 30 32 1 3 5
+PNT 31 32 1 3 6
+LIN 26 47 28 54 5
+LIN 30 47 28 54 6
+LIN 34 47 35 54 5
+LIN 37 47 36 54 6
+LIN 25 42 21 49 4
+REC 6
+C
+
+C --- FRAME 3 ---
+CLR 0
+C Pasture background
+LIN 0 54 127 54 3
+PNT 0 55 128 20 2
+C Road ruts
+LIN 10 55 30 95 3
+LIN 18 55 42 95 3
+LIN 80 55 90 95 3
+LIN 88 55 102 95 3
+C Grass stipples
+LIN 6 65 6 62 4
+LIN 18 65 18 62 4
+LIN 30 65 30 62 4
+LIN 42 65 42 62 4
+LIN 54 65 54 62 4
+LIN 66 65 66 62 4
+LIN 78 65 78 62 4
+LIN 90 65 90 62 4
+LIN 102 65 102 62 4
+LIN 114 65 114 62 4
+LIN 126 65 126 62 4
+C Animated horse figure
+PNT 25 40 14 7 5
+PNT 27 41 10 5 6
+PNT 23 42 4 4 4
+PNT 28 36 4 5 5
+PNT 29 37 2 3 6
+PNT 32 34 5 4 5
+PNT 34 35 2 2 6
+PNT 33 35 1 1 6
+PNT 30 31 1 3 5
+PNT 31 31 1 3 6
+LIN 26 47 24 54 5
+LIN 30 47 32 54 6
+LIN 34 47 34 54 5
+LIN 37 47 37 54 6
+LIN 25 42 21 48 4
+REC 12
+C

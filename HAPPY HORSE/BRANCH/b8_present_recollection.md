@@ -1,0 +1,131 @@
+C ============================================================
+C  NARRATIVE BRANCH: b8_present_recollection
+C  TITLE: Beat 8 / PRESENT / Recollection-Image
+C  DESCRIPTION: The shadow of a cart briefly appears behind Calypso as she walks, then breaks apart across the grass.
+C  ============================================================
+
+C --- FRAME 1 ---
+CLR 0
+C Pasture background
+LIN 0 54 127 54 2
+PNT 0 55 128 20 1
+C Grass stipples
+LIN 4 65 4 62 3
+LIN 16 65 16 62 3
+LIN 28 65 28 62 3
+LIN 40 65 40 62 3
+LIN 52 65 52 62 3
+LIN 64 65 64 62 3
+LIN 76 65 76 62 3
+LIN 88 65 88 62 3
+LIN 100 65 100 62 3
+LIN 112 65 112 62 3
+LIN 124 65 124 62 3
+C Rolling cart
+PNT 40 52 24 8 5
+LIN 44 58 44 62 6
+LIN 58 58 58 62 6
+LIN 42 60 46 60 6
+LIN 56 60 60 60 6
+C Animated horse figure
+PNT 25 40 14 7 6
+PNT 27 41 10 5 7
+PNT 23 42 4 4 5
+PNT 28 36 4 5 6
+PNT 29 37 2 3 7
+PNT 32 34 5 4 6
+PNT 34 35 2 2 7
+PNT 33 35 1 1 7
+PNT 30 31 1 3 6
+PNT 31 31 1 3 7
+LIN 26 47 26 54 6
+LIN 30 47 30 54 7
+LIN 34 47 33 54 6
+LIN 37 47 38 54 7
+LIN 25 42 21 48 5
+REC 6
+C
+
+C --- FRAME 2 ---
+CLR 0
+C Pasture background
+LIN 0 54 127 54 2
+PNT 0 55 128 20 1
+C Grass stipples
+LIN 5 65 5 62 3
+LIN 17 65 17 62 3
+LIN 29 65 29 62 3
+LIN 41 65 41 62 3
+LIN 53 65 53 62 3
+LIN 65 65 65 62 3
+LIN 77 65 77 62 3
+LIN 89 65 89 62 3
+LIN 101 65 101 62 3
+LIN 113 65 113 62 3
+LIN 125 65 125 62 3
+C Rolling cart
+PNT 44 52 24 8 5
+LIN 48 58 48 62 6
+LIN 62 58 62 62 6
+LIN 48 58 48 62 6
+LIN 62 58 62 62 6
+C Animated horse figure
+PNT 29 40 14 7 6
+PNT 31 41 10 5 7
+PNT 27 42 4 4 5
+PNT 32 36 4 5 6
+PNT 33 37 2 3 7
+PNT 36 35 5 4 6
+PNT 38 36 2 2 7
+PNT 37 36 1 1 7
+PNT 34 32 1 3 6
+PNT 35 32 1 3 7
+LIN 30 47 32 54 6
+LIN 34 47 32 54 7
+LIN 38 47 39 54 6
+LIN 41 47 40 54 7
+LIN 29 42 25 49 5
+REC 6
+C
+
+C --- FRAME 3 ---
+CLR 0
+C Pasture background
+LIN 0 54 127 54 2
+PNT 0 55 128 20 1
+C Grass stipples
+LIN 6 65 6 62 3
+LIN 18 65 18 62 3
+LIN 30 65 30 62 3
+LIN 42 65 42 62 3
+LIN 54 65 54 62 3
+LIN 66 65 66 62 3
+LIN 78 65 78 62 3
+LIN 90 65 90 62 3
+LIN 102 65 102 62 3
+LIN 114 65 114 62 3
+LIN 126 65 126 62 3
+C Rolling cart
+PNT 48 52 24 8 5
+LIN 52 58 52 62 6
+LIN 66 58 66 62 6
+LIN 50 60 54 60 6
+LIN 64 60 68 60 6
+C Animated horse figure
+PNT 33 40 14 7 6
+PNT 35 41 10 5 7
+PNT 31 42 4 4 5
+PNT 36 36 4 5 6
+PNT 37 37 2 3 7
+PNT 40 34 5 4 6
+PNT 42 35 2 2 7
+PNT 41 35 1 1 7
+PNT 38 31 1 3 6
+PNT 39 31 1 3 7
+LIN 34 47 32 54 6
+LIN 38 47 40 54 7
+LIN 42 47 42 54 6
+LIN 45 47 45 54 7
+LIN 33 42 29 48 5
+REC 12
+C

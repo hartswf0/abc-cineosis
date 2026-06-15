@@ -1,0 +1,128 @@
+C ============================================================
+C  NARRATIVE BRANCH: b2_present_sonsign
+C  TITLE: Beat 2 / PRESENT / Sonsign-Image
+C  DESCRIPTION: Fence wire vibrates in a light wind while Calypso chews offscreen, the grid heard as a thin metallic hum.
+C  ============================================================
+
+C --- FRAME 1 ---
+CLR 0
+C Fence/Grid rails
+PNT 12 38 2 20 3
+PNT 36 38 2 20 3
+PNT 60 38 2 20 3
+PNT 84 38 2 20 3
+PNT 108 38 2 20 3
+LIN 0 42 127 42 3
+LIN 0 50 127 50 3
+C Animated horse figure
+PNT 25 40 14 7 6
+PNT 27 41 10 5 7
+PNT 23 42 4 4 5
+PNT 28 36 4 5 6
+PNT 29 37 2 3 7
+PNT 32 34 5 4 6
+PNT 34 35 2 2 7
+PNT 33 35 1 1 7
+PNT 30 31 1 3 6
+PNT 31 31 1 3 7
+LIN 26 47 26 54 6
+LIN 30 47 30 54 7
+LIN 34 47 33 54 6
+LIN 37 47 38 54 7
+LIN 25 42 21 48 5
+C Drawing device screen
+PNT 75 35 20 14 5
+PNT 77 37 16 10 0
+LIN 79 39 87 39 6
+LIN 79 42 85 42 6
+PNT 92 47 1 1 7
+C Scattered particle noise
+PNT 10 40 1 1 6
+PNT 30 20 1 1 6
+PNT 50 80 1 1 6
+PNT 70 60 1 1 6
+PNT 90 40 1 1 6
+REC 6
+C
+
+C --- FRAME 2 ---
+CLR 0
+C Fence/Grid rails
+PNT 12 38 2 20 3
+PNT 36 38 2 20 3
+PNT 60 38 2 20 3
+PNT 84 38 2 20 3
+PNT 108 38 2 20 3
+LIN 0 42 127 42 3
+LIN 0 50 127 50 3
+C Animated horse figure
+PNT 25 40 14 7 6
+PNT 27 41 10 5 7
+PNT 23 42 4 4 5
+PNT 28 36 4 5 6
+PNT 29 37 2 3 7
+PNT 32 35 5 4 6
+PNT 34 36 2 2 7
+PNT 33 36 1 1 7
+PNT 30 32 1 3 6
+PNT 31 32 1 3 7
+LIN 26 47 28 54 6
+LIN 30 47 28 54 7
+LIN 34 47 35 54 6
+LIN 37 47 36 54 7
+LIN 25 42 21 49 5
+C Drawing device screen
+PNT 75 35 20 14 5
+PNT 77 37 16 10 0
+LIN 79 39 85 39 6
+LIN 79 42 89 42 6
+PNT 92 47 1 1 2
+C Scattered particle noise
+PNT 10 55 1 1 6
+PNT 30 35 1 1 6
+PNT 50 15 1 1 6
+PNT 70 75 1 1 6
+PNT 90 55 1 1 6
+REC 6
+C
+
+C --- FRAME 3 ---
+CLR 0
+C Fence/Grid rails
+PNT 12 38 2 20 3
+PNT 36 38 2 20 3
+PNT 60 38 2 20 3
+PNT 84 38 2 20 3
+PNT 108 38 2 20 3
+LIN 0 42 127 42 3
+LIN 0 50 127 50 3
+C Animated horse figure
+PNT 25 40 14 7 6
+PNT 27 41 10 5 7
+PNT 23 42 4 4 5
+PNT 28 36 4 5 6
+PNT 29 37 2 3 7
+PNT 32 34 5 4 6
+PNT 34 35 2 2 7
+PNT 33 35 1 1 7
+PNT 30 31 1 3 6
+PNT 31 31 1 3 7
+LIN 26 47 24 54 6
+LIN 30 47 32 54 7
+LIN 34 47 34 54 6
+LIN 37 47 37 54 7
+LIN 25 42 21 48 5
+C Drawing device screen
+PNT 75 35 20 14 5
+PNT 77 37 16 10 0
+LIN 79 39 87 39 6
+LIN 79 42 85 42 6
+PNT 92 47 1 1 7
+C Scattered particle noise
+PNT 10 70 1 1 6
+PNT 30 50 1 1 6
+PNT 50 30 1 1 6
+PNT 70 10 1 1 6
+PNT 90 70 1 1 6
+REC 12
+C
