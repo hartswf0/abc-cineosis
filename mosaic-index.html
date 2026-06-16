@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ABC CINEOSIS · Mosaic Experiments</title>
+<style>
+:root{
+  --ink:#000;
+  --paper:#fff;
+  --bg:#f4f4f0;
+  --soft:#e7e5df;
+  --muted:#777;
+  --gold:#c8a800;
+  --green:#1a6b3a;
+  --red:#e60000;
+  --blue:#0033cc;
+  --bw:2px;
+  --font:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:Helvetica Neue,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+body{display:grid;grid-template-columns:370px 1fr;overflow:hidden}
+button,input,select{font:inherit;border-radius:0}
+a{color:inherit}
+#rail{border-right:3px solid var(--ink);background:var(--paper);height:100vh;display:flex;flex-direction:column;min-width:0}
+#brand{background:var(--ink);color:var(--paper);padding:18px 16px;border-bottom:3px solid var(--ink)}
+#brand h1{margin:0;font:900 25px/.92 var(--sans);letter-spacing:.02em;text-transform:uppercase}
+#brand p{margin:8px 0 0;font:800 10px/1.35 var(--font);color:#bdbdbd;text-transform:uppercase;letter-spacing:.06em}
+#controls{padding:12px;border-bottom:2px solid var(--ink);display:grid;gap:8px}
+#search,#type-filter{width:100%;height:34px;border:2px solid var(--ink);background:var(--paper);padding:0 9px;font:900 10px/1 var(--font);text-transform:uppercase}
+#stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat{border:1px solid var(--ink);padding:7px;background:var(--bg)}
+.stat b{display:block;font:900 15px/1 var(--font)}
+.stat span{display:block;margin-top:3px;font:900 7px/1 var(--font);text-transform:uppercase;color:var(--muted)}
+#list{flex:1;overflow:auto;padding:10px;display:grid;gap:8px;align-content:start}
+.card{border:2px solid var(--ink);background:var(--paper);display:grid;grid-template-columns:58px 1fr 18px;gap:9px;padding:8px;cursor:pointer;min-height:76px}
+.card:hover,.card.active{box-shadow:3px 3px 0 var(--ink);transform:translate(-1px,-1px)}
+.thumb{width:58px;height:58px;border:1px solid var(--ink);background:#f7f7f4;image-rendering:pixelated}
+.ctop{display:flex;align-items:baseline;gap:6px;min-width:0}
+.cid{font:900 10px/1 var(--font);text-transform:uppercase;color:var(--blue)}
+.ctype{font:900 7px/1 var(--font);text-transform:uppercase;color:var(--muted)}
+.ctitle{margin-top:5px;font:900 12px/1.1 var(--sans);text-transform:uppercase;letter-spacing:.02em}
+.cdesc{margin-top:5px;font:800 8px/1.35 var(--font);text-transform:uppercase;color:#666}
+.tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}
+.tag{font:900 7px/1 var(--font);text-transform:uppercase;border:1px solid #bbb;padding:2px 4px;background:#fafafa;color:#555}
+.chev{align-self:center;font:900 15px/1 var(--font);color:#aaa}
+#stage{height:100vh;display:grid;grid-template-rows:48px 1fr 152px;min-width:0}
+#topbar{display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--ink);color:var(--paper)}
+#active-title{font:900 12px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .spacer{flex:1}
+.topbtn{height:30px;border:1px solid #444;background:#111;color:var(--paper);padding:0 10px;font:900 8px/1 var(--font);text-transform:uppercase}
+#viewer{width:100%;height:100%;border:0;background:var(--paper)}
+#detail{border-top:3px solid var(--ink);display:grid;grid-template-columns:1.15fr 1fr 1fr;background:var(--paper);min-height:0}
+.panel{padding:12px;border-right:1px solid var(--soft);overflow:auto}
+.panel:last-child{border-right:0}
+.plabel{font:900 8px/1 var(--font);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.ptext{font:800 10px/1.55 var(--font)}
+.ptext code{font:900 10px/1 var(--font);background:var(--bg);border:1px solid #ccc;padding:1px 3px}
+#flow{display:grid;grid-template-columns:1fr 24px 1fr 24px 1fr;gap:6px;align-items:center}
+.flowbox{border:1px solid var(--ink);padding:8px;background:var(--bg);font:900 8px/1.3 var(--font);text-transform:uppercase;text-align:center;min-height:46px;display:flex;align-items:center;justify-content:center}
+.arrow{text-align:center;font:900 16px/1 var(--font)}
+@media(max-width:900px){
+  body{grid-template-columns:1fr;grid-template-rows:45vh 55vh}
+  #rail{height:45vh;border-right:0;border-bottom:3px solid var(--ink)}
+  #stage{height:55vh;grid-template-rows:42px 1fr}
+  #detail{display:none}
+}
+</style>
+</head>
+<body>
+<aside id="rail">
+  <div id="brand">
+    <h1>Mosaic Experiments</h1>
+    <p>ZORC, BEFLIX, Twine, territorialization, OpenAI compiler passes.</p>
+  </div>
+  <div id="controls">
+    <input id="search" placeholder="Search experiments">
+    <select id="type-filter">
+      <option value="all">All experiment types</option>
+      <option value="mosaic">Mosaic</option>
+      <option value="zorc">ZORC</option>
+      <option value="twine">Twine</option>
+      <option value="hybrid">Hybrid</option>
+      <option value="core">Core ABC</option>
+      <option value="level">Levels 3-45</option>
+    </select>
+    <div id="stats"></div>
+  </div>
+  <div id="list"></div>
+</aside>
+<main id="stage">
+  <div id="topbar">
+    <div id="active-title">Select an experiment</div>
+    <div class="spacer"></div>
+    <button class="topbtn" id="open-tab">Open Tab</button>
+    <button class="topbtn" id="reload">Reload</button>
+  </div>
+  <iframe id="viewer" title="Experiment preview"></iframe>
+  <section id="detail">
+    <div class="panel">
+      <div class="plabel">Experiment</div>
+      <div class="ptext" id="detail-main">Choose a module to inspect and launch it here.</div>
+    </div>
+    <div class="panel">
+      <div class="plabel">Integration Flow</div>
+      <div id="flow">
+        <div class="flowbox">Territories</div><div class="arrow">&gt;</div>
+        <div class="flowbox">BEFLIX code rooms</div><div class="arrow">&gt;</div>
+        <div class="flowbox">Branch exports</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plabel">Why It Exists</div>
+      <div class="ptext" id="detail-why">The index keeps experiments visible and prevents new hybrids from disappearing into the repo.</div>
+    </div>
+  </section>
+</main>
+<script>
+const baseExperiments=[
+  {id:'mosaic-index',type:'hybrid',title:'Mosaic Experiment Index',path:'mosaic-index.html',status:'new',lineage:'index',tags:['launcher','inventory','fusion'],desc:'Searchable launcher for the full mosaic and ZORC experiment family.',why:'This page prevents experiments from becoming invisible and gives each new fusion a stable entry point.'},
+  {id:'d-mosaic',type:'zorc',title:'D-Mosaic OpenAI ZORC Compiler',path:'d-mosaic.html',status:'new',lineage:'c-mosaic plus OpenAI',tags:['openai','responses-api','zorc','beflix'],desc:'C-Mosaic territorial ZORC engine fused with browser-side OpenAI Responses API compiler passes.',why:'This is the new generative pass: select a territory, ask OpenAI for a BEFLIX rewrite, validate it, and commit it as a linked code room.'},
+  {id:'c-mosaic',type:'zorc',title:'C-Mosaic ZORC Territorial Compiler',path:'c-mosaic.html',status:'active',lineage:'Bees on a Train',tags:['zorc','territories','edl','twine'],desc:'Current 1,758 territory Bees on a Train ZORC graph with frame branching and BEFLIX exports.',why:'This is the stabilized base: every ontology element becomes an executable BEFLIX territory.'},
+  {id:'d-mos',type:'mosaic',title:'D-MOS Mosaic ZORK',path:'d-mos.html',status:'legacy',lineage:'Voronoi Zork',tags:['voronoi','zork','operations'],desc:'Earlier Voronoi territory animation tool with operation rail and spatial fire mode.',why:'Kept as a source lineage for the newer C and D mosaic compilers.'},
+  {id:'c-twine-b',type:'twine',title:'C Twine Engine B',path:'c-twine-engine-b.html',status:'active',lineage:'Twine plus BEFLIX',tags:['twine','delaunay','beflix'],desc:'Merged Twine narrative and BEFLIX draw engine with territorial child graph behavior.',why:'This file proved that ontology records need to explode into locations, entities, relations, and states.'},
+  {id:'twine-bridge-b',type:'twine',title:'Twine Bridge B',path:'twine-bridge-b.html',status:'active',lineage:'Garden of Forking Paths',tags:['forking','repl','twee'],desc:'Narrative graph bridge with REPL commands, imports, exports, and map/path BEFLIX generation.',why:'This is the command palette and export ancestor for future ZORC shells.'},
+  {id:'cd-mos-02',type:'hybrid',title:'CD-MOS 02 Semiotics Mosaic',path:'cd-mos-02.html',status:'active',lineage:'C2 plus D-MOS',tags:['semiotics','mosaic'],desc:'Semiotics triad fused with mosaic territory operations.',why:'This tests whether analysis panels can live beside the spatial compiler.'},
+  {id:'cd-mos-03',type:'hybrid',title:'CD-MOS 03 Timeline Mosaic',path:'cd-mos-03.html',status:'active',lineage:'C3 plus D-MOS',tags:['timeline','mosaic'],desc:'Visual timeline shell fused with D-MOS operations and territories.',why:'This is the UI lineage for the left-side ABCD rail now used by C-Mosaic.'},
+  {id:'cd-mos-04',type:'hybrid',title:'CD-MOS 04 Branch Hybrid',path:'cd-mos-04.html',status:'active',lineage:'CD derivative',tags:['timeline','branching'],desc:'Later CD hybrid derivative for branch and timeline experiments.',why:'Kept in the family because it informs future frame-level compartmentalization.'},
+  {id:'rcc-mos',type:'hybrid',title:'RCC-MOS',path:'rcc-mos.html',status:'active',lineage:'research control composite',tags:['research','mosaic'],desc:'Research-control composite mosaic experiment.',why:'Useful for comparing research interfaces against direct ZORC play.'},
+  {id:'c3',type:'core',title:'C3 Visual Timeline',path:'c3.html',status:'active',lineage:'C track',tags:['timeline','draw'],desc:'Large visual timeline, drawing tools, and shot cards.',why:'C3 contributes the timeline ergonomics used by the mosaic descendants.'},
+  {id:'c2',type:'core',title:'C2 Semiotics Triad',path:'c2.html',status:'active',lineage:'C track',tags:['semiotics','analysis'],desc:'Attention-tax semiotic triad analyzer and BEFLIX alignment shell.',why:'C2 gives the theory panel logic for meaning, operative action, and prompt pressure.'},
+  {id:'c1',type:'core',title:'C1 Canvas Draw',path:'c1.html',status:'active',lineage:'C track',tags:['draw','timeline'],desc:'Baseline frame drawing and pixel timeline editor.',why:'The 128x96 canvas logic starts here.'},
+  {id:'b1',type:'core',title:'B1 Multi API Hardened',path:'b1.html',status:'active',lineage:'B track',tags:['api','models'],desc:'Early hardened multi-provider API shell.',why:'B1 informs the key/model management used by the OpenAI D-Mosaic panel.'},
+  {id:'b2',type:'core',title:'B2 Causal Navigator',path:'b2.html',status:'active',lineage:'B track',tags:['script','causal'],desc:'Build sheet with auto-save and causal status tooltips.',why:'B2 contributes persistence and script-state thinking.'},
+  {id:'a1',type:'core',title:'A1 Baseline Input',path:'a1.html',status:'active',lineage:'A track',tags:['input','premise'],desc:'Initial platform prototype for premise, prompt, and storyboard flow.',why:'A1 is the root ABC input layer.'},
+  {id:'a2',type:'core',title:'A2 Language Bridge',path:'a2.html',status:'filled',lineage:'A track',tags:['bridge','input'],desc:'Filled bridge for the former offline A2 slot.',why:'A2 keeps the input layer continuous instead of leaving a dead launcher slot.'},
+  {id:'a3',type:'core',title:'A3 Worldtext Bridge',path:'a3.html',status:'filled',lineage:'A track',tags:['worldtext','zorc'],desc:'Filled bridge from prose/worldtext into executable territory compilers.',why:'A3 marks the step where language starts becoming territory.'},
+  {id:'b3',type:'core',title:'B3 Compiler Bridge',path:'b3.html',status:'filled',lineage:'B track',tags:['compiler','validation'],desc:'Filled bridge for BEFLIX validation and branch compilation.',why:'B3 makes computation visible as a compiler route.'},
+  {id:'a4',type:'core',title:'A4 Narrative Graph Bridge',path:'a4.html',status:'filled',lineage:'A track',tags:['bees','twine'],desc:'Filled bridge into Bees on a Train and ZORC territories.',why:'A4 connects story input to the graph engines.'},
+  {id:'b4',type:'core',title:'B4 Export Bridge',path:'b4.html',status:'filled',lineage:'B track',tags:['edl','tweel','export'],desc:'Filled bridge from branch operations to portable exports.',why:'B4 makes save/export behavior a first-class level.'}
+];
+const levelTargets=['a1.html','b1.html','c1.html','b2.html','c2.html','c3.html','c-twine-engine-b.html','d-mos.html','c-mosaic.html','d-mosaic.html','mosaic-index.html','twine-bridge-b.html','cd-mos-02.html','cd-mos-03.html','cd-mos-04.html','rcc-mos.html'];
+const levelExperiments=Array.from({length:43},(_,i)=>{
+  const n=i+3,nn=String(n).padStart(2,'0'),target=levelTargets[i%levelTargets.length];
+  return {id:`level-${nn}`,type:'level',title:`Level ${nn}`,path:`level-${nn}.html`,status:'filled',lineage:'levels 3-45',tags:['level','runnable',target.replace('.html','')],desc:`Runnable level ${nn} bridge into ${target}.`,why:`Level ${nn} exists as an actual file so the 3-45 range is usable instead of implied.`};
+});
+const experiments=[...baseExperiments,...levelExperiments];
+let active=null;
+const list=document.getElementById('list');
+const viewer=document.getElementById('viewer');
+const title=document.getElementById('active-title');
+const search=document.getElementById('search');
+const typeFilter=document.getElementById('type-filter');
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function drawThumb(canvas,id,type){
+  const ctx=canvas.getContext('2d'),w=canvas.width=116,h=canvas.height=116;
+  ctx.fillStyle='#f8f8f4';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='#d0d0cc';ctx.lineWidth=1;for(let i=0;i<w;i+=8){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(w,i);ctx.stroke()}
+  let seed=hash(id+type);const rnd=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+  const color=type==='zorc'?'#1a6b3a':type==='twine'?'#0033cc':type==='hybrid'?'#c8a800':'#111';
+  ctx.fillStyle=color;ctx.strokeStyle='#000';ctx.lineWidth=4;
+  for(let i=0;i<7;i++){const x=8+rnd()*82,y=8+rnd()*82,ww=10+rnd()*28,hh=6+rnd()*24;ctx.globalAlpha=.18+rnd()*.38;ctx.fillRect(x,y,ww,hh);ctx.globalAlpha=.8;ctx.strokeRect(x,y,ww,hh)}
+  ctx.globalAlpha=1;ctx.beginPath();ctx.moveTo(8+rnd()*100,8+rnd()*100);for(let i=0;i<6;i++)ctx.lineTo(8+rnd()*100,8+rnd()*100);ctx.strokeStyle=color;ctx.lineWidth=5;ctx.stroke();
+}
+function renderStats(items){
+  const counts={all:experiments.length,new:experiments.filter(x=>x.status==='new').length,shown:items.length};
+  document.getElementById('stats').innerHTML=[
+    ['All',counts.all],['New',counts.new],['Shown',counts.shown]
+  ].map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+}
+function filtered(){
+  const q=search.value.trim().toLowerCase(),t=typeFilter.value;
+  return experiments.filter(e=>(t==='all'||e.type===t)&&(!q||[e.id,e.title,e.desc,e.tags.join(' '),e.lineage].join(' ').toLowerCase().includes(q)));
+}
+function render(){
+  const items=filtered();renderStats(items);
+  list.innerHTML=items.map(e=>`
+    <article class="card ${active?.id===e.id?'active':''}" data-id="${e.id}">
+      <canvas class="thumb"></canvas>
+      <div>
+        <div class="ctop"><span class="cid">${e.id}</span><span class="ctype">${e.type} / ${e.status}</span></div>
+        <div class="ctitle">${e.title}</div>
+        <div class="cdesc">${e.desc}</div>
+        <div class="tags">${e.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+      <div class="chev">&gt;</div>
+    </article>`).join('');
+  [...list.querySelectorAll('.card')].forEach(card=>{
+    const e=experiments.find(x=>x.id===card.dataset.id);
+    drawThumb(card.querySelector('canvas'),e.id,e.type);
+    card.addEventListener('click',()=>selectExperiment(e.id));
+  });
+}
+function selectExperiment(id){
+  active=experiments.find(e=>e.id===id)||experiments[0];
+  title.textContent=`${active.id} / ${active.title}`;
+  viewer.src=active.path;
+  location.hash=active.id;
+  document.getElementById('detail-main').innerHTML=`<code>${active.path}</code><br><br>${active.desc}<br><br>Status: <code>${active.status}</code><br>Lineage: <code>${active.lineage}</code>`;
+  document.getElementById('detail-why').textContent=active.why;
+  render();
+}
+document.getElementById('open-tab').addEventListener('click',()=>{if(active)window.open(active.path,'_blank','noopener')});
+document.getElementById('reload').addEventListener('click',()=>{if(active)viewer.src=active.path});
+search.addEventListener('input',render);
+typeFilter.addEventListener('change',render);
+render();
+selectExperiment((location.hash||'').slice(1)||'d-mosaic');
+</script>
+</body>
+</html>

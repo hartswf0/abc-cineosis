@@ -1,0 +1,3176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>CINEOSIS RCC-MOS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23000%22/><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%228%22 stroke-dasharray=%2210 10%22/><circle cx=%2250%22 cy=%2250%22 r=%2210%22 fill=%22%23fff%22/></svg>">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-delaunay@6"></script>
+<style>
+/* ─────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────── */
+:root {
+  --bg: #f4f4f0;
+  --ink: #000000;
+  --paper: #ffffff;
+  --soft: #ebebeb;
+  --a: #0033cc;
+  --b: #c8a800;
+  --c: #e60000;
+  --g: #1a6b3a;
+  --bw: 2px;
+  --bw3: 3px;
+  --sh: 4px 4px 0 #000;
+  --sh-sm: 2px 2px 0 #000;
+  --font: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --tap: 48px;
+  --sb-h: 52px;
+  --tab-h: 54px;
+  --tl-h: 78px;
+  --or-h: 58px;
+  --nav-w: 50px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; position:fixed; inset:0; background:var(--bg); color:var(--ink); font-family:var(--sans); }
+button, input, textarea, select { font:inherit; -webkit-appearance:none; appearance:none; border-radius:0; }
+button { cursor:pointer; touch-action:manipulation; }
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-thumb { background:var(--ink); }
+
+/* ─── SHELL ─── */
+#shell { display:grid; grid-template-rows:var(--sb-h) var(--or-h) 1fr var(--tl-h); width:100%; height:100dvh; overflow:hidden; padding-bottom:var(--safe-b); }
+
+/* ─── STATUS BAR ─── */
+#sb { grid-row:1; display:flex; align-items:stretch; background:var(--ink); color:var(--paper); border-bottom:2px solid #1a1a1a; z-index:60; overflow:hidden; }
+.sb-cell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:0 9px; border-right:1px solid #222; flex-shrink:0; min-width:46px; }
+.sb-lbl { font:900 6px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:#666; }
+.sb-val { font:900 13px/1 var(--font); color:var(--paper); font-variant-numeric:tabular-nums; }
+.sb-btn { flex-shrink:0; align-self:stretch; min-width:46px; padding:0 9px; background:#1a1a1a; border:0; border-left:1px solid #222; color:var(--paper); font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s; }
+.sb-btn:active { background:#444; }
+
+/* Film reel */
+.reel-svg { width:22px; height:22px; }
+@keyframes reelSpin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+.reel-svg.spinning .reel-rotor { animation:reelSpin 1s linear infinite; transform-origin:center center; }
+
+/* Stage rail */
+#stage-rail { display:flex; align-items:center; gap:0; flex:1; min-width:0; overflow-x:auto; scrollbar-width:none; border-right:1px solid #222; padding:0 4px; }
+#stage-rail::-webkit-scrollbar { display:none; }
+.stage-pip { font:900 6px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; color:#444; padding:4px 6px; white-space:nowrap; cursor:pointer; transition:color .12s,background .12s; border-left:2px solid transparent; }
+.stage-pip.active { color:var(--paper); border-left-color:var(--b); }
+.stage-pip::before { content:''; display:inline-block; width:4px; height:4px; border-radius:50%; margin-right:4px; background:currentColor; opacity:.4; }
+.stage-pip.done::before { opacity:1; background:var(--g); }
+.stage-pip.active::before { opacity:1; background:var(--b); }
+
+/* FPS control */
+.fps-wrap { display:flex; align-items:center; gap:2px; }
+.fps-btn { border:0; background:transparent; color:#666; font:900 12px/1 var(--font); padding:0 3px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.fps-btn:active { color:#fff; }
+
+#key-btn { flex-shrink:0; align-self:stretch; min-width:48px; padding:0 9px; background:transparent; border:0; border-left:1px solid #222; color:var(--paper); font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s; }
+#key-btn:active { background:#444; }
+
+#play-btn { flex-shrink:0; width:60px; align-self:stretch; background:var(--c); border:0; border-left:2px solid #800; color:var(--paper); font:900 10px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; display:flex; align-items:center; justify-content:center; gap:4px; transition:background .1s; }
+#play-btn.playing { background:#1a1a1a; border-left-color:#333; }
+
+/* ─── OPERATOR RAIL ─── */
+#oprail { grid-row:2; background:var(--bg); border-bottom:var(--bw3) solid var(--ink); display:flex; flex-direction:row; align-items:center; gap:6px; padding:0 8px; overflow:hidden; z-index:40; }
+#or-strip { flex:1; display:flex; gap:4px; padding:6px 0; overflow-x:auto; align-items:center; scrollbar-width:none; overscroll-behavior-x:contain; min-width:0; }
+#or-strip::-webkit-scrollbar { display:none; }
+.or-op { position:relative; flex:0 0 auto; height:44px; min-width:56px; padding:0 10px; border:var(--bw3) solid var(--ink); background:var(--paper); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; user-select:none; transition:transform .05s,box-shadow .05s; box-shadow:var(--sh-sm); }
+.or-op:active { transform:translate(2px,2px); box-shadow:none; }
+.or-op.cur { box-shadow:none; transform:translate(2px,2px); }
+.or-op .or-lbl { font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.04em; }
+.or-op .or-tag { font:700 6px/1 var(--font); text-transform:uppercase; letter-spacing:.05em; opacity:.7; }
+#or-fire { flex-shrink:0; height:44px; min-width:72px; border:var(--bw3) solid #800; background:var(--c); color:var(--paper); font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; display:flex; align-items:center; justify-content:center; gap:5px; padding:0 12px; cursor:pointer; box-shadow:var(--sh-sm); transition:background .12s,box-shadow .12s; }
+#or-fire:active { transform:translate(2px,2px); box-shadow:none; }
+#or-fire .fire-dot { width:8px; height:8px; border-radius:50%; background:var(--paper); opacity:.55; }
+#or-fire.armed { background:var(--g); border-color:#0a3; animation:firePulse 1.1s ease-in-out infinite; }
+#or-fire.armed .fire-dot { background:#aff5c5; opacity:1; }
+@keyframes firePulse { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.35); } }
+
+/* ─── CANVAS ZONE ─── */
+#cz { grid-row:3; position:relative; overflow:hidden; background:#e0deda; }
+#cvs { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; }
+#cz.armed { box-shadow:inset 0 0 0 3px var(--g); }
+#cz.armed #cvs { cursor:crosshair; }
+
+/* Draw toolbar */
+#draw-tb { position:absolute; top:6px; left:50%; transform:translateX(-50%); z-index:30; display:none; align-items:center; gap:6px; background:rgba(0,0,0,.92); border:1.5px solid #555; padding:4px 8px; max-width:calc(100vw - 56px); overflow-x:auto; overflow-y:hidden; scrollbar-width:none; flex-wrap:nowrap; }
+#draw-tb::-webkit-scrollbar { display:none; }
+#draw-tb.on { display:flex; }
+.dt-btn { height:26px; min-width:36px; border:1.5px solid #555; background:transparent; color:var(--paper); font:900 8px/1 var(--font); text-transform:uppercase; padding:0 7px; transition:background .1s,border-color .1s; flex-shrink:0; }
+.dt-btn.on { background:var(--paper); color:var(--ink); border-color:var(--paper); }
+.dt-sep { width:1px; height:20px; background:#444; flex-shrink:0; }
+#dt-sw { display:flex; align-items:center; gap:3px; flex-shrink:0; }
+.dt-swatch { width:18px; height:18px; border:2px solid #555; cursor:pointer; flex-shrink:0; transition:border-color .1s,box-shadow .1s; }
+.dt-swatch.on { border-color:var(--paper); box-shadow:0 0 0 1.5px var(--paper); }
+#brush-sz { -webkit-appearance:none; appearance:none; background:#333; border:1px solid #555 !important; height:6px !important; border-radius:0; outline:0; }
+#brush-sz::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; background:var(--paper); border:1.5px solid #000; cursor:pointer; }
+#brush-sz::-moz-range-thumb { width:14px; height:14px; background:var(--paper); border:1.5px solid #000; border-radius:0; cursor:pointer; }
+
+/* Zoom */
+#zoom-ctl { position:absolute; bottom:6px; left:6px; z-index:30; display:flex; flex-direction:row; gap:0; opacity:.82; border:1.5px solid #555; background:rgba(0,0,0,.88); }
+#zoom-ctl button { width:30px; height:26px; border:0; border-right:1px solid #555; background:transparent; color:var(--paper); font:900 12px/1 var(--font); display:grid; place-items:center; cursor:pointer; transition:background .1s; }
+#zoom-ctl button:last-child { border-right:0; }
+#zoom-ctl button:active { background:#444; }
+
+#aim-msg { position:absolute; top:50px; left:50%; transform:translateX(-50%); z-index:35; background:rgba(0,0,0,.88); border:2px solid var(--b); padding:7px 16px; font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; color:var(--b); display:none; }
+#aim-msg.on { display:block; }
+
+#llm-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.85); z-index:50; display:none; flex-direction:column; align-items:center; justify-content:center; color:var(--b); font:900 14px/1 var(--font); text-transform:uppercase; letter-spacing:.15em; backdrop-filter:blur(4px); }
+#llm-overlay.on { display:flex; }
+.spinner { width:40px; height:40px; border:4px solid rgba(200,168,0,0.2); border-top-color:var(--b); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
+@keyframes spin { 100% { transform:rotate(360deg); } }
+
+/* ─── TIMELINE ─── */
+#tl { grid-row:4; background:var(--bg); border-top:var(--bw3) solid var(--ink); display:flex; flex-direction:column; overflow:hidden; z-index:40; }
+#tlc { display:flex; align-items:center; gap:5px; padding:4px 8px; border-bottom:2px solid var(--ink); flex-shrink:0; overflow-x:auto; scrollbar-width:none; }
+.tl-btn { background:var(--paper); color:var(--ink); border:var(--bw) solid var(--ink); padding:4px 8px; font:900 8px/1 var(--font); text-transform:uppercase; box-shadow:var(--sh-sm); flex-shrink:0; min-height:26px; transition:transform .05s,box-shadow .05s; }
+.tl-btn:active { transform:translate(2px,2px); box-shadow:none; }
+.tl-div { width:1px; height:16px; background:var(--ink); flex-shrink:0; }
+#tl-info { margin-left:auto; font:900 7px/1 var(--font); color:#888; text-transform:uppercase; letter-spacing:.07em; white-space:nowrap; }
+#tl-strip { flex:1; display:flex; gap:4px; padding:5px 8px; overflow-x:auto; align-items:center; scrollbar-width:none; overscroll-behavior-x:contain; }
+.tl-frame { position:relative; flex:0 0 58px; height:36px; border:var(--bw3) solid var(--ink); background:#1a1a1a; cursor:pointer; display:flex; align-items:center; justify-content:center; user-select:none; }
+.tl-frame.cur { border-left:4px solid var(--c); }
+.tl-frame canvas { width:100%; height:100%; image-rendering:pixelated; position:absolute; inset:0; opacity:.6; }
+.tl-num { position:relative; z-index:2; color:var(--paper); font:900 9px/1 var(--font); text-shadow:1px 1px 0 var(--ink); pointer-events:none; }
+
+/* ─── TABS (mobile: inside status bar) ─── */
+#tabs { display:flex; align-self:stretch; flex:1; min-width:0; border-right:1px solid #222; }
+.tab { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; background:transparent; color:#888; border:0; border-right:1px solid #222; transition:background .12s,color .12s; cursor:pointer; }
+.tab:last-child { border-right:0; }
+.tab.on-a { background:var(--a); color:var(--paper); }
+.tab.on-b { background:var(--b); color:var(--ink); }
+.tab.on-c { background:var(--g); color:var(--paper); }
+.tab.on-d { background:#6a1b9a; color:var(--paper); }
+
+/* ─── SHEET SYSTEM ─── */
+#backdrop { position:fixed; inset:0; background:rgba(0,0,0,0); pointer-events:none; z-index:70; transition:background .22s; }
+#backdrop.on { background:rgba(0,0,0,.32); pointer-events:all; }
+.sheet { position:fixed; left:0; right:0; bottom:calc(var(--safe-b) + var(--tl-h)); top:auto; max-height:64vh; min-height:38vh; background:var(--paper); border:var(--bw3) solid var(--ink); border-bottom:0; z-index:80; display:flex; flex-direction:column; transform:translateY(calc(100% + 160px)); transition:transform .28s,visibility 0s .28s; visibility:hidden; overflow:hidden; box-shadow:0 -6px 0 rgba(0,0,0,.18); }
+.sheet.on { transform:translateY(0); visibility:visible; transition:transform .28s,visibility 0s 0s; }
+.sh-hd { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:9px 14px 8px; border-bottom:var(--bw3) solid var(--ink); background:var(--soft); position:relative; }
+.sh-hd::before { content:''; position:absolute; top:4px; left:50%; transform:translateX(-50%); width:42px; height:4px; background:#bbb; border-radius:2px; }
+.sh-title { font:900 10px/1 var(--font); text-transform:uppercase; letter-spacing:.12em; }
+.sh-x { background:none; border:0; font-size:20px; font-weight:900; cursor:pointer; padding:0; color:var(--ink); line-height:1; }
+.sh-body { overflow-y:auto; flex:1; padding:12px; display:flex; flex-direction:column; gap:10px; overscroll-behavior:contain; }
+
+/* Sheet inner tabs */
+.sh-tabs { display:flex; border-bottom:var(--bw) solid var(--ink); flex-shrink:0; }
+.sh-tab { flex:1; padding:8px 4px; border:0; background:var(--soft); color:#888; font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; cursor:pointer; text-align:center; border-right:1px solid var(--ink); transition:background .12s,color .12s; }
+.sh-tab:last-child { border-right:0; }
+.sh-tab.on { background:var(--paper); color:var(--ink); }
+
+/* ─── BUTTONS ─── */
+.btn { display:flex; align-items:center; justify-content:center; min-height:var(--tap); border:var(--bw3) solid var(--ink); background:var(--paper); color:var(--ink); padding:9px 12px; font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; box-shadow:var(--sh-sm); width:100%; flex-shrink:0; transition:transform .06s,box-shadow .06s; }
+.btn:active { transform:translate(2px,2px); box-shadow:none; }
+.btn.a { background:var(--a); color:var(--paper); border-color:var(--a); }
+.btn.b { background:var(--b); color:var(--ink); border-color:var(--b); }
+.btn.d { background:#6a1b9a; color:var(--paper); border-color:#6a1b9a; }
+.btn.pri { background:var(--g); color:var(--paper); border-color:var(--g); }
+.btn.c { background:var(--c); color:var(--paper); border-color:var(--c); }
+.btn.sm { min-height:36px; font-size:8px; }
+.btn-row { display:flex; gap:7px; }
+.btn-row .btn { flex:1; }
+.lbl { font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:#666; margin-bottom:3px; }
+.sep-lbl { font:900 7px/1 var(--font); text-transform:uppercase; letter-spacing:.12em; color:#999; padding:8px 0 4px; border-top:var(--bw) solid var(--soft); margin-top:4px; }
+.mk-hint { font:600 9px/1.4 var(--sans); color:#777; }
+.mk-sep { height:var(--bw); background:var(--ink); margin:4px 0; }
+.mk-field { display:flex; flex-direction:column; gap:4px; }
+.mk-fl { font:900 7px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:#666; }
+.sel-input, .inp { border:var(--bw) solid var(--ink); background:var(--paper); color:var(--ink); font:900 9px/1 var(--font); padding:9px; min-height:var(--tap); text-transform:uppercase; outline:0; }
+.ta { border:var(--bw) solid var(--ink); background:var(--paper); color:var(--ink); font:600 12px/1.4 var(--sans); padding:9px; resize:vertical; min-height:60px; outline:0; }
+
+/* ─── CELL LIST ─── */
+#cell-list { display:flex; flex-direction:column; gap:6px; }
+.tc { border:var(--bw) solid var(--ink); background:var(--paper); cursor:pointer; box-shadow:var(--sh-sm); transition:transform .05s,box-shadow .05s; }
+.tc:active { transform:translate(2px,2px); box-shadow:none; }
+.tc.sel { border-color:var(--a); box-shadow:0 0 0 2px var(--a); }
+.tc-hd { display:flex; align-items:center; gap:8px; padding:9px 11px; }
+.tc-n { flex-shrink:0; width:22px; height:22px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font:900 9px/1 var(--font); }
+.tc.sel .tc-n { background:var(--a); }
+.tc-name { flex:1; font:900 10px/1.2 var(--font); text-transform:uppercase; letter-spacing:.04em; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; }
+.tc-frames { flex-shrink:0; font:900 8px/1 var(--font); color:#999; }
+
+/* ─── CHAT ─── */
+#chat-log { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; overscroll-behavior:contain; }
+.chat-msg { max-width:88%; padding:8px 11px; border:var(--bw) solid var(--ink); font:600 11px/1.45 var(--sans); white-space:pre-wrap; word-break:break-word; }
+.chat-msg.user { align-self:flex-end; background:var(--g); color:var(--paper); border-color:var(--g); }
+.chat-msg.bot { align-self:flex-start; background:var(--paper); color:var(--ink); box-shadow:var(--sh-sm); }
+.chat-msg.sys { align-self:center; background:transparent; border:0; color:#888; font:900 7px/1.4 var(--font); text-transform:uppercase; letter-spacing:.1em; text-align:center; }
+.chat-msg.thinking { color:#888; font-style:italic; }
+.chat-code { margin:6px 0 2px; border:var(--bw) solid var(--ink); background:#111; }
+.chat-code pre { margin:0; padding:9px 10px; font:11px/1.5 var(--font); color:#e0e0e0; white-space:pre-wrap; word-break:break-word; overflow-x:auto; }
+.chat-apply { display:block; width:100%; border:0; border-top:var(--bw) solid var(--ink); background:var(--g); color:var(--paper); font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; padding:8px; cursor:pointer; }
+.chat-apply:disabled { background:#444; cursor:default; }
+.chat-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+.chat-chip { border:var(--bw) solid var(--ink); background:var(--paper); color:var(--ink); font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.04em; padding:7px 9px; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .05s,box-shadow .05s; }
+.chat-chip:active { transform:translate(2px,2px); box-shadow:none; }
+#chat-input-row { flex-shrink:0; display:flex; gap:6px; padding:8px; border-top:var(--bw3) solid var(--ink); background:var(--soft); }
+#chat-input { flex:1; resize:none; max-height:96px; padding:9px; border:var(--bw) solid var(--ink); font:600 12px/1.4 var(--sans); background:var(--paper); color:var(--ink); outline:0; }
+#chat-send { flex-shrink:0; align-self:stretch; min-width:58px; border:var(--bw) solid var(--g); background:var(--g); color:var(--paper); font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; cursor:pointer; box-shadow:var(--sh-sm); transition:transform .05s,box-shadow .05s; }
+#chat-send:active { transform:translate(2px,2px); box-shadow:none; }
+#chat-send:disabled { opacity:.5; cursor:default; }
+
+/* ─── INLINE EDITOR ─── */
+#b-code { flex:1; resize:none; padding:10px; margin:0; font:11px/1.6 var(--font); background:var(--ink); color:#e0e0e0; border:var(--bw3) solid var(--ink); outline:0; overflow-y:auto; min-height:160px; }
+
+/* ─── OPERATIONS GRID ─── */
+.op-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+.op-card { padding:6px 8px; border:var(--bw) solid var(--ink); cursor:pointer; font:900 8px/1.3 var(--font); text-transform:uppercase; letter-spacing:.04em; transition:background .08s,color .08s; }
+.op-card.on { background:var(--ink); color:var(--paper); }
+.op-verb { font:500 7px/1 var(--font); color:#999; text-transform:none; letter-spacing:0; margin-top:2px; }
+
+/* ─── BEFLIX CODE MODAL ─── */
+#bfx-modal { position:fixed; inset:0; background:var(--ink); z-index:300; display:none; flex-direction:column; }
+#bfx-modal.on { display:flex; }
+#bfx-hd { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:2px solid #222; flex-shrink:0; background:var(--ink); }
+#bfx-title { font:900 11px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:var(--paper); flex:1; }
+.bfx-btn { padding:6px 12px; border:1.5px solid #444; background:transparent; color:var(--paper); font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.06em; cursor:pointer; transition:background .1s,border-color .1s; }
+.bfx-btn:hover { border-color:var(--paper); }
+.bfx-btn.run { background:var(--g); border-color:var(--g); }
+.bfx-btn.regen { background:var(--b); border-color:var(--b); color:var(--ink); }
+.bfx-btn.close { color:#666; }
+#bfx-split { flex:1; display:flex; overflow:hidden; min-height:0; }
+#bfx-code-pane { flex:1; display:flex; flex-direction:column; min-width:0; border-right:2px solid #222; }
+#bfx-editor { flex:1; resize:none; padding:14px; margin:0; font:12px/1.7 var(--font); background:#111; color:#e0e0e0; border:0; outline:0; overflow-y:auto; min-width:0; }
+#bfx-preview-pane { width:360px; flex-shrink:0; display:flex; flex-direction:column; background:#0a0a0a; overflow:hidden; }
+#bfx-prev-hd { display:flex; align-items:center; gap:6px; padding:8px 10px; border-bottom:1px solid #222; flex-shrink:0; }
+#bfx-prev-hd span { font:900 7px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; color:#555; }
+#bfx-prev-frame { font:900 10px/1 var(--font); color:var(--paper); font-variant-numeric:tabular-nums; margin-left:auto; }
+.bfx-fb { width:24px; height:24px; background:#1a1a1a; border:1px solid #333; color:var(--paper); font:900 10px/1 var(--font); display:grid; place-items:center; cursor:pointer; transition:background .08s; }
+.bfx-fb:active { background:#444; }
+.bfx-fb.play-f { background:var(--c); border-color:var(--c); }
+.bfx-fb.play-f.on { background:#1a1a1a; border-color:#333; }
+#bfx-cvs-wrap { flex:1; display:flex; align-items:center; justify-content:center; padding:10px; overflow:hidden; background:#080808; }
+#bfx-cvs { image-rendering:pixelated; border:2px solid #333; background:#fff; max-width:100%; max-height:100%; }
+#bfx-prev-strip { display:flex; gap:3px; padding:6px 8px; overflow-x:auto; border-top:1px solid #222; flex-shrink:0; scrollbar-width:none; }
+.bfx-pf { flex:0 0 40px; height:28px; border:2px solid #333; cursor:pointer; background:#111; display:flex; align-items:center; justify-content:center; transition:border-color .1s; }
+.bfx-pf.cur { border-color:var(--c); }
+.bfx-pf canvas { width:100%; height:100%; image-rendering:pixelated; }
+#bfx-foot { display:flex; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid #222; flex-shrink:0; background:#0a0a0a; }
+#bfx-ref { display:none; padding:10px 14px; font:11px/1.6 var(--font); color:#888; white-space:pre-wrap; border-top:1px solid #222; background:#0a0a0a; flex-shrink:0; max-height:120px; overflow-y:auto; }
+#bfx-ref.on { display:block; }
+
+/* ─── CONTEXT MENU ─── */
+#ctx { position:fixed; z-index:999; background:var(--paper); border:var(--bw3) solid var(--ink); box-shadow:var(--sh); padding:0; min-width:200px; display:none; }
+#ctx.on { display:block; }
+.ctx-hd { padding:7px 12px; border-bottom:var(--bw) solid var(--ink); background:var(--soft); font:900 8px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:var(--ink); }
+.ctx-item { display:flex; align-items:center; gap:8px; padding:7px 12px; background:transparent; border:0; width:100%; text-align:left; font:900 9px/1 var(--font); text-transform:uppercase; letter-spacing:.04em; color:var(--ink); transition:background .08s; border-bottom:1px solid var(--soft); }
+.ctx-item:hover { background:var(--ink); color:var(--paper); }
+.ctx-item.danger { color:var(--c); }
+.ctx-item.danger:hover { background:var(--c); color:var(--paper); }
+.ctx-sep { height:var(--bw); background:var(--ink); }
+
+/* ─── EXPORT MENU ─── */
+#export-menu { position:fixed; top:calc(var(--sb-h)+2px); right:4px; z-index:999; background:var(--paper); border:var(--bw3) solid var(--ink); box-shadow:var(--sh); min-width:230px; display:none; }
+#export-menu.on { display:block; }
+
+/* ─── API KEY MODAL ─── */
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:500; display:none; align-items:flex-start; justify-content:center; padding:40px 12px; }
+.modal.on { display:flex; }
+.modal-box { background:var(--paper); padding:16px; max-width:420px; width:100%; border:var(--bw3) solid var(--ink); box-shadow:var(--sh); }
+.modal-box h3 { font:900 12px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; }
+.key-box { padding:8px 0; border-bottom:1px solid var(--soft); }
+.key-box.active-key-required { background:rgba(0,100,0,.05); border-left:3px solid var(--g); padding-left:8px; }
+
+/* ─── TOAST ─── */
+#toast { position:fixed; top:calc(var(--sb-h)+8px); left:50%; transform:translateX(-50%); background:var(--paper); color:var(--ink); font:900 10px/1 var(--font); padding:9px 16px; opacity:0; pointer-events:none; z-index:9999; text-transform:uppercase; letter-spacing:.1em; border:var(--bw3) solid var(--ink); box-shadow:var(--sh); white-space:nowrap; transition:opacity .14s,transform .14s; }
+#toast.on { opacity:1; }
+#toast.err { background:var(--c); color:var(--paper); border-color:var(--c); }
+
+/* ─── ZORC COMMAND DOCK ─── */
+#zorc-panel {
+  position:absolute;left:8px;right:8px;bottom:46px;z-index:32;
+  width:auto;height:38px;max-height:none;
+  display:flex;align-items:stretch;overflow:hidden;
+  background:rgba(255,255,255,.96);border:var(--bw3) solid var(--ink);box-shadow:var(--sh-sm);
+}
+#zorc-panel.min { height:26px; }
+#zorc-panel.min #zorc-body { display:none; }
+#zorc-hd {
+  width:128px;flex:0 0 128px;display:flex;align-items:center;gap:8px;padding:0 9px;
+  background:var(--ink);color:var(--paper);border-right:var(--bw) solid var(--ink);
+}
+#zorc-brand { font:900 10px/1 var(--font);letter-spacing:.12em;text-transform:uppercase; }
+#zorc-count { font:900 7px/1 var(--font);letter-spacing:.06em;color:#888;margin-left:auto; }
+#zorc-min {
+  border:0;background:transparent;color:var(--paper);font:900 12px/1 var(--font);
+  cursor:pointer;margin-left:4px;padding:0;
+}
+#zorc-body {
+  flex:1;display:grid;grid-template-columns:minmax(150px,220px) minmax(160px,1fr) minmax(220px,36%);
+  grid-template-rows:1fr;min-height:0;
+}
+#zorc-room {
+  grid-column:1;grid-row:1;padding:11px 10px 0;font:900 10px/1 var(--font);
+  text-transform:uppercase;letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--soft);
+}
+#zorc-desc { display:none; }
+#zorc-objects { display:none; }
+.zorc-chip {
+  border:1px solid var(--ink);padding:3px 5px;background:var(--paper);cursor:pointer;
+  font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.04em;
+}
+#zorc-log {
+  grid-column:2;grid-row:1;padding:10px 9px 0;min-height:0;max-height:none;overflow:hidden;
+  font:600 10px/1.45 var(--font);color:#222;background:#fafafa;
+  border:0;white-space:nowrap;text-overflow:ellipsis;
+}
+.zorc-line { display:none;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.zorc-line:last-child { display:block; }
+.zorc-line.cmd { color:var(--a);font-weight:900;text-transform:uppercase; }
+#zorc-cmd-row { grid-column:3;grid-row:1;display:flex;border-left:var(--bw) solid var(--ink); }
+#zorc-cmd {
+  flex:1;min-width:0;border:0;padding:0 10px;background:var(--paper);color:var(--ink);
+  font:900 10px/1 var(--font);text-transform:uppercase;outline:0;
+}
+#zorc-run {
+  flex:0 0 64px;border:0;border-left:var(--bw) solid var(--ink);background:var(--b);color:var(--ink);
+  font:900 9px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+}
+#zorc-hints { display:none; }
+@media (max-width:767px) {
+  #zorc-panel { left:6px;right:6px;bottom:42px;height:72px;display:grid;grid-template-columns:72px 1fr;grid-template-rows:34px 34px; }
+  #zorc-hd { grid-column:1;grid-row:1 / span 2;width:auto;display:flex;border-right:var(--bw) solid var(--ink); }
+  #zorc-body { grid-column:2;grid-row:1 / span 2;display:grid;grid-template-columns:1fr;grid-template-rows:34px 34px; }
+  #zorc-room { grid-column:1;grid-row:1;border-right:0;border-bottom:1px solid var(--soft);padding:11px 9px 0; }
+  #zorc-log { display:none; }
+  #zorc-cmd-row { grid-column:1;grid-row:2;border-left:0; }
+}
+
+/* ─── DESKTOP OVERRIDES ─── */
+@media (min-width:768px) {
+  #shell { grid-template-rows:var(--sb-h) var(--or-h) 1fr var(--tl-h); margin-left:var(--nav-w); width:calc(100% - var(--nav-w)); }
+  #tabs { display:none; }
+  .sheet { left:var(--nav-w); right:auto; bottom:var(--tl-h); top:var(--sb-h); max-height:none; width:360px; border-top:0; border-left:0; border-bottom:0; border-right:var(--bw3) solid var(--ink); transform:translateX(-100%) !important; box-shadow:none; }
+  .sheet.on { transform:translateX(0) !important; visibility:visible; }
+  .sh-hd::before { display:none; }
+  #backdrop.on { background:transparent; pointer-events:none; }
+  #side-nav { display:flex; position:fixed; left:0; top:0; bottom:0; width:var(--nav-w); background:var(--paper); border-right:var(--bw3) solid var(--ink); flex-direction:column; z-index:90; }
+  .snav { width:100%; flex:1; border:0; border-bottom:var(--bw) solid var(--ink); background:var(--paper); font:900 8px/1.2 var(--font); text-transform:uppercase; letter-spacing:.08em; cursor:pointer; color:#999; display:flex; align-items:center; justify-content:center; text-align:center; padding:4px; transition:background .12s,color .12s; }
+  .snav.on-a { background:var(--a); color:var(--paper); }
+  .snav.on-b { background:var(--b); color:var(--ink); }
+  .snav.on-c { background:var(--g); color:var(--paper); }
+  .snav.on-d { background:#6a1b9a; color:var(--paper); }
+  #bfx-preview-pane { width:360px; }
+}
+@media (max-width:767px) {
+  #side-nav { display:none; }
+  #bfx-preview-pane { display:none; }
+}
+/* ─── DECISION POINT MODAL ─── */
+#dp-modal { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:500; display:none; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(6px); }
+#dp-modal.on { display:flex; }
+#dp-box { background:var(--paper); border:var(--bw3) solid var(--ink); box-shadow:var(--sh); max-width:520px; width:100%; max-height:85dvh; overflow-y:auto; }
+#dp-hd { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:var(--bw3) solid var(--ink); background:var(--soft); }
+#dp-hd .dp-tag { font:900 7px/1 var(--font); text-transform:uppercase; letter-spacing:.12em; padding:3px 6px; border:1.5px solid var(--c); color:var(--c); }
+#dp-hd .dp-title { font:900 11px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; flex:1; }
+#dp-hd .dp-cell-name { font:900 9px/1 var(--font); color:#888; text-transform:uppercase; letter-spacing:.06em; }
+#dp-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+.dp-trigger { font:600 10px/1.4 var(--sans); color:#666; padding:8px 10px; border:1px solid var(--soft); background:#fafafa; }
+.dp-trigger b { color:var(--c); }
+.dp-paths { display:flex; flex-direction:column; gap:8px; }
+.dp-path { border:var(--bw) solid var(--ink); background:var(--paper); cursor:pointer; transition:transform .06s,box-shadow .06s,border-color .12s; box-shadow:var(--sh-sm); }
+.dp-path:hover { border-color:var(--a); }
+.dp-path:active { transform:translate(2px,2px); box-shadow:none; }
+.dp-path.sel { border-color:var(--a); box-shadow:0 0 0 2px var(--a); }
+.dp-path-hd { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--soft); }
+.dp-path-n { width:22px; height:22px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font:900 9px/1 var(--font); flex-shrink:0; }
+.dp-path-name { font:900 10px/1.2 var(--font); text-transform:uppercase; letter-spacing:.04em; flex:1; }
+.dp-path-desc { padding:8px 12px; font:600 10px/1.45 var(--sans); color:#555; }
+#dp-foot { display:flex; gap:8px; padding:12px 16px; border-top:var(--bw3) solid var(--ink); }
+#dp-foot .btn { flex:1; }
+.dp-loading { text-align:center; padding:20px; font:900 10px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:#888; }
+.dp-loading .spinner { margin:0 auto 12px; }
+/* ─── EVENT LOG ─── */
+.evt-entry { display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid var(--soft); }
+.evt-badge { flex-shrink:0; font:900 6px/1 var(--font); text-transform:uppercase; letter-spacing:.08em; padding:3px 5px; border:1px solid; white-space:nowrap; }
+.evt-badge.sys { color:#888; border-color:#ccc; }
+.evt-badge.fork { color:hsl(320,68%,45%); border-color:hsl(320,68%,75%); }
+.evt-badge.corrupt { color:hsl(280,68%,45%); border-color:hsl(280,68%,75%); }
+.evt-badge.excavate { color:hsl(45,68%,45%); border-color:hsl(45,68%,75%); }
+.evt-badge.collapse { color:var(--c); border-color:var(--c); background:rgba(230,0,0,.06); }
+.evt-badge.decision_proposed { color:var(--b); border-color:var(--b); }
+.evt-badge.decision_accepted { color:var(--g); border-color:var(--g); background:rgba(26,107,58,.06); }
+.evt-badge.create { color:var(--a); border-color:var(--a); }
+.evt-text { font:600 9px/1.4 var(--sans); color:#444; flex:1; min-width:0; }
+.evt-ts { font:900 7px/1 var(--font); color:#bbb; flex-shrink:0; font-variant-numeric:tabular-nums; }
+.phys-readout { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:8px; border:var(--bw) solid var(--ink); background:#fafafa; }
+.phys-stat { display:flex; flex-direction:column; gap:2px; }
+.phys-lbl { font:900 6px/1 var(--font); text-transform:uppercase; letter-spacing:.1em; color:#888; }
+.phys-val { font:900 12px/1 var(--font); font-variant-numeric:tabular-nums; }
+.phys-bar { height:4px; background:#eee; position:relative; }
+.phys-bar-fill { height:100%; position:absolute; left:0; top:0; transition:width .3s; }
+#branch-tree-svg { width:100%; min-height:120px; border:var(--bw) solid var(--ink); background:#fafafa; }
+.tab.on-e { background:#c44; color:var(--paper); }
+.snav.on-e { background:#c44; color:var(--paper); }
+</style>
+</head>
+
+<body>
+
+<div id="shell">
+  <header id="sb">
+    <!-- Film reel -->
+    <div class="sb-cell" style="flex:0 0 auto;padding:0 9px;border-right:1px solid #1a1a1a">
+      <svg class="reel-svg" viewBox="0 0 22 22" fill="none" id="reel-svg">
+        <g class="reel-rotor" id="reel-rotor">
+          <circle cx="11" cy="11" r="9" stroke="#fff" stroke-width="1" stroke-opacity=".2" fill="none"/>
+          <circle cx="11" cy="11" r="3.5" fill="#fff" fill-opacity=".4"/>
+          <circle cx="11" cy="2"  r="1.5" fill="#fff"/>
+          <circle cx="11" cy="20" r="1.5" fill="#fff"/>
+          <circle cx="2"  cy="11" r="1.5" fill="#fff"/>
+          <circle cx="20" cy="11" r="1.5" fill="#fff"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="sb-cell"><span class="sb-lbl">CELLS</span><span class="sb-val" id="s-cells">0</span></div>
+    <div class="sb-cell"><span class="sb-lbl">EVENTS</span><span class="sb-val" id="s-events">0</span></div>
+
+    <nav id="tabs">
+      <button class="tab" id="tab-a">A · ROOM</button>
+      <button class="tab" id="tab-b">B · CODE</button>
+      <button class="tab" id="tab-c">C · DRAW</button>
+      <button class="tab" id="tab-d">D · FILE</button>
+      <button class="tab" id="tab-e">E · LOG</button>
+    </nav>
+
+    <div class="sb-cell" style="flex:0 0 auto"><span class="sb-lbl">FRAME</span><span class="sb-val" id="sb-frame">0/0</span></div>
+    <div class="sb-cell" style="flex:0 0 auto;flex-direction:row;gap:4px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        <span class="sb-lbl">FPS</span>
+        <div class="fps-wrap">
+          <button class="fps-btn" id="fps-dn">-</button>
+          <span class="sb-val" id="sb-fps" style="min-width:20px;text-align:center">12</span>
+          <button class="fps-btn" id="fps-up">+</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="sb-btn" id="op-mode">VORONOI</button>
+    <button class="sb-btn" id="view-toggle" title="Toggle 2D/3D view">2D</button>
+    <button id="key-btn">KEY</button>
+    <button class="sb-btn" id="export-btn" title="Export">EXPORT</button>
+    <button id="play-btn">
+      <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor" id="play-ico"><polygon points="0,0 11,6.5 0,13"/></svg>
+      <span id="play-lbl">PLAY</span>
+    </button>
+  </header>
+
+  <div id="oprail">
+    <div id="or-strip"></div>
+    <button id="or-fire"><span class="fire-dot"></span><span id="or-fire-lbl">FIRE</span></button>
+  </div>
+
+  <div id="cz">
+    <canvas id="cvs"></canvas>
+    <div id="draw-tb">
+      <button class="dt-btn on" data-t="pen">PEN</button>
+      <button class="dt-btn" data-t="rect">BOX</button>
+      <button class="dt-btn" data-t="line">LINE</button>
+      <button class="dt-btn" data-t="erase">ERASE</button>
+      <div class="dt-sep"></div>
+      <div id="dt-sw"></div>
+      <div class="dt-sep"></div>
+      <label style="display:flex;align-items:center;gap:4px;color:#888;flex-shrink:0">
+        <span style="font:900 7px/1 var(--font);text-transform:uppercase">SZ</span>
+        <input type="range" id="brush-sz" min="1" max="12" value="3" style="width:54px;height:14px;border:1px solid #555">
+      </label>
+    </div>
+    <div id="zoom-ctl">
+      <button id="zc-out" title="Zoom out">−</button>
+      <button id="zc-in" title="Zoom in">+</button>
+    </div>
+    <div id="aim-msg">TAP FIRE, THEN DRAG A CELL</div>
+    <!-- ZORC command dock -->
+    <div id="zorc-panel">
+      <div id="zorc-hd">
+        <span id="zorc-brand">ZORC</span>
+        <span id="zorc-count">0 OBJECTS</span>
+        <button id="zorc-min" title="Minimize ZORC dock">-</button>
+      </div>
+      <div id="zorc-body">
+        <div id="zorc-room">NO ROOM</div>
+        <div id="zorc-desc">Select or create a territory to begin.</div>
+        <div id="zorc-objects"></div>
+        <div id="zorc-log"></div>
+        <div id="zorc-cmd-row">
+          <input id="zorc-cmd" autocomplete="off" spellcheck="false" placeholder="LOOK / EXAMINE HORSE / FORK LANTERN">
+          <button id="zorc-run">RUN</button>
+        </div>
+        <div id="zorc-hints">LOOK · EXAMINE [OBJECT] · FORK [OBJECT] · EXCAVATE [OBJECT] · CORRUPT [OBJECT]</div>
+      </div>
+    </div>
+    <div id="llm-overlay">
+      <div class="spinner"></div><span id="llm-msg">COMPILING VIA AI...</span>
+    </div>
+  </div>
+
+  <div id="tl">
+    <div id="tlc">
+      <button class="tl-btn" id="tl-prev">&lt;</button>
+      <button class="tl-btn" id="tl-next">&gt;</button>
+      <div class="tl-div"></div>
+      <button class="tl-btn" id="tl-blk">+BLK</button>
+      <button class="tl-btn" id="tl-branch">BRANCH</button>
+      <button class="tl-btn" id="tl-wipe">WIPE</button>
+      <div class="tl-div"></div>
+      <button class="tl-btn" id="op-fit">FIT</button>
+      <button class="tl-btn" id="zc-out2">−</button>
+      <button class="tl-btn" id="zc-in2">+</button>
+      <span id="tl-info">NO CELL SELECTED</span>
+    </div>
+    <div id="tl-strip"><span id="tl-empty">SELECT A CELL</span></div>
+  </div>
+</div>
+
+<nav id="side-nav">
+  <button class="snav" id="snav-a">A<br>ROOM</button>
+  <button class="snav" id="snav-b">B<br>CODE</button>
+  <button class="snav" id="snav-c">C<br>DRAW</button>
+  <button class="snav" id="snav-d">D<br>FILE</button>
+  <button class="snav" id="snav-e">E<br>LOG</button>
+</nav>
+
+<div id="backdrop"></div>
+
+<!-- ── SHEET A: ROOM ── -->
+<div class="sheet" id="sheet-a">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--a)">A · OBJECTS IN ROOM</span>
+    <button class="sh-x" id="sh-a-x">×</button>
+  </div>
+  <div class="sh-body">
+    <div id="cell-list"></div>
+    <button class="btn a" id="btn-add-cell">+ NEW BLANK CELL</button>
+  </div>
+</div>
+
+<!-- ── SHEET B: BUILD (CODE + CHAT) ── -->
+<div class="sheet" id="sheet-b">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--b)">B · CODE + CHAT</span>
+    <button class="sh-x" id="sh-b-x">×</button>
+  </div>
+  <div class="sh-tabs">
+    <button class="sh-tab on" data-stab="b-code-panel">CODE</button>
+    <button class="sh-tab" data-stab="b-chat-panel">CHAT</button>
+  </div>
+  <!-- CODE panel -->
+  <div class="sh-body" id="b-code-panel" style="padding:0;gap:0;">
+    <textarea id="b-code" spellcheck="false" placeholder="Select cell..."></textarea>
+    <div style="display:flex;gap:4px;padding:8px 12px;border-top:1px solid var(--soft);">
+      <button class="btn sm pri" id="b-run" style="flex:1">▶ RUN</button>
+      <button class="btn sm" id="b-expand" style="flex:1">⊞ EXPAND</button>
+    </div>
+    <div style="padding:12px">
+      <div class="lbl">OPERATIONS — WHAT EACH VERB DOES</div>
+      <div style="font:600 10px/1.5 var(--sans);color:#555;margin-bottom:8px;line-height:1.6">
+        <b>1. Arm</b> an operation from the rail above.<br>
+        <b>2. Fire</b> it at a cell: tap a cell, or drag between two cells.<br><br>
+        <b style="color:hsl(320,68%,45%)">FORK</b> — Copy a cell with slight geometric variation. Like an alternate take.<br>
+        <b style="color:hsl(205,68%,45%)">SURFACE</b> — Zoom/crop into a region. Camera move on the composition.<br>
+        <b style="color:hsl(45,68%,45%)">EXCAVATE</b> — Strip away later frames. Reveal the underlying construction.<br>
+        <b style="color:hsl(280,68%,45%)">CORRUPT</b> — Damage the code. Remove CLR commands so frames bleed together.<br>
+        <b style="color:hsl(60,68%,45%)">ILLUMINATE</b> — Brighten values near center. Requires a target cell.<br>
+        <b style="color:hsl(210,68%,45%)">FLOOD</b> — Inject rising water frames. Requires a target cell.<br>
+        <b style="color:hsl(15,68%,45%)">GRAFT</b> — Fuse two cells together via AI. Drag from one cell onto another.<br>
+        <b style="color:hsl(30,68%,45%)">TRANSMUTE</b> — AI melts the composition into decay/ash.
+      </div>
+      <div class="op-grid" id="c-ops"></div>
+    </div>
+  </div>
+  <!-- CHAT panel -->
+  <div class="sh-body" id="b-chat-panel" style="display:none;padding:0;gap:0;">
+    <div id="chat-log"></div>
+    <div id="chat-input-row">
+      <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Ask AI about your mosaic…"></textarea>
+      <button id="chat-send">SEND</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SHEET C: OPS / DRAW ── -->
+<div class="sheet" id="sheet-c">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--g)">C · DRAW TOOLS</span>
+    <button class="sh-x" id="sh-c-x">×</button>
+  </div>
+  <div class="sh-body">
+    <div class="lbl">DRAW TOOLS</div>
+    <div class="btn-row">
+      <button class="btn on" id="tool-pen">PEN</button>
+      <button class="btn" id="tool-rect">BOX</button>
+      <button class="btn" id="tool-erase">ERASE</button>
+    </div>
+    <div class="lbl" style="margin-top:4px">PALETTE</div>
+    <div class="op-grid" id="c-swatches"></div>
+    <div class="lbl" style="margin-top:4px">BRUSH SIZE</div>
+    <input type="range" id="c-brush-sz" min="1" max="12" value="3">
+  </div>
+</div>
+
+<!-- ── SHEET D: SAVE / EXPORT ── -->
+<div class="sheet" id="sheet-d">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:#6a1b9a">D · FILE</span>
+    <button class="sh-x" id="sh-d-x">×</button>
+  </div>
+  <div class="sh-body">
+    <div class="lbl">SAVE / LOAD</div>
+    <div class="btn-row">
+      <button class="btn pri" id="ex-save-json">⭳ SAVE PROJECT</button>
+      <button class="btn" id="ex-load-json" onclick="document.getElementById('load-file').click()">⭱ LOAD PROJECT</button>
+    </div>
+    <input type="file" id="load-file" accept=".json" style="display:none">
+
+    <div class="sep-lbl">GENERATE WITH AI</div>
+    <div class="mk-field">
+      <span class="mk-fl">HOOK TO (parent cell)</span>
+      <select id="mk-parent" class="sel-input"></select>
+    </div>
+    <div class="mk-field">
+      <span class="mk-fl">DESCRIBE WHAT YOU WANT</span>
+      <textarea id="mk-prompt" class="ta" rows="3" spellcheck="false" placeholder="e.g. the horse sits down, the lantern goes out"></textarea>
+    </div>
+    <button class="btn d" id="mk-gen">✦ GENERATE LINKED CELL</button>
+
+    <div class="sep-lbl">EXPORT</div>
+    <button class="btn" id="ex-player">★ PLAYABLE STORY (.HTML)</button>
+    <div class="btn-row">
+      <button class="btn" id="ex-twee">TWINE (.TWEE)</button>
+      <button class="btn" id="ex-beflix">BEFLIX (.TXT)</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="ex-png">PNG — VIEW</button>
+      <button class="btn" id="ex-video">VIDEO — CELL</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="ex-zorc-edl">⭳ EDL</button>
+      <button class="btn" id="ex-zorc-tweel">⭳ TWEEL</button>
+      <button class="btn" id="ex-zorc-map">⭳ MAP</button>
+      <button class="btn" id="ex-zorc-path">⭳ PATH</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SHEET E: LOG ── -->
+<div class="sheet" id="sheet-e">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:#c44">E · EVENT LOG</span>
+    <button class="sh-x" id="sh-e-x">×</button>
+  </div>
+  <div class="sh-tabs">
+    <button class="sh-tab on" data-stab="e-log-panel">EVENTS</button>
+    <button class="sh-tab" data-stab="e-tree-panel">BRANCH TREE</button>
+    <button class="sh-tab" data-stab="e-phys-panel">PHYSICS</button>
+  </div>
+  <!-- EVENTS panel -->
+  <div class="sh-body" id="e-log-panel" style="gap:0;padding:0;">
+    <div id="event-log" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column-reverse;gap:0;"></div>
+  </div>
+  <!-- BRANCH TREE panel -->
+  <div class="sh-body" id="e-tree-panel" style="display:none;">
+    <div class="lbl">BRANCH GRAPH</div>
+    <svg id="branch-tree-svg" viewBox="0 0 600 300"></svg>
+    <div class="lbl" style="margin-top:6px">DECISION HISTORY</div>
+    <div id="decision-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+  </div>
+  <!-- PHYSICS panel -->
+  <div class="sh-body" id="e-phys-panel" style="display:none;">
+    <div class="lbl">SELECTED CELL PHYSICS</div>
+    <div class="phys-readout" id="phys-readout">
+      <div class="phys-stat"><span class="phys-lbl">INTEGRITY</span><span class="phys-val" id="ph-int">1.00</span><div class="phys-bar"><div class="phys-bar-fill" id="ph-int-bar" style="width:100%;background:var(--g)"></div></div></div>
+      <div class="phys-stat"><span class="phys-lbl">ENERGY</span><span class="phys-val" id="ph-eng">0.00</span><div class="phys-bar"><div class="phys-bar-fill" id="ph-eng-bar" style="width:0%;background:var(--b)"></div></div></div>
+      <div class="phys-stat"><span class="phys-lbl">ENTROPY</span><span class="phys-val" id="ph-ent">0.10</span><div class="phys-bar"><div class="phys-bar-fill" id="ph-ent-bar" style="width:5%;background:var(--c)"></div></div></div>
+      <div class="phys-stat"><span class="phys-lbl">PHASE</span><span class="phys-val" id="ph-phase">LATENT</span></div>
+    </div>
+    <div class="lbl" style="margin-top:8px">ALL CELLS</div>
+    <div id="phys-all-cells" style="display:flex;flex-direction:column;gap:4px;"></div>
+  </div>
+</div>
+
+<!-- BEFLIX CODE MODAL -->
+<div id="bfx-modal">
+  <div id="bfx-hd">
+    <span id="bfx-title">BEFLIX CODE</span>
+    <button class="bfx-btn run" id="bfx-run">▶ RUN</button>
+    <button class="bfx-btn regen" id="bfx-regen">REGEN</button>
+    <button class="bfx-btn close" id="bfx-close">CLOSE</button>
+  </div>
+  <div id="bfx-split">
+    <div id="bfx-code-pane"><textarea id="bfx-editor" spellcheck="false"></textarea></div>
+    <div id="bfx-preview-pane">
+      <div id="bfx-prev-hd">
+        <span>PREVIEW</span>
+        <button class="bfx-fb" id="bfx-p-prev">‹</button>
+        <button class="bfx-fb" id="bfx-p-next">›</button>
+        <button class="bfx-fb play-f" id="bfx-p-play">▶</button>
+        <span id="bfx-prev-frame">—</span>
+      </div>
+      <div id="bfx-cvs-wrap"><canvas id="bfx-cvs" width="640" height="480"></canvas></div>
+      <div id="bfx-prev-strip"></div>
+    </div>
+  </div>
+  <div id="bfx-foot">
+    <span id="bfx-lcount">0 LINES</span>
+    <span id="bfx-fcount" style="margin-left:auto;color:var(--b)">0 FRAMES</span>
+    <button class="bfx-btn" id="bfx-ref-toggle" style="margin-left:8px">REFERENCE</button>
+  </div>
+  <div id="bfx-ref">CLR v           — Fill entire grid with intensity v (0=white, 7=black)
+PNT x y w h v   — Paint rectangle at (x,y) width w height h value v
+LIN x1 y1 x2 y2 v — Draw line between two points at value v
+REC n           — Record current state as n frames (1–15 per beat)
+SHF dx dy n     — Shift all pixels by (dx,dy) and record n frames
+
+Grid: 128 columns (x=0..127) × 96 rows (y=0..95). Origin = top-left.
+Intensity: 0=white, 1=faint, 3=mid, 5=dark, 7=black.
+Lines beginning with C or ; are comments and are ignored.</div>
+</div>
+
+<div id="ctx">
+  <div class="ctx-hd" id="ctx-name">CELL</div>
+  <button class="ctx-item" id="ctx-select">▸ Select</button>
+  <button class="ctx-item" id="ctx-edit">✎ Edit code</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item danger" id="ctx-delete">✕ Delete cell</button>
+</div>
+
+<div id="export-menu">
+  <div class="ctx-hd">EXPORT</div>
+  <button class="ctx-item" id="em-player">★ Playable story (.html)</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item" id="em-twee">▸ Twine story (.twee)</button>
+  <button class="ctx-item" id="em-beflix">▸ BEFLIX — all source (.txt)</button>
+  <button class="ctx-item" id="em-png">▸ PNG — current view</button>
+  <button class="ctx-item" id="em-video">▸ Video — selected cell</button>
+</div>
+
+<!-- ── MODAL: API KEY ── -->
+<div class="modal" id="m-api">
+  <div class="modal-box" style="max-height:85dvh; overflow-y:auto;">
+    <h3>AI Configuration</h3>
+    <p style="margin-bottom:12px;font-size:10px;color:#666;">Configure models and API keys. Stored locally.</p>
+    <div style="margin-bottom:12px;padding:6px;">
+      <div class="lbl">Active Model</div>
+      <select class="sel-input" id="model-select" style="margin-bottom:6px;">
+        <optgroup label="Google Gemini">
+          <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+          <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+        </optgroup>
+        <optgroup label="Anthropic Claude">
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+        </optgroup>
+        <optgroup label="OpenAI">
+          <option value="gpt-4o">GPT-4o</option>
+          <option value="gpt-4o-mini">GPT-4o Mini</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="key-box"><div class="lbl">Gemini API Key</div><input class="inp" id="api-gemini" type="password" placeholder="AIzaSy..."></div>
+    <div class="key-box"><div class="lbl">Claude API Key</div><input class="inp" id="api-claude" type="password" placeholder="sk-ant-..."></div>
+    <div class="key-box"><div class="lbl">OpenAI API Key</div><input class="inp" id="api-openai" type="password" placeholder="sk-proj-..."></div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn" id="api-cancel">CANCEL</button>
+      <button class="btn pri" id="api-save">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ── MODAL: DECISION POINT ── -->
+<div id="dp-modal">
+  <div id="dp-box">
+    <div id="dp-hd">
+      <span class="dp-tag">⚡ DECISION</span>
+      <span class="dp-title">BRANCH POINT</span>
+      <span class="dp-cell-name" id="dp-cell-name">—</span>
+    </div>
+    <div id="dp-body">
+      <div class="dp-trigger" id="dp-trigger">Loading…</div>
+      <div class="dp-loading" id="dp-loading"><div class="spinner"></div>AI GENERATING PATHS…</div>
+      <div class="dp-paths" id="dp-paths" style="display:none"></div>
+    </div>
+    <div id="dp-foot">
+      <button class="btn" id="dp-dismiss">DISMISS</button>
+      <button class="btn a" id="dp-accept" disabled>ACCEPT PATH</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+// RCC-MOS: GLOBAL STATE & DATA
+// ═══════════════════════════════════════
+const GC = 128, GR = 96, BS = 5, MAX_FRAMES = 120;
+const $ = id => document.getElementById(id);
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+let cells = [], edges = [];
+let active = -1, playhead = 0, playing = false, fps = 12;
+let tool = 'pen', ink = 5, brushSz = 3;
+let panX = 0, panY = 0, zoom = 1;
+let delaunay = null, voronoi = null;
+let CVS, CTX, CW = 800, CH = 600;
+let panning = false, panS = { x: 0, y: 0, px: 0, py: 0 };
+let aiming = null, aimingTgt = -1, dragNode = -1, dragOff = { x: 0, y: 0 };
+let drawing = false, drawStart = [0,0], drawCur = [0,0], drawPrev = [0,0];
+let _raf = null, _lastT = 0;
+let pointers = new Map(), pinchState = null;
+let openSheet = null;
+let layoutMode = 'voronoi';
+let curOp = 'fork';
+let fireMode = false;
+
+// ZORC engine state
+let zorc = { current:0, inventory:[], global_flags:{}, history:[], cut_sequence:[], compiler_log:[], log:[] };
+
+// ═══════════════════════════════════════
+// RCC-MOS: PHYSICS & TIMELINE ENGINE
+// ═══════════════════════════════════════
+const TIMELINE_EVENTS = [];
+let timelineCursor = -1;
+let physicsLastTick = 0;
+const PHYSICS_INTERVAL = 200; // ms between ticks
+
+const CELL_PHASES = ['latent','active','diffusing','surging','damaged','collapsed'];
+
+function defaultPhysics() {
+  return { integrity: 1.0, energy: 0.0, entropy: 0.1, coherence: 1.0 };
+}
+
+function recordEvent(evt) {
+  const id = TIMELINE_EVENTS.length;
+  const rec = {
+    id,
+    type: evt.type || 'sys',
+    text: evt.text || '',
+    cellIdx: evt.cellIdx ?? -1,
+    cellName: evt.cellName || '',
+    fromCellIdx: evt.fromCellIdx ?? -1,
+    op: evt.op || '',
+    ts: performance.now(),
+    simTime: 0
+  };
+  TIMELINE_EVENTS.push(rec);
+  timelineCursor = id;
+  updateEventCounter();
+  return rec;
+}
+
+function updateEventCounter() {
+  const el = $('s-events');
+  if (el) el.textContent = TIMELINE_EVENTS.length;
+}
+
+// Physics: get neighbor cells via edges
+function getNeighborIndices(cellIdx) {
+  const neighbors = new Set();
+  edges.forEach(e => {
+    if (e.from === cellIdx) neighbors.add(e.to);
+    if (e.to === cellIdx) neighbors.add(e.from);
+  });
+  return [...neighbors].filter(i => i >= 0 && i < cells.length);
+}
+
+// Physics: diffuse scalars along edges, decay, update phases
+function tickPhysics() {
+  const now = performance.now();
+  if (now - physicsLastTick < PHYSICS_INTERVAL) return;
+  physicsLastTick = now;
+
+  // Build next-state buffers
+  const nextEnergy = cells.map(c => c.physics ? c.physics.energy : 0);
+  const diffusionRate = 0.06;
+  const decayRate = 0.04;
+
+  cells.forEach((col, i) => {
+    if (!col.physics || col.phase === 'collapsed') return;
+    const energy = col.physics.energy;
+    if (Math.abs(energy) < 0.001) return;
+
+    // Decay
+    const decayAmount = Math.abs(energy) * decayRate;
+    nextEnergy[i] -= Math.sign(energy) * decayAmount;
+
+    // Diffuse to neighbors
+    const neighbors = getNeighborIndices(i);
+    if (neighbors.length > 0) {
+      const transferTotal = Math.abs(energy) * diffusionRate;
+      const share = transferTotal / neighbors.length;
+      neighbors.forEach(ni => {
+        if (cells[ni].phase !== 'collapsed') {
+          nextEnergy[ni] += Math.sign(energy) * share;
+        }
+      });
+      nextEnergy[i] -= Math.sign(energy) * transferTotal;
+    }
+  });
+
+  // Apply and update physics
+  cells.forEach((col, i) => {
+    if (!col.physics || col.phase === 'collapsed') return;
+    col.physics.energy = Number(nextEnergy[i].toFixed(4));
+
+    // Energy affects integrity
+    const absEnergy = Math.abs(col.physics.energy);
+    col.physics.integrity = clamp(col.physics.integrity - absEnergy * 0.004, 0, 1.2);
+    col.physics.entropy = clamp(col.physics.entropy * 0.95 + absEnergy * 0.06, 0, 2);
+
+    // Phase transitions
+    if (col.physics.integrity <= 0.12 && col.phase !== 'collapsed') {
+      col.phase = 'collapsed';
+      recordEvent({ type: 'collapse', text: `${col.name} has collapsed`, cellIdx: i, cellName: col.name });
+    } else if (absEnergy > 0.8) {
+      col.phase = 'surging';
+    } else if (absEnergy > 0.3) {
+      col.phase = 'diffusing';
+    } else if (col.physics.integrity < 0.5) {
+      col.phase = 'damaged';
+    } else if (col.layers > 0 || col.frames.length > 0) {
+      col.phase = 'active';
+    } else {
+      col.phase = 'latent';
+    }
+
+    // Decision point threshold detection
+    if (col.physics.integrity <= 0.3 && col.physics.integrity > 0.12 && !col._dpFired && col.phase === 'damaged') {
+      col._dpFired = true;
+      proposeDecisionPoint(i);
+    }
+  });
+}
+
+// ═══════════════════════════════════════
+// DECISION POINT ENGINE (Hybrid)
+// ═══════════════════════════════════════
+let pendingDP = null;
+const DECISION_HISTORY = [];
+
+async function proposeDecisionPoint(cellIdx) {
+  const cell = cells[cellIdx];
+  if (!cell || pendingDP) return; // one at a time
+
+  const dp = {
+    cellIdx,
+    cellName: cell.name,
+    trigger: `${cell.name} integrity at ${(cell.physics.integrity * 100).toFixed(0)}% — structural threshold crossed`,
+    physics: { ...cell.physics },
+    phase: cell.phase,
+    paths: [],
+    selected: -1,
+    ts: performance.now()
+  };
+  pendingDP = dp;
+
+  // Show modal immediately with loading state
+  showDecisionModal(dp);
+
+  // Generate paths via AI
+  try {
+    const paths = await generateDecisionPaths(dp);
+    dp.paths = paths;
+    renderDecisionPaths(dp);
+  } catch (e) {
+    // Fallback: generate deterministic paths without AI
+    dp.paths = generateFallbackPaths(dp);
+    renderDecisionPaths(dp);
+    toast('AI unavailable — using fallback paths', true);
+  }
+}
+
+function generateFallbackPaths(dp) {
+  const cell = cells[dp.cellIdx];
+  return [
+    {
+      name: 'REINFORCE',
+      desc: `Shore up ${cell.name}. Restore structural integrity through layered composition.`,
+      op: 'fork',
+      codeHint: 'reinforce'
+    },
+    {
+      name: 'COLLAPSE INTO',
+      desc: `Let ${cell.name} fall. Its debris becomes material for a new territory.`,
+      op: 'corrupt',
+      codeHint: 'collapse'
+    },
+    {
+      name: 'EXCAVATE',
+      desc: `Strip ${cell.name} back to its foundation. Reveal what was hidden beneath.`,
+      op: 'excavate',
+      codeHint: 'excavate'
+    }
+  ];
+}
+
+async function generateDecisionPaths(dp) {
+  const key = getActiveKey();
+  if (!key) return generateFallbackPaths(dp);
+
+  const cell = cells[dp.cellIdx];
+  const neighbors = getNeighborIndices(dp.cellIdx).map(i => cells[i]?.name || 'unknown');
+
+  const systemPrompt = `You are a narrative architect for CINEOSIS, a cinematic mosaic system.
+Each cell is a territory containing BEFLIX animation code. Cells have physics: integrity (structural health), energy (activity level), and phase.
+When a cell's integrity drops below 30%, a DECISION POINT is triggered. You must propose exactly 3 narrative paths.
+
+Respond ONLY with a JSON array of 3 objects, each with:
+- "name": short uppercase verb phrase (2-4 words)
+- "desc": one sentence describing what happens narratively
+- "op": one of: fork, corrupt, excavate, surface, illuminate, flood, graft, transmute
+- "codeHint": brief BEFLIX instruction hint for what the resulting animation should depict
+
+No markdown fences. Just the JSON array.`;
+
+  const userPrompt = `DECISION POINT for "${cell.name}":
+- Integrity: ${(cell.physics.integrity * 100).toFixed(0)}%
+- Energy: ${cell.physics.energy.toFixed(2)}
+- Phase: ${cell.phase}
+- Neighbors: ${neighbors.join(', ') || 'none'}
+- Current frames: ${cell.frames.length}
+- History: ${TIMELINE_EVENTS.filter(e => e.cellIdx === dp.cellIdx || e.fromCellIdx === dp.cellIdx).map(e => e.text).slice(-5).join('; ') || 'none'}
+
+Propose 3 divergent paths. One should preserve, one should destroy, one should transform.`;
+
+  const raw = await callLLM(systemPrompt, userPrompt, 800);
+  try {
+    const cleaned = raw.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+    const paths = JSON.parse(cleaned);
+    if (Array.isArray(paths) && paths.length >= 2) return paths.slice(0, 3);
+  } catch (e) {
+    console.warn('Decision path parse error:', e, raw);
+  }
+  return generateFallbackPaths(dp);
+}
+
+function showDecisionModal(dp) {
+  $('dp-cell-name').textContent = dp.cellName;
+  $('dp-trigger').innerHTML = `<b>${dp.cellName}</b> — ${dp.trigger}`;
+  $('dp-loading').style.display = 'block';
+  $('dp-paths').style.display = 'none';
+  $('dp-paths').innerHTML = '';
+  $('dp-accept').disabled = true;
+  $('dp-modal').classList.add('on');
+
+  // Pause playback during decision
+  if (playing) togglePlay();
+
+  recordEvent({ type: 'decision_proposed', text: `Decision point: ${dp.trigger}`, cellIdx: dp.cellIdx, cellName: dp.cellName });
+}
+
+function renderDecisionPaths(dp) {
+  $('dp-loading').style.display = 'none';
+  const container = $('dp-paths');
+  container.style.display = 'flex';
+  container.innerHTML = '';
+
+  dp.paths.forEach((path, i) => {
+    const el = document.createElement('div');
+    el.className = 'dp-path';
+    el.innerHTML = `
+      <div class="dp-path-hd">
+        <span class="dp-path-n">${i + 1}</span>
+        <span class="dp-path-name">${path.name}</span>
+      </div>
+      <div class="dp-path-desc">${path.desc}</div>
+    `;
+    el.addEventListener('click', () => {
+      container.querySelectorAll('.dp-path').forEach(p => p.classList.remove('sel'));
+      el.classList.add('sel');
+      dp.selected = i;
+      $('dp-accept').disabled = false;
+    });
+    container.appendChild(el);
+  });
+}
+
+async function acceptDecisionPath() {
+  if (!pendingDP || pendingDP.selected < 0) return;
+  const dp = pendingDP;
+  const path = dp.paths[dp.selected];
+  const cell = cells[dp.cellIdx];
+
+  $('dp-modal').classList.remove('on');
+
+  recordEvent({
+    type: 'decision_accepted',
+    text: `Path chosen: ${path.name} for ${dp.cellName}`,
+    cellIdx: dp.cellIdx,
+    cellName: dp.cellName,
+    op: path.op
+  });
+
+  DECISION_HISTORY.push({ ...dp, acceptedAt: performance.now() });
+
+  // Generate BEFLIX code for the new path via AI or use operation defaults
+  let newCode = null;
+  try {
+    const key = getActiveKey();
+    if (key && path.codeHint) {
+      const sysP = `You are a BEFLIX animation coder for CINEOSIS. Generate BEFLIX code for a 128x96 grid.
+Commands: CLR v, PNT x y w h v, LIN x1 y1 x2 y2 v, REC n, SHF dx dy n.
+Intensity: 0=white to 7=black. Generate 20-60 lines producing 8-20 frames.
+Output ONLY the BEFLIX code, no markdown fences.`;
+      const usrP = `Create a BEFLIX composition for: "${path.name} — ${path.desc}"
+This is a consequence of ${cell.name} (integrity ${(cell.physics.integrity * 100).toFixed(0)}%).
+Hint: ${path.codeHint}
+The animation should visually represent the narrative transformation.`;
+      $('llm-overlay').classList.add('on');
+      $('llm-msg').textContent = 'GENERATING PATH: ' + path.name;
+      const raw = await callLLM(sysP, usrP, 1500);
+      newCode = stripCodeFences(raw);
+      $('llm-overlay').classList.remove('on');
+    }
+  } catch (e) {
+    $('llm-overlay').classList.remove('on');
+    console.warn('Path code generation failed:', e);
+  }
+
+  // Create the new cell from the decision
+  const newName = `${cell.name} → ${path.name}`;
+  if (newCode) {
+    createCell({ name: newName, code: newCode, parentIdx: dp.cellIdx, op: path.op || 'fork' });
+  } else {
+    // Fallback: fork current cell with operation applied
+    const sf = cell.frames[cell.curFrame] ? new Uint8Array(cell.frames[cell.curFrame]) : new Uint8Array(GR * GC);
+    createCell({ name: newName, frames: [sf], parentIdx: dp.cellIdx, op: path.op || 'fork', code: `C DECISION: ${path.name}\nC ${path.desc}` });
+  }
+
+  // Boost cell integrity slightly after decision (narrative consequence)
+  cell.physics.integrity = clamp(cell.physics.integrity + 0.15, 0, 1);
+
+  pendingDP = null;
+  autoFit(); render(); updateTimelineUI();
+  toast(`Path accepted: ${path.name}`);
+}
+
+// ═══════════════════════════════════════
+// EVENT LOG + BRANCH TREE + PHYSICS PANEL
+// ═══════════════════════════════════════
+function refreshEventLog() {
+  const log = $('event-log');
+  if (!log) return;
+  log.innerHTML = '';
+  const events = TIMELINE_EVENTS.slice().reverse();
+  events.forEach(evt => {
+    const div = document.createElement('div');
+    div.className = 'evt-entry';
+    const elapsedSec = ((performance.now() - evt.ts) / 1000).toFixed(0);
+    div.innerHTML = `
+      <span class="evt-badge ${evt.type}">${evt.type.replace(/_/g, ' ')}</span>
+      <span class="evt-text">${evt.text}</span>
+      <span class="evt-ts">${elapsedSec}s ago</span>
+    `;
+    if (evt.cellIdx >= 0) {
+      div.style.cursor = 'pointer';
+      div.addEventListener('click', () => {
+        if (evt.cellIdx < cells.length) {
+          selectCell(evt.cellIdx);
+          smoothZoomToShow([evt.cellIdx]);
+        }
+      });
+    }
+    log.appendChild(div);
+  });
+}
+
+function refreshBranchTree() {
+  const svg = $('branch-tree-svg');
+  if (!svg) return;
+  svg.innerHTML = '';
+
+  if (!cells.length) return;
+
+  // Layout: simple left-to-right tree using cell indices
+  const nodeW = 80, nodeH = 30, gapX = 40, gapY = 20;
+  const positions = new Map();
+
+  // Build adjacency for tree layout
+  const children = new Map();
+  const hasParent = new Set();
+  edges.forEach(e => {
+    if (!children.has(e.from)) children.set(e.from, []);
+    children.get(e.from).push({ to: e.to, op: e.op });
+    hasParent.add(e.to);
+  });
+
+  // Find roots
+  const roots = [];
+  cells.forEach((_, i) => { if (!hasParent.has(i)) roots.push(i); });
+  if (!roots.length) roots.push(0);
+
+  // BFS layout
+  let x = 20, maxY = 0;
+  const queue = roots.map((r, i) => ({ idx: r, depth: 0, y: i * (nodeH + gapY) + 20 }));
+  const visited = new Set();
+
+  while (queue.length) {
+    const { idx, depth, y } = queue.shift();
+    if (visited.has(idx)) continue;
+    visited.add(idx);
+
+    const px = depth * (nodeW + gapX) + 20;
+    const py = y;
+    positions.set(idx, { x: px, y: py });
+    x = Math.max(x, px + nodeW + 20);
+    maxY = Math.max(maxY, py + nodeH + 20);
+
+    const kids = children.get(idx) || [];
+    kids.forEach((k, ki) => {
+      queue.push({ idx: k.to, depth: depth + 1, y: py + ki * (nodeH + gapY) });
+    });
+  }
+
+  // Update viewBox
+  svg.setAttribute('viewBox', `0 0 ${Math.max(x, 200)} ${Math.max(maxY, 80)}`);
+
+  // Draw edges
+  edges.forEach(e => {
+    const from = positions.get(e.from);
+    const to = positions.get(e.to);
+    if (!from || !to) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', from.x + nodeW);
+    line.setAttribute('y1', from.y + nodeH / 2);
+    line.setAttribute('x2', to.x);
+    line.setAttribute('y2', to.y + nodeH / 2);
+    const opColors = { fork: '#c44', corrupt: '#8b5cf6', excavate: '#c8a800', graft: '#ea580c', transmute: '#ea580c', surface: '#3b82f6', branch: '#c44' };
+    line.setAttribute('stroke', opColors[e.op] || '#999');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', e.op === 'branch' ? '4 2' : 'none');
+    svg.appendChild(line);
+  });
+
+  // Draw nodes
+  cells.forEach((c, i) => {
+    const pos = positions.get(i);
+    if (!pos) return;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.cursor = 'pointer';
+    g.addEventListener('click', () => { selectCell(i); smoothZoomToShow([i]); });
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', pos.x);
+    rect.setAttribute('y', pos.y);
+    rect.setAttribute('width', nodeW);
+    rect.setAttribute('height', nodeH);
+    rect.setAttribute('fill', i === active ? '#0033cc' : '#fff');
+    rect.setAttribute('stroke', '#000');
+    rect.setAttribute('stroke-width', i === active ? '2' : '1');
+    g.appendChild(rect);
+
+    // Integrity bar
+    if (c.physics) {
+      const barRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      barRect.setAttribute('x', pos.x);
+      barRect.setAttribute('y', pos.y + nodeH - 3);
+      barRect.setAttribute('width', nodeW * clamp(c.physics.integrity, 0, 1));
+      barRect.setAttribute('height', 3);
+      const iColor = c.physics.integrity > 0.7 ? '#1a6b3a' : c.physics.integrity > 0.4 ? '#f59e0b' : '#ff4d4d';
+      barRect.setAttribute('fill', iColor);
+      g.appendChild(barRect);
+    }
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pos.x + nodeW / 2);
+    text.setAttribute('y', pos.y + nodeH / 2 - 1);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', i === active ? '#fff' : '#000');
+    text.setAttribute('font-size', '7');
+    text.setAttribute('font-weight', '900');
+    text.setAttribute('font-family', 'ui-monospace, monospace');
+    text.textContent = c.name.slice(0, 12);
+    g.appendChild(text);
+
+    svg.appendChild(g);
+  });
+
+  // Decision history list
+  const dlist = $('decision-list');
+  if (dlist) {
+    dlist.innerHTML = '';
+    DECISION_HISTORY.forEach((dp, i) => {
+      const d = document.createElement('div');
+      d.className = 'evt-entry';
+      const path = dp.paths[dp.selected];
+      d.innerHTML = `<span class="evt-badge decision_accepted">#${i + 1}</span><span class="evt-text"><b>${dp.cellName}</b> → ${path ? path.name : '?'}</span>`;
+      dlist.appendChild(d);
+    });
+    if (!DECISION_HISTORY.length) {
+      dlist.innerHTML = '<div style="font:600 9px/1.4 var(--sans);color:#999;padding:8px 0;">No decisions made yet. Operate on cells to trigger physics → decision points.</div>';
+    }
+  }
+}
+
+function refreshPhysicsPanel() {
+  if (active >= 0 && active < cells.length) {
+    const c = cells[active];
+    const p = c.physics || defaultPhysics();
+    $('ph-int').textContent = p.integrity.toFixed(2);
+    $('ph-eng').textContent = p.energy.toFixed(3);
+    $('ph-ent').textContent = p.entropy.toFixed(2);
+    $('ph-phase').textContent = (c.phase || 'latent').toUpperCase();
+    $('ph-int-bar').style.width = (clamp(p.integrity, 0, 1) * 100) + '%';
+    $('ph-int-bar').style.background = p.integrity > 0.7 ? 'var(--g)' : p.integrity > 0.4 ? 'var(--b)' : 'var(--c)';
+    $('ph-eng-bar').style.width = (clamp(Math.abs(p.energy), 0, 2) / 2 * 100) + '%';
+    $('ph-ent-bar').style.width = (clamp(p.entropy, 0, 2) / 2 * 100) + '%';
+    const phaseColors = { surging: 'var(--c)', diffusing: 'var(--b)', damaged: '#bd00ff', collapsed: '#888', active: 'var(--g)', latent: '#999' };
+    $('ph-phase').style.color = phaseColors[c.phase] || '#999';
+  }
+
+  // All cells summary
+  const allDiv = $('phys-all-cells');
+  if (!allDiv) return;
+  allDiv.innerHTML = '';
+  cells.forEach((c, i) => {
+    const p = c.physics || defaultPhysics();
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #eee;cursor:pointer;';
+    div.innerHTML = `
+      <span style="font:900 8px/1 var(--font);width:16px;text-align:center;${i===active?'color:var(--a)':''}">${i}</span>
+      <span style="font:900 8px/1 var(--font);flex:1;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${i===active?'color:var(--a)':''}">${c.name}</span>
+      <span style="font:900 7px/1 var(--font);color:${p.integrity>0.7?'var(--g)':p.integrity>0.4?'var(--b)':'var(--c)'}">${(p.integrity*100).toFixed(0)}%</span>
+      <span style="font:900 6px/1 var(--font);color:#888;text-transform:uppercase;">${(c.phase||'latent').slice(0,4)}</span>
+    `;
+    div.addEventListener('click', () => { selectCell(i); refreshPhysicsPanel(); });
+    allDiv.appendChild(div);
+  });
+}
+
+// Multi-model AI state (from C3)
+let KEYS = { gemini: '', claude: '', openai: '' };
+let ACTIVE_MODEL = 'gemini-2.5-flash';
+try { const k = JSON.parse(localStorage.getItem('cdmos-keys') || '{}'); if (k) KEYS = { ...KEYS, ...k }; } catch(_){}
+try { const m = localStorage.getItem('cdmos-model'); if (m) ACTIVE_MODEL = m; } catch(_){}
+
+function getProvider(model) {
+  if (model.startsWith('gemini-')) return 'gemini';
+  if (model.startsWith('claude-')) return 'claude';
+  return 'openai';
+}
+function getActiveKey() { return KEYS[getProvider(ACTIVE_MODEL)] || ''; }
+
+// ═══════════════════════════════════════
+// LLM PIPELINE (Multi-model: Gemini, Claude, OpenAI)
+// ═══════════════════════════════════════
+async function callLLM(systemPrompt, userPrompt, maxTokens = 1200) {
+  const key = getActiveKey();
+  if (!key) throw new Error('No API key set for ' + getProvider(ACTIVE_MODEL) + '. Use KEY to configure.');
+  const provider = getProvider(ACTIVE_MODEL);
+
+  if (provider === 'gemini') {
+    const model = ACTIVE_MODEL.includes('pro') ? 'gemini-2.5-pro-preview-06-05' : 'gemini-2.5-flash-preview-05-20';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+    const payload = { contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } };
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  if (provider === 'claude') {
+    const model = ACTIVE_MODEL.includes('haiku') ? 'claude-3-5-haiku-20241022' : 'claude-3-5-sonnet-20241022';
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }] })
+    });
+    if (!res.ok) throw new Error(`Claude HTTP ${res.status}`);
+    const data = await res.json();
+    return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+  }
+
+  // OpenAI
+  const model = ACTIVE_MODEL.includes('mini') ? 'gpt-4o-mini' : 'gpt-4o';
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }] })
+  });
+  if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+function stripCodeFences(text) {
+  const fence = '`' + '`' + '`';
+  const regex = new RegExp(fence + '(?:beflix|txt|text|)?\\n([\\s\\S]*?)' + fence, 'g');
+  return text.replace(regex, '$1').trim();
+}
+
+function toast(msg, err = false, dur = 2000) {
+  const el = $('toast'); el.textContent = msg; el.classList.toggle('err', err);
+  el.classList.add('on'); clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('on'), dur);
+}
+
+// ═══════════════════════════════════════
+// HORSE CODE & ZORK DATA
+// ═══════════════════════════════════════
+const HORSE_CODE = `C BEFLIX-128 COMPOSITION: "STANDING HORSE, PROFILE, FULL SCALE"
+C Subject fills frame: nose x12 to tail x111, ears y7 to hooves y84
+CLR 0
+LIN 0 84 127 84 2
+PNT 0 85 128 11 1
+REC 2
+CLR 0
+PNT 0 0 128 12 1
+PNT 0 78 128 18 1
+LIN 0 58 22 52 1
+LIN 22 52 44 58 1
+LIN 102 55 127 50 1
+PNT 108 6 9 9 1
+PNT 110 8 5 5 2
+LIN 0 84 127 84 3
+REC 2
+CLR 0
+PNT 0 0 128 12 1
+PNT 0 78 128 18 1
+LIN 0 84 127 84 3
+PNT 46 33 44 25 3
+PNT 87 31 14 22 3
+PNT 42 36 6 16 3
+PNT 35 17 8 6 3
+PNT 25 13 13 9 3
+PNT 45 50 6 30 3
+PNT 86 46 8 14 3
+PNT 100 34 6 30 3
+REC 3
+CLR 0
+PNT 0 0 128 12 1
+PNT 0 78 128 18 1
+LIN 0 84 127 84 3
+PNT 46 33 44 25 4
+PNT 87 31 14 22 4
+PNT 42 36 6 16 4
+PNT 50 56 34 3 4
+PNT 25 13 13 9 4
+PNT 12 18 4 6 5
+PNT 36 7 3 7 5
+PNT 45 50 6 11 5
+PNT 85 46 9 12 5
+PNT 100 34 5 9 6
+LIN 101 38 107 72 7
+PNT 42 12 5 6 6
+LIN 44 13 56 33 7
+PNT 30 16 3 3 7
+PNT 31 16 1 1 0
+REC 3
+CLR 0
+PNT 0 0 128 12 1
+PNT 0 78 128 18 1
+LIN 0 84 127 84 3
+PNT 42 85 56 3 2
+PNT 48 86 42 2 3
+PNT 46 33 44 25 4
+PNT 87 31 14 22 4
+PNT 42 36 6 16 4
+PNT 50 56 34 3 4
+PNT 25 13 13 9 4
+PNT 12 18 4 6 5
+PNT 36 7 3 7 5
+PNT 45 50 6 11 5
+PNT 85 46 9 12 5
+PNT 100 34 5 9 6
+LIN 101 38 107 72 7
+PNT 42 12 5 6 6
+LIN 44 13 56 33 7
+PNT 30 16 3 3 7
+PNT 31 16 1 1 0
+LIN 54 36 50 50 5
+LIN 90 36 95 46 5
+PNT 56 56 22 2 6
+PNT 56 36 26 2 3
+REC 12`;
+
+const ZORK_DATA = [
+  { name: "STANDING HORSE", code: HORSE_CODE },
+
+  { name: "BRASS LANTERN", code: `C BEFLIX-128 COMPOSITION: "BRASS LANTERN, STILL LIFE"
+C Subject: oil lantern centered on surface, brass body, glass pane, handle
+C Frame 1: Surface and shadow
+CLR 0
+PNT 0 72 128 24 2
+LIN 0 72 127 72 3
+PNT 48 74 32 4 3
+REC 6
+C Frame 2: Lantern body outline
+CLR 0
+PNT 0 72 128 24 2
+LIN 0 72 127 72 3
+PNT 48 74 32 4 3
+PNT 56 32 16 40 4
+LIN 56 32 72 32 5
+LIN 56 72 72 72 5
+LIN 56 32 56 72 5
+LIN 72 32 72 72 5
+PNT 60 28 8 4 5
+LIN 60 28 68 28 6
+REC 4
+C Frame 3: Glass pane and fuel chamber
+CLR 0
+PNT 0 72 128 24 2
+LIN 0 72 127 72 3
+PNT 48 74 32 4 3
+PNT 56 32 16 40 4
+LIN 56 32 72 32 6
+LIN 56 72 72 72 6
+LIN 56 32 56 72 6
+LIN 72 32 72 72 6
+PNT 60 28 8 4 5
+LIN 60 28 68 28 6
+PNT 59 36 10 28 3
+LIN 59 36 69 36 5
+LIN 59 64 69 64 5
+PNT 61 38 6 24 2
+PNT 62 44 4 4 1
+LIN 64 26 64 22 6
+LIN 62 22 66 22 5
+REC 6
+C Frame 4: Glow effect — lantern lit
+CLR 0
+PNT 0 72 128 24 2
+LIN 0 72 127 72 3
+PNT 48 74 32 4 3
+PNT 56 32 16 40 4
+LIN 56 32 72 32 6
+LIN 56 72 72 72 6
+LIN 56 32 56 72 6
+LIN 72 32 72 72 6
+PNT 60 28 8 4 5
+LIN 60 28 68 28 6
+PNT 59 36 10 28 3
+LIN 59 36 69 36 5
+LIN 59 64 69 64 5
+PNT 61 38 6 24 2
+PNT 62 42 4 8 1
+PNT 63 44 2 4 0
+PNT 44 30 40 44 1
+PNT 50 34 28 36 2
+LIN 64 26 64 22 6
+LIN 62 22 66 22 5
+PNT 63 23 2 2 7
+REC 12` },
+
+  { name: "ELVISH SWORD", code: `C BEFLIX-128 COMPOSITION: "ELVISH SWORD, ARTIFACT"
+C Subject: glowing elvish blade, runes on steel, crossguard, wrapped grip
+C Frame 1: Faint glow on surface
+CLR 0
+PNT 0 80 128 16 1
+LIN 0 80 127 80 2
+PNT 56 72 16 8 1
+REC 4
+C Frame 2: Blade outline
+CLR 0
+PNT 0 80 128 16 1
+LIN 0 80 127 80 2
+PNT 56 72 16 8 1
+LIN 64 14 64 70 4
+LIN 63 16 63 68 3
+LIN 65 16 65 68 3
+LIN 62 14 66 14 5
+PNT 63 12 2 2 4
+REC 4
+C Frame 3: Crossguard and grip
+CLR 0
+PNT 0 80 128 16 1
+LIN 0 80 127 80 2
+PNT 56 72 16 8 1
+LIN 64 14 64 70 5
+LIN 63 16 63 68 4
+LIN 65 16 65 68 4
+LIN 62 14 66 14 6
+PNT 63 12 2 2 5
+LIN 52 68 76 68 7
+PNT 52 66 4 6 6
+PNT 72 66 4 6 6
+LIN 54 68 74 68 7
+PNT 62 72 4 10 5
+LIN 62 72 66 72 6
+LIN 62 82 66 82 6
+PNT 63 74 2 6 4
+REC 6
+C Frame 4: Runes glowing, full detail
+CLR 0
+PNT 0 80 128 16 1
+LIN 0 80 127 80 2
+PNT 50 68 28 14 1
+LIN 64 14 64 70 6
+LIN 63 16 63 68 5
+LIN 65 16 65 68 5
+LIN 62 14 66 14 7
+PNT 63 12 2 2 6
+LIN 52 68 76 68 7
+PNT 52 66 4 6 6
+PNT 72 66 4 6 6
+LIN 54 68 74 68 7
+PNT 62 72 4 10 5
+LIN 62 72 66 72 6
+LIN 62 82 66 82 6
+PNT 63 74 2 6 4
+PNT 63 28 2 2 3
+PNT 63 36 2 2 3
+PNT 63 44 2 2 3
+PNT 63 52 2 2 3
+PNT 63 60 2 2 3
+PNT 48 62 32 10 2
+PNT 54 64 20 6 3
+LIN 64 10 64 8 7
+PNT 63 6 2 2 5
+REC 12` },
+
+  { name: "WOODEN TABLE", code: `C BEFLIX-128 COMPOSITION: "WOODEN TABLE, FURNITURE"
+C Subject: heavy oak table, four legs, worn surface, grain visible
+C Frame 1: Ground plane
+CLR 0
+PNT 0 76 128 20 2
+LIN 0 76 127 76 3
+REC 4
+C Frame 2: Table top slab
+CLR 0
+PNT 0 76 128 20 2
+LIN 0 76 127 76 3
+PNT 24 38 80 8 4
+LIN 24 38 104 38 5
+LIN 24 46 104 46 5
+LIN 24 38 24 46 5
+LIN 104 38 104 46 5
+REC 4
+C Frame 3: Legs and shadow
+CLR 0
+PNT 0 76 128 20 2
+LIN 0 76 127 76 3
+PNT 24 38 80 8 4
+LIN 24 38 104 38 5
+LIN 24 46 104 46 5
+LIN 24 38 24 46 5
+LIN 104 38 104 46 5
+LIN 28 46 28 74 5
+LIN 30 46 30 74 4
+LIN 98 46 98 74 5
+LIN 100 46 100 74 4
+LIN 54 46 54 74 4
+LIN 74 46 74 74 4
+PNT 36 78 56 3 3
+REC 6
+C Frame 4: Wood grain, surface detail
+CLR 0
+PNT 0 76 128 20 2
+LIN 0 76 127 76 3
+PNT 24 38 80 8 4
+LIN 24 38 104 38 6
+LIN 24 46 104 46 6
+LIN 24 38 24 46 6
+LIN 104 38 104 46 6
+PNT 26 40 76 4 3
+LIN 30 41 100 41 4
+LIN 34 43 96 43 3
+LIN 28 46 28 74 5
+LIN 30 46 30 74 4
+LIN 98 46 98 74 5
+LIN 100 46 100 74 4
+LIN 54 46 54 74 4
+LIN 74 46 74 74 4
+PNT 36 78 56 3 3
+PNT 44 40 4 2 5
+PNT 78 41 6 2 5
+REC 12` },
+
+  { name: "STONE WALL", code: `C BEFLIX-128 COMPOSITION: "STONE WALL, BOUNDARY"
+C Subject: rough stone wall, mortar lines, cobblestone texture
+C Frame 1: Blank wall mass
+CLR 0
+PNT 0 0 128 96 3
+REC 4
+C Frame 2: Stone block pattern
+CLR 0
+PNT 0 0 128 96 3
+LIN 0 16 127 16 4
+LIN 0 32 127 32 4
+LIN 0 48 127 48 4
+LIN 0 64 127 64 4
+LIN 0 80 127 80 4
+LIN 30 0 30 16 5
+LIN 70 0 70 16 5
+LIN 100 0 100 16 5
+LIN 15 16 15 32 5
+LIN 50 16 50 32 5
+LIN 85 16 85 32 5
+LIN 115 16 115 32 5
+LIN 25 32 25 48 5
+LIN 60 32 60 48 5
+LIN 95 32 95 48 5
+LIN 10 48 10 64 5
+LIN 45 48 45 64 5
+LIN 80 48 80 64 5
+LIN 110 48 110 64 5
+LIN 35 64 35 80 5
+LIN 65 64 65 80 5
+LIN 100 64 100 80 5
+REC 4
+C Frame 3: Texture — rough surface
+CLR 0
+PNT 0 0 128 96 3
+LIN 0 16 127 16 4
+LIN 0 32 127 32 4
+LIN 0 48 127 48 4
+LIN 0 64 127 64 4
+LIN 0 80 127 80 4
+LIN 30 0 30 16 5
+LIN 70 0 70 16 5
+LIN 100 0 100 16 5
+LIN 15 16 15 32 5
+LIN 50 16 50 32 5
+LIN 85 16 85 32 5
+LIN 115 16 115 32 5
+LIN 25 32 25 48 5
+LIN 60 32 60 48 5
+LIN 95 32 95 48 5
+LIN 10 48 10 64 5
+LIN 45 48 45 64 5
+LIN 80 48 80 64 5
+LIN 110 48 110 64 5
+LIN 35 64 35 80 5
+LIN 65 64 65 80 5
+LIN 100 64 100 80 5
+PNT 8 4 6 4 2
+PNT 42 20 8 4 2
+PNT 72 38 6 3 4
+PNT 20 52 5 5 2
+PNT 90 56 8 3 4
+PNT 55 70 7 4 2
+PNT 110 8 4 3 4
+REC 6
+C Frame 4: Mortar detail, weathering
+CLR 0
+PNT 0 0 128 96 3
+LIN 0 16 127 16 5
+LIN 0 32 127 32 5
+LIN 0 48 127 48 5
+LIN 0 64 127 64 5
+LIN 0 80 127 80 5
+LIN 30 0 30 16 6
+LIN 70 0 70 16 6
+LIN 100 0 100 16 6
+LIN 15 16 15 32 6
+LIN 50 16 50 32 6
+LIN 85 16 85 32 6
+LIN 25 32 25 48 6
+LIN 60 32 60 48 6
+LIN 95 32 95 48 6
+LIN 10 48 10 64 6
+LIN 45 48 45 64 6
+LIN 80 48 80 64 6
+LIN 35 64 35 80 6
+LIN 65 64 65 80 6
+LIN 100 64 100 80 6
+PNT 8 4 6 4 2
+PNT 42 20 8 4 2
+PNT 72 38 6 3 4
+PNT 20 52 5 5 2
+PNT 90 56 8 3 4
+PNT 55 70 7 4 2
+PNT 0 82 128 14 4
+LIN 0 82 127 82 5
+PNT 4 84 16 4 3
+PNT 30 86 20 3 3
+PNT 60 84 18 4 3
+PNT 90 85 14 3 3
+REC 12` },
+
+  { name: "LEATHER SADDLEBAG", code: `C BEFLIX-128 COMPOSITION: "LEATHER SADDLEBAG, OBJECT"
+C Subject: worn leather bag, buckle, strap, stuffed with unknown contents
+C Frame 1: Ground surface
+CLR 0
+PNT 0 74 128 22 2
+LIN 0 74 127 74 3
+REC 4
+C Frame 2: Bag body
+CLR 0
+PNT 0 74 128 22 2
+LIN 0 74 127 74 3
+PNT 42 40 44 34 4
+LIN 42 40 86 40 5
+LIN 42 74 86 74 5
+LIN 42 40 42 74 5
+LIN 86 40 86 74 5
+REC 4
+C Frame 3: Flap, buckle, strap
+CLR 0
+PNT 0 74 128 22 2
+LIN 0 74 127 74 3
+PNT 42 40 44 34 4
+LIN 42 40 86 40 6
+LIN 42 74 86 74 6
+LIN 42 40 42 74 6
+LIN 86 40 86 74 6
+PNT 44 36 40 6 5
+LIN 44 36 84 36 6
+LIN 44 42 84 42 5
+PNT 62 38 4 4 7
+PNT 63 39 2 2 3
+LIN 64 32 64 36 5
+LIN 60 32 68 32 5
+REC 6
+C Frame 4: Wear marks, stuffed shape
+CLR 0
+PNT 0 74 128 22 2
+LIN 0 74 127 74 3
+PNT 42 40 44 34 4
+LIN 42 40 86 40 6
+LIN 42 74 86 74 6
+LIN 42 40 42 74 6
+LIN 86 40 86 74 6
+PNT 44 36 40 6 5
+LIN 44 36 84 36 6
+LIN 44 42 84 42 5
+PNT 62 38 4 4 7
+PNT 63 39 2 2 3
+LIN 64 32 64 36 5
+LIN 60 32 68 32 5
+PNT 48 48 32 20 3
+PNT 52 52 24 12 4
+PNT 56 56 8 4 5
+PNT 72 50 6 8 5
+LIN 50 68 78 68 3
+PNT 46 44 6 2 3
+PNT 76 46 4 3 3
+REC 12` }
+];
+
+
+// ═══════════════════════════════════════
+// COORDINATE TRANSFORM
+// ═══════════════════════════════════════
+function transformBEFLIXCoords(code, xFn, yFn, wFn, hFn, vFn) {
+  return code.split('\n').map(line => {
+    const raw = line.trim();
+    if (!raw || raw[0] === 'C' || raw[0] === ';') return line;
+    const p = raw.split(/\s+/), cmd = p[0].toUpperCase();
+    if (cmd === 'PNT') {
+      const [x, y, w, h, v] = p.slice(1).map(Number);
+      return `PNT ${clamp(Math.round(xFn(x)),0,127)} ${clamp(Math.round(yFn(y)),0,95)} ${clamp(Math.round(wFn?wFn(w):w),1,128)} ${clamp(Math.round(hFn?hFn(h):h),1,96)} ${clamp(Math.round(vFn?vFn(v):v),0,7)}`;
+    }
+    if (cmd === 'LIN') {
+      const [x1,y1,x2,y2,v] = p.slice(1).map(Number);
+      return `LIN ${clamp(Math.round(xFn(x1)),0,127)} ${clamp(Math.round(yFn(y1)),0,95)} ${clamp(Math.round(xFn(x2)),0,127)} ${clamp(Math.round(yFn(y2)),0,95)} ${clamp(Math.round(vFn?vFn(v):v),0,7)}`;
+    }
+    return line;
+  }).join('\n');
+}
+
+// ═══════════════════════════════════════
+// PROCEDURAL OPERATIONS (Zork Engine)
+// ═══════════════════════════════════════
+const OPS = {
+  fork: { reqTarget:false, lbl:'FORK', hue:320, verb:'Geometric variant / alternate take',
+    exec: async (src) => { const s=.85+Math.random()*.3; let c=transformBEFLIXCoords(src.code,x=>x*s,y=>y*s,w=>w*s,h=>h*s,v=>v); return {code:`C FORK — Variant of ${src.name}\n`+c, name:src.name+'-F'}; }
+  },
+  surface: { reqTarget:false, lbl:'SURFACE', hue:205, verb:'Camera move — crop & zoom in',
+    exec: async (src,tgt,da) => { let cx=32,cy=24,cw=64,ch=48; if(da!==undefined){const a=((da%(Math.PI*2))+Math.PI*2)%(Math.PI*2);if(a<Math.PI*.25||a>Math.PI*1.75){cx=64;cy=24;}else if(a<Math.PI*.75){cx=32;cy=48;}else if(a<Math.PI*1.25){cx=0;cy=24;}else{cx=32;cy=0;}} const sx2=GC/cw,sy2=GR/ch; let c=transformBEFLIXCoords(src.code,x=>(x-cx)*sx2,y=>(y-cy)*sy2,w=>w*sx2,h=>h*sy2,v=>v); const dir=['EAST','SOUTH','WEST','NORTH'][Math.floor(((da||0)+Math.PI*.25)/(Math.PI*.5))%4]||'CENTER'; return {code:`C SURFACE — ${dir} crop of ${src.name}\n`+c, name:src.name+'-S'+dir[0]}; }
+  },
+  excavate: { reqTarget:false, lbl:'EXCAVATE', hue:45, verb:'Deterministic — Strip Climax frames',
+    exec: async (src) => { const lines=src.code.split('\n');let rc=0;let tr=Math.max(1,Math.floor(lines.filter(l=>/^REC/.test(l.trim())).length/2));let nl=[];for(let l of lines){nl.push(l);if(/^REC/.test(l.trim()))rc++;if(rc>=tr)break;} return {code:`C EXCAVATE — Stripped of ${src.name}\n`+nl.join('\n'),name:src.name+'-EXC'}; }
+  },
+  corrupt: { reqTarget:false, lbl:'CORRUPT', hue:280, verb:'Deterministic — Temporal bleed',
+    exec: async (src) => { const c=src.code.replace(/^CLR.*$/gm,'C [CORRUPTED CLR REMOVED]'); return {code:`C CORRUPT — Temporal haunt on ${src.name}\n`+c, name:src.name+'-CRT'}; }
+  },
+  illuminate: { reqTarget:true, lbl:'ILLUMINATE', hue:60, verb:'Deterministic — Brighten / reveal',
+    exec: async (src,ts,da,tgt) => { if(!tgt) throw new Error("ILLUMINATE requires targeting a cell"); let c=transformBEFLIXCoords(tgt.code,x=>x,y=>y,w=>w,h=>h,v=>clamp(v+3,0,7)); return {code:`C ILLUMINATE — Brightened ${tgt.name}\n`+c, name:tgt.name+'-LIT', merge:true}; }
+  },
+  flood: { reqTarget:true, lbl:'FLOOD', hue:210, verb:'Deterministic — Inject rising fluid',
+    exec: async (src,ts,da,tgt) => { if(!tgt) throw new Error("FLOOD requires targeting a cell"); let add=`\nC FLOOD EVENT\n`;for(let i=0;i<4;i++)add+=`SHF 0 -2 2\nPNT 0 ${90-i*10} 128 16 5\nREC 2\n`; return {code:tgt.code+add, name:tgt.name+'-FLD', merge:true}; }
+  },
+  graft: { reqTarget:true, lbl:'GRAFT', hue:15, verb:'Generative [LLM] — Fuse two scripts',
+    exec: async (src,ts,da,tgt) => { if(!tgt) throw new Error("GRAFT requires a target"); const sys="You are a spatial script compiler. Output ONLY valid BEFLIX code (128x96). Merge these two scripts into one unified composition. Keep under 40 lines. No markdown."; const user=`Script 1:\n${src.code}\n\nScript 2:\n${tgt.code}\n\nWeld these.`; const raw=await callLLM(sys,user); return {code:`C GRAFT — ${src.name} fused with ${tgt.name}\n`+stripCodeFences(raw), name:tgt.name, merge:true}; }
+  },
+  transmute: { reqTarget:false, lbl:'TRANSMUTE', hue:30, verb:'Generative [LLM] — Burn to ash',
+    exec: async (src) => { const sys="You are a spatial script compiler. Output ONLY valid BEFLIX code (128x96). Alter the script so the object melts/burns into ash. Lower values, scatter PNTs. Max 40 lines. No markdown."; const user=`Original:\n${src.code}\n\nTransmute to decay.`; const raw=await callLLM(sys,user); return {code:`C TRANSMUTE — Degraded ${src.name}\n`+stripCodeFences(raw), name:src.name+'-ASH'}; }
+  }
+};
+const opC = (op, l=55) => `hsl(${(OPS[op]||OPS.fork).hue},68%,${l}%)`;
+
+// ═══════════════════════════════════════
+// ZORC ROOM COMPILER & HELPERS
+// ═══════════════════════════════════════
+const ZORC_DIRECTIONS=['NORTH','EAST','SOUTH','WEST','UP','DOWN','IN','OUT','NEXT'];
+
+function zorcHash(str){ let h=2166136261;for(let i=0;i<String(str).length;i++){h^=String(str).charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0; }
+function zorcRng(seedText){ let s=zorcHash(seedText)||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;}; }
+function zorcClean(v){ return String(v||'').replace(/^["']|["']$/g,'').replace(/[;,]+$/,'').trim(); }
+function zorcTitle(name){ return String(name||'').replace(/[_-]/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').trim(); }
+function zorcNorm(s){ return zorcTitle(s).toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim(); }
+function zorcId(s){ return zorcNorm(s).replace(/\s+/g,'_')||'OBJECT'; }
+
+function cloneZorcObjects(objects){
+  return (objects||[]).map(o=>({...o,bounds:o.bounds?{...o.bounds}:null,verbs:[...(o.verbs||[])]}));
+}
+
+function deriveZorcRoomFromResult(srcCell,name,desc,code,opKey,objects){
+  const base=srcCell?.zorcRoom||{id:srcCell?.id||'R0',name:srcCell?.name||'Room',desc:srcCell?.desc||'',objects:[],history:[]};
+  return {...base,id:(srcCell?.id||'R')+'-'+opKey+'-'+cells.length,name,desc:desc||base.desc,beflix_code:code,
+    objects:objects||cloneZorcObjects(srcCell?.objects||base.objects),source_room_id:srcCell?.id||base.id,source_verb:opKey,
+    history:[...(base.history||[]),opKey]};
+}
+
+function extractPrompt(code){
+  for(const line of String(code).split('\n')){
+    const t=line.trim();
+    if(t.startsWith('C BEFLIX')||t.startsWith('C COMPOSITION')||(t.startsWith('C ')&&t.includes('COMPOSITION')))return t.slice(2).trim();
+    if(t.startsWith('C ')&&(t.includes('"')||t.includes('Subject')||t.includes('SUBJECT')))return t.slice(2).trim();
+  }
+  return '';
+}
+
+function inferZorcMotif(room){
+  const t=((room.name||'')+'  '+(room.desc||'')).toLowerCase();
+  const tests=[
+    ['train',/train|station|platform|tunnel|rail/],['apiary',/bee|apiary|hive|honey/],
+    ['cyber',/server|data|cyber|terminal|network|code/],['water',/ship|ocean|water|rain/],
+    ['industry',/factory|industrial|farm|warehouse/],['rupture',/crater|fire|explosive|military/],
+    ['domestic',/apartment|home|dinner|property/],['cinema',/camera|film|projector|screen|movie/],
+    ['territory',/.*/]
+  ];
+  let best=['territory',0];
+  tests.forEach(([name,re])=>{const m=t.match(new RegExp(re.source,'g'));const score=m?m.length:0;if(score>best[1])best=[name,score];});
+  return best[0];
+}
+
+function maxFrameNumber(code){ let n=0,m;const re=/FRAME\s+(\d+)/gi;while((m=re.exec(code)))n=Math.max(n,Number(m[1])||0);return n; }
+
+// ─── BEFLIX TRANSFORMS (deterministic, no LLM) ───
+function excavateBEFLIX(code){
+  const parts=String(code).split(/(?=^C\s*=+\s*FRAME\s+\d+:)/gmi);
+  if(parts.length<=4)return code;
+  const head=parts.shift();
+  return `${head}C ZORC VERB: EXCAVATE\nC Effect: late detail frames removed; construction mass remains.\n\n${parts.slice(0,4).join('')}`;
+}
+
+function corruptBEFLIX(code,seedText='corrupt'){
+  const rng=zorcRng(seedText);
+  return String(code).split('\n').map(line=>{
+    const raw=line.trim(),p=raw.split(/\s+/),cmd=(p[0]||'').toUpperCase();
+    if(cmd==='CLR'&&Number(p[1])===0&&rng()<.82)return'C CLR 0 REMOVED BY CORRUPT - persistence enabled';
+    if(cmd==='PNT'&&p.length>=6){
+      let[x,y,w,h,v]=p.slice(1).map(Number);
+      x+=Math.round((rng()-.5)*5);y+=Math.round((rng()-.5)*5);v=clamp(v+(rng()<.5?-1:1),1,7);
+      return`PNT ${clamp(x,0,127)} ${clamp(y,0,95)} ${clamp(w,1,128)} ${clamp(h,1,96)} ${v}`;
+    }
+    if(cmd==='LIN'&&p.length>=6){
+      let[x1,y1,x2,y2,v]=p.slice(1).map(Number);
+      x1+=Math.round((rng()-.5)*5);y1+=Math.round((rng()-.5)*5);x2+=Math.round((rng()-.5)*5);y2+=Math.round((rng()-.5)*5);
+      return`LIN ${clamp(x1,0,127)} ${clamp(y1,0,95)} ${clamp(x2,0,127)} ${clamp(y2,0,95)} ${clamp(v,1,7)}`;
+    }
+    if(cmd==='REC'&&rng()<.22)return`${line}\nSHF ${rng()<.5?-1:1} ${rng()<.5?0:1} 1`;
+    return line;
+  }).join('\n');
+}
+
+function illuminateBEFLIX(code,bounds){
+  const cx=bounds?bounds.x+bounds.w/2:64,cy=bounds?bounds.y+bounds.h/2:48,r=bounds?Math.max(24,bounds.w+bounds.h+18):38;
+  return String(code).split('\n').map(line=>{
+    const raw=line.trim(),p=raw.split(/\s+/),cmd=(p[0]||'').toUpperCase();
+    if(cmd==='PNT'&&p.length>=6){
+      let[x,y,w,h,v]=p.slice(1).map(Number);
+      const d=Math.hypot((x+w/2)-cx,(y+h/2)-cy);v=d<=r?clamp(v+3,0,7):clamp(v-1,0,7);
+      return`PNT ${x} ${y} ${w} ${h} ${v}`;
+    }
+    if(cmd==='LIN'&&p.length>=6){
+      let[x1,y1,x2,y2,v]=p.slice(1).map(Number);
+      const d=Math.hypot(((x1+x2)/2)-cx,((y1+y2)/2)-cy);v=d<=r?clamp(v+3,0,7):clamp(v-1,0,7);
+      return`LIN ${x1} ${y1} ${x2} ${y2} ${v}`;
+    }
+    return line;
+  }).join('\n')+`\n\nC ZORC VERB: ILLUMINATE\nC Light center ${Math.round(cx)} ${Math.round(cy)} radius ${Math.round(r)}\n`;
+}
+
+function floodBEFLIX(code,sourceName='RESERVOIR'){
+  const n=maxFrameNumber(code)+1;
+  const lines=[`C ===== FRAME ${n}: FLOOD FROM ${zorcTitle(sourceName).toUpperCase()} =====`,'CLR 0'];
+  for(let y=92;y>=58;y-=5)lines.push(`PNT 0 ${y} 128 ${Math.min(4,96-y)} ${2+((92-y)/5)%3|0}`);
+  lines.push('LIN 0 58 127 58 6','SHF 0 -1 4','REC 8');
+  return `${code}\n\nC ZORC VERB: FLOOD\nC Source room: ${sourceName}\n${lines.join('\n')}\n`;
+}
+
+function transmuteObjectBEFLIX(cell,obj,target='ASH'){
+  const b=obj?.bounds||{x:40,y:32,w:30,h:24},n=maxFrameNumber(cell.code)+1;
+  const debris=[];
+  for(let i=0;i<10;i++)debris.push(`PNT ${clamp(b.x+(i*7)%Math.max(8,b.w),0,127)} ${clamp(b.y+b.h+Math.floor(i/3)*3,0,95)} 2 2 ${2+i%4}`);
+  return `${cell.code}\n\nC ZORC VERB: TRANSMUTE ${obj?.name||'OBJECT'} INTO ${target}\nC ===== FRAME ${n}: ${zorcTitle(obj?.name||'OBJECT').toUpperCase()} COLLAPSES INTO ${target.toUpperCase()} =====\nCLR 0\nPNT ${b.x} ${b.y} ${b.w} ${Math.max(2,Math.floor(b.h/3))} 3\n${debris.join('\n')}\nREC 10\n`;
+}
+
+function genObjectBEFLIX(obj,roomName='ROOM'){
+  const b={x:42,y:30,w:44,h:34};
+  return [
+    `C BEFLIX-128 COMPOSITION: "${zorcTitle(obj.name).toUpperCase()} OBJECT"`,
+    `C ZORC OBJECT FROM: ${roomName}`,`C KIND ${obj.kind||'object'}`,
+    'C ===== FRAME 1: OBJECT GHOST =====','CLR 0',
+    `PNT ${b.x} ${b.y} ${b.w} ${b.h} 2`,'REC 4',
+    'C ===== FRAME 2: OBJECT SUBPROGRAM =====','CLR 0',
+    `PNT ${b.x} ${b.y} ${b.w} ${b.h} 5`,`LIN ${b.x} ${b.y} ${b.x+b.w} ${b.y} 7`,
+    `LIN ${b.x} ${b.y+b.h} ${b.x+b.w} ${b.y+b.h} 7`,'REC 8',
+    'C ===== FRAME 3: OBJECT HOLD =====','CLR 0',
+    `PNT ${b.x} ${b.y} ${b.w} ${b.h} 6`,`LIN ${b.x} ${b.y} ${b.x+b.w} ${b.y} 7`,
+    `LIN ${b.x} ${b.y+b.h} ${b.x+b.w} ${b.y+b.h} 7`,'REC 12'
+  ].join('\n')+'\n';
+}
+
+// ─── ZORC Cell Creation ───
+function addZorcCellFromCode(srcIdx,name,code,opKey,desc,objects){
+  const src=cells[srcIdx];if(!src)return-1;
+  const newIdx=cells.length;
+  const room=deriveZorcRoomFromResult(src,name,desc,code,opKey,objects);
+  const seed={x:src.seed.x+110+Math.random()*45,y:src.seed.y+(Math.random()-.5)*80};
+  const newCell={id:'c'+newIdx,name,desc:desc||`${opKey.toUpperCase()} from ${src.name}`,seed,polygon:[],aabb:{x:0,y:0,w:100,h:100},
+    frames:parseBEFLIX(code),curFrame:0,code,hue:(src.hue+(OPS[opKey]?.hue||45))%360,zorcRoom:room,objects:room.objects};
+  if(!newCell.frames.length)newCell.frames=[new Uint8Array(GR*GC)];
+  cells.push(newCell);edges.push({from:srcIdx,to:newIdx,op:opKey,label:opKey.toUpperCase(),command:opKey.toUpperCase(),created_by:'zorc'});
+  zorc.cut_sequence.push(newIdx);
+  tessellate();selectCell(newIdx);$('s-cells').textContent=cells.length;
+  renderOps();render();updateTimelineUI();renderCellList();smoothZoomToShow([newIdx]);
+  return newIdx;
+}
+
+function branchConsequenceCode(opKey,anchorCode,cell,cutFrame){
+  const key=(opKey||'fork').toLowerCase();
+  if(key==='corrupt'||key==='haunt')return corruptBEFLIX(anchorCode,cell.name+'-frame-'+cutFrame);
+  if(key==='illuminate')return illuminateBEFLIX(anchorCode,{x:42,y:28,w:44,h:34});
+  if(key==='flood')return floodBEFLIX(anchorCode,cell.name+' frame '+(cutFrame+1));
+  if(key==='excavate')return transformBEFLIXCoords(anchorCode,x=>x,y=>y,w=>w,h=>h,v=>Math.max(1,Math.min(v,3)));
+  if(key==='surface'||key==='zoom')return transformBEFLIXCoords(anchorCode,x=>(x-24)*1.6,y=>(y-18)*1.6,w=>w*1.6,h=>h*1.6,v=>clamp(v+1,0,7));
+  if(key==='modes')return transformBEFLIXCoords(anchorCode,x=>x,y=>y,w=>w,h=>h,v=>7-v);
+  if(key==='transmute')return anchorCode+`\nC FRAME CONSEQUENCE: TRANSMUTE INTO ASH\nPNT 24 70 80 8 2\nPNT 34 74 58 5 4\nSHF 0 1 5\nREC 6\n`;
+  return transformBEFLIXCoords(anchorCode,x=>x+(x<64?-8:8),y=>y+(y<48?-5:5),w=>w,h=>h,v=>clamp(v+1,0,7));
+}
+
+function frameToBEFLIX(frame,label=''){
+  let code=label?`C ===== ${label} =====\n`:'';
+  code+='CLR 0\n';
+  for(let y=0;y<GR;y++){
+    let x=0;
+    while(x<GC){
+      const v=frame[y*GC+x];
+      if(v>0){
+        let w=1;while(x+w<GC&&frame[y*GC+x+w]===v&&w<128)w++;
+        code+=`PNT ${x} ${y} ${w} 1 ${v}\n`;x+=w;
+      }else x++;
+    }
+  }
+  code+='REC 1\n\n';return code;
+}
+
+function frameBounds(frame){
+  let x0=GC,y0=GR,x1=0,y1=0;
+  for(let y=0;y<GR;y++)for(let x=0;x<GC;x++)if(frame[y*GC+x]>0){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);}
+  return {x:x0,y:y0,w:Math.max(1,x1-x0+1),h:Math.max(1,y1-y0+1)};
+}
+
+function blendFrames(a,b,alpha=.5){
+  const out=new Uint8Array(GR*GC);
+  for(let i=0;i<GR*GC;i++)out[i]=clamp(Math.round(a[i]*(1-alpha)+b[i]*alpha),0,7);
+  return out;
+}
+
+function branchAtFrame(opKey=curOp){
+  if(active<0){toast('Select a room',true);return-1;}
+  const cell=cells[active];
+  const cut=clamp(cell.curFrame||0,0,cell.frames.length-1);
+  const prefixStart=Math.max(0,cut-11);
+  let code=`C ZORC FRAME BRANCH\nC Source room: ${cell.name}\nC Cut frame: ${cut+1}/${cell.frames.length}\nC Operation: ${(opKey||curOp).toUpperCase()}@FRAME\n\n`;
+  for(let i=prefixStart;i<=cut;i++){
+    code+=frameToBEFLIX(cell.frames[i],`FRAME BRANCH PREFIX ${i+1} OF ${cell.name}`);
+  }
+  const anchor=frameToBEFLIX(cell.frames[cut],`FRAME ${cut+1} ANCHOR FOR ${(opKey||curOp).toUpperCase()} CONSEQUENCE`);
+  code+=`\nC ===== CONSEQUENCE AFTER FRAME ${cut+1}: ${(opKey||curOp).toUpperCase()} =====\n`;
+  code+=branchConsequenceCode(opKey,anchor,cell,cut);
+  const name=`${cell.name}-F${cut+1}-${(opKey||curOp).toUpperCase()}`;
+  const n=addZorcCellFromCode(active,name,code,opKey||curOp,`Frame ${cut+1} ${opKey||curOp} branch from ${cell.name}`,cloneZorcObjects(cell.objects));
+  if(n>=0){
+    edges[edges.length-1].label=`${(opKey||curOp).toUpperCase()}@F${cut+1}`;
+    edges[edges.length-1].command=`${(opKey||curOp).toUpperCase()} FRAME ${cut+1}`;
+    edges[edges.length-1].sourceFrame=cut;
+    edges[edges.length-1].branchType='frame';
+    zorcLog(`Frame branch compiled: ${(opKey||curOp).toUpperCase()} at frame ${cut+1}.`);
+  }
+  return n;
+}
+
+// ─── ZORC Console UI ───
+function zorcLog(text,type='out'){
+  zorc.log.push({text:String(text),type});
+  if(zorc.log.length>16)zorc.log.shift();
+  renderZorc();
+}
+
+function renderZorc(){
+  if(!$('zorc-room'))return;
+  const idx=active>=0?active:zorc.current;
+  if(idx>=0)zorc.current=idx;
+  const c=cells[zorc.current];
+  $('zorc-count').textContent=`${cells.length} OBJECTS`;
+  const logBox=$('zorc-log');logBox.innerHTML='';
+  if(!c){
+    $('zorc-room').textContent='NO ROOM';
+    return;
+  }
+  const room=c.zorcRoom;
+  $('zorc-room').textContent=zorcTitle(c.name);
+  zorc.log.slice(-10).forEach(l=>{
+    const row=document.createElement('div');
+    row.className='zorc-line '+(l.type||'out');
+    row.textContent=l.text;
+    logBox.appendChild(row);
+  });
+  logBox.scrollTop=logBox.scrollHeight;
+}
+
+function resolveZorcObject(cell,phrase){
+  const q=zorcNorm(phrase);
+  if(!q||q==='ROOM'||q==='CELL'||q==='TERRITORY')return null;
+  const objs=cell.objects||cell.zorcRoom?.objects||[];
+  return objs.find(o=>zorcNorm(o.name)===q)||objs.find(o=>zorcNorm(o.name).includes(q)||q.includes(zorcNorm(o.name)));
+}
+
+function resolveZorcRoomIndex(phrase){
+  const q=zorcNorm(phrase);
+  if(!q||q==='ROOM'||q==='CELL'||q==='HERE'||q==='TERRITORY')return zorc.current;
+  const exact=cells.findIndex(c=>zorcNorm(c.name)===q||zorcNorm(c.zorcRoom?.name||'')===q);
+  if(exact>=0)return exact;
+  const fuzzy=cells.findIndex(c=>zorcNorm(c.name).includes(q)||q.includes(zorcNorm(c.name)));
+  return fuzzy>=0?fuzzy:zorc.current;
+}
+
+function zorcDescribe(cell){
+  const room=cell.zorcRoom;
+  const objs=(cell.objects||room?.objects||[]).slice(0,12).map(o=>zorcTitle(o.name)).join(', ');
+  zorcLog(`${zorcTitle(cell.name)}: ${room?.desc||cell.desc||'A BEFLIX room.'}`);
+  zorcLog(`Objects: ${objs||'none visible'}.`);
+}
+
+function zorcGo(arg){
+  const current=zorc.current;
+  const outs=edges.filter(e=>e.from===current);
+  if(!outs.length){zorcLog('No exits compiled from this room. Try FORK ROOM or EXCAVATE ROOM.');return;}
+  const word=zorcNorm(arg.replace(/^GO\s+/i,'')).split(' ')[0]||'NEXT';
+  let edge=null;
+  if(word==='NEXT')edge=outs.find(e=>e.label==='NEXT'||e.created_by==='source sequence')||outs[0];
+  else if(['OUT','UP','BACK','PARENT','RETURN'].includes(word))edge=outs.find(e=>e.label==='PARENT'||e.to===cells[current]?.parentCellIndex);
+  else edge=outs.find(e=>
+    zorcNorm(e.label||'').includes(word)||
+    zorcNorm(e.command||'').includes(word)||
+    zorcNorm(cells[e.to]?.name||'').includes(word)
+  );
+  const dirIdx=ZORC_DIRECTIONS.indexOf(word);
+  if(!edge&&dirIdx>=0)edge=outs[dirIdx%outs.length];
+  edge=edge||outs[0];
+  const to=edge.to;
+  if(!cells[to]){zorcLog('That exit points to missing code.');return;}
+  selectCell(to);zorc.current=to;zorc.cut_sequence.push(to);
+  zorcLog(`Moved ${word} through ${((OPS[edge.op]||{}).lbl||edge.op||'EDGE')} to ${zorcTitle(cells[to].name)}.`);
+}
+
+function runZorcCommand(input){
+  const raw=String(input||'').trim();
+  if(!raw)return;
+  if(active>=0)zorc.current=active;
+  const cell=cells[zorc.current];
+  if(!cell){zorcLog('No room is active.');return;}
+  zorc.history.push({cmd:raw,cell:zorc.current});
+  zorcLog('> '+raw,'cmd');
+  const cmd=raw.toUpperCase().trim();
+  if(cmd==='LOOK'||cmd==='L'){zorcDescribe(cell);return;}
+  if(cmd.startsWith('LOOK ')){
+    const obj=resolveZorcObject(cell,raw.replace(/^LOOK\s+/i,''));
+    if(obj)zorcLog(`${zorcTitle(obj.name)}: ${obj.kind||'object'}. ${zorcTitle(obj.c_prompt)||'A compiled object.'}`);
+    else zorcDescribe(cell);
+    return;
+  }
+  if(cmd==='INVENTORY'||cmd==='INV'||cmd==='I'){zorcLog(`Inventory: ${zorc.inventory.map(zorcTitle).join(', ')||'empty'}.`);return;}
+  // Frame branching
+  const frameBranch=cmd.match(/^(BRANCH|FORK|CORRUPT|HAUNT|ILLUMINATE|FLOOD|EXCAVATE|SURFACE|ZOOM|MODES|TRANSMUTE)\s+FRAME/);
+  if(frameBranch){
+    const op=frameBranch[1]==='BRANCH'?curOp:frameBranch[1].toLowerCase();
+    const n=branchAtFrame(op);
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);}
+    return;
+  }
+  if(cmd.startsWith('GO ')){zorcGo(raw);return;}
+  if(cmd.startsWith('TAKE ')){
+    const obj=resolveZorcObject(cell,raw.replace(/^TAKE\s+/i,''));
+    if(!obj){zorcLog('No matching object in this room.');return;}
+    if(!obj.portable){zorcLog(`${zorcTitle(obj.name)} is part of the room physics. SURFACE or EXCAVATE it instead.`);return;}
+    if(!zorc.inventory.includes(obj.name))zorc.inventory.push(obj.name);
+    zorcLog(`Taken: ${zorcTitle(obj.name)}.`);renderZorc();return;
+  }
+  if(cmd.startsWith('EXCAVATE')){
+    const code=excavateBEFLIX(cell.code);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-EXC',code,'excavate','Excavated construction state',cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('Late render detail stripped.');}
+    return;
+  }
+  if(cmd.startsWith('CORRUPT')||cmd.startsWith('HAUNT')){
+    const code=`C ZORC VERB: CORRUPT\nC Effect: missing clear frames, coordinate drift.\n`+corruptBEFLIX(cell.code,cell.name);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-HAUNT',code,'corrupt','Corrupted persistent-trace room',cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('CLR commands damaged. Previous frames bleed forward.');}
+    return;
+  }
+  if(cmd.startsWith('FORK')){
+    const n=executeOpAsync('fork',zorc.current,-1);
+    if(typeof n==='object')n.then(()=>{zorc.current=cells.length-1;smoothZoomToShow([cells.length-1]);zorcLog('Forked a new branch room.');});
+    return;
+  }
+  if(cmd.startsWith('ILLUMINATE')){
+    const code=illuminateBEFLIX(cell.code,null);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-LIT',code,'illuminate',`Illuminated version of ${cell.name}`,cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('Light pass compiled.');}
+    return;
+  }
+  if(cmd.startsWith('FLOOD')){
+    const code=floodBEFLIX(cell.code,cell.name);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-FLOOD',code,'flood',`Flooded from ${cell.name}`,cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('Waterline injected.');}
+    return;
+  }
+  if(cmd.startsWith('SURFACE')){
+    const phrase=raw.replace(/^SURFACE\s*/i,'');
+    const obj=resolveZorcObject(cell,phrase);
+    if(obj){
+      const code=genObjectBEFLIX(obj,cell.name);
+      const n=addZorcCellFromCode(zorc.current,zorcTitle(obj.name)+'-SURFACE',code,'surface',`Surfaced object from ${cell.name}`,[obj]);
+      if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog(`Surfaced ${zorcTitle(obj.name)} into its own room.`);}
+    }else{
+      const n=executeOpAsync('surface',zorc.current,-1);
+      if(typeof n==='object')n.then(()=>{zorc.current=cells.length-1;smoothZoomToShow([cells.length-1]);zorcLog('Surfaced directional crop.');});
+    }
+    return;
+  }
+  if(cmd.startsWith('TRANSMUTE')){
+    const m=raw.match(/^TRANSMUTE\s+(.+?)(?:\s+INTO\s+(.+))?$/i);
+    const obj=resolveZorcObject(cell,m?.[1]||'');
+    const target=zorcClean(m?.[2]||'ASH').toUpperCase();
+    const code=transmuteObjectBEFLIX(cell,obj,target);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-'+target,code,'transmute',`Transmuted into ${target}`,cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog(`Transmuted into ${target}.`);}
+    return;
+  }
+  if(cmd.startsWith('EXPORT')){
+    if(cmd.includes('EDL'))exportZorcEDL();
+    else if(cmd.includes('TWEEL')||cmd.includes('JSON'))exportZorcTweel();
+    else if(cmd.includes('MAP')||cmd.includes('TERRITORY'))exportTerritoryMapBFX();
+    else if(cmd.includes('PATH'))exportPathBFX();
+    else if(cmd.includes('TWEE')||cmd.includes('TWINE'))exportZorcTwee();
+    else exportZorcTwee();
+    return;
+  }
+  zorcLog('Unknown verb. Try LOOK, GO NEXT, EXCAVATE ROOM, CORRUPT ROOM, ILLUMINATE, FLOOD, SURFACE, TRANSMUTE.');
+}
+
+function setupZorcConsole(){
+  $('zorc-run').addEventListener('click',()=>{runZorcCommand($('zorc-cmd').value);$('zorc-cmd').value='';});
+  $('zorc-cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runZorcCommand($('zorc-cmd').value);$('zorc-cmd').value='';}});
+  $('zorc-min').addEventListener('click',()=>{$('zorc-panel').classList.toggle('min');$('zorc-min').textContent=$('zorc-panel').classList.contains('min')?'Z':'-';});
+  zorcLog('ZORC online. Type LOOK or EXCAVATE ROOM.');
+}
+
+// ─── ZORC Export Functions ───
+function zorcSceneRecord(c,i){
+  const room=c.zorcRoom||{};
+  return {
+    index:i,id:c.id,name:c.name,description:room.desc||c.desc||'',
+    territory_kind:c.territoryKind||'room',
+    frame_count:c.frames?.length||0,current_frame:c.curFrame||0,
+    objects:(room.objects||c.objects||[]).map(o=>({id:o.id,name:o.name,kind:o.kind,verbs:o.verbs,portable:o.portable})),
+    c_prompt:room.c_prompt||extractPrompt(c.code)||'',
+    beflix_code:c.code
+  };
+}
+
+function zorcEdgeRecord(e,i){
+  const from=cells[e.from],to=cells[e.to];
+  return {
+    edit_index:i,
+    from:e.from,from_name:from?.name||null,
+    to:e.to,to_name:to?.name||null,
+    op:e.op,label:e.label||((OPS[e.op]||{}).lbl)||e.op,
+    command:e.command||e.label||e.op,
+    branch_type:e.branchType||'room',
+    source_frame:e.sourceFrame??null,
+    created_by:e.created_by||'unknown'
+  };
+}
+
+function zorcMapScale(){
+  if(!cells.length)return{x:v=>64,y:v=>48};
+  const xs=cells.map(c=>c.seed.x),ys=cells.map(c=>c.seed.y);
+  const minX=Math.min(...xs,0)-80,maxX=Math.max(...xs,1)+80;
+  const minY=Math.min(...ys,0)-80,maxY=Math.max(...ys,1)+80;
+  const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+  return {
+    x:v=>clamp(Math.round(((v-minX)/w)*118+5),0,127),
+    y:v=>clamp(Math.round(((v-minY)/h)*86+5),0,95)
+  };
+}
+
+function generateTerritoryMapBFX(){
+  if(!cells.length)return'C ZORC TERRITORY MAP FILM\nCLR 0\nREC 12\n';
+  const sc=zorcMapScale();
+  const dot=(c,v,size=1)=>`PNT ${sc.x(c.seed.x)} ${sc.y(c.seed.y)} ${size} ${size} ${v}`;
+  const line=e=>{
+    const a=cells[e.from],b=cells[e.to];if(!a||!b)return null;
+    return`LIN ${sc.x(a.seed.x)} ${sc.y(a.seed.y)} ${sc.x(b.seed.x)} ${sc.y(b.seed.y)} ${e.op==='fork'?6:4}`;
+  };
+  let code='C ZORC TERRITORY MAP FILM\n';
+  code+=`C Cells: ${cells.length} | Edges: ${edges.length}\n\n`;
+  code+=`C ===== FRAME 1: ALL TERRITORIES =====\nCLR 0\n`;
+  cells.forEach(c=>code+=dot(c,5,2)+'\n');
+  code+='REC 6\n\n';
+  code+=`C ===== FRAME 2: EDGES =====\nCLR 0\n`;
+  cells.forEach(c=>code+=dot(c,3,1)+'\n');
+  edges.map(line).filter(Boolean).forEach(l=>code+=l+'\n');
+  code+='REC 8\n\n';
+  const seq=zorc.cut_sequence.length?zorc.cut_sequence:[zorc.current].filter(i=>i!=null&&i>=0);
+  const pathLines=[];
+  for(let i=0;i<seq.length-1;i++){
+    const a=cells[seq[i]],b=cells[seq[i+1]];if(a&&b)pathLines.push(`LIN ${sc.x(a.seed.x)} ${sc.y(a.seed.y)} ${sc.x(b.seed.x)} ${sc.y(b.seed.y)} 7`);
+  }
+  code+=`C ===== FRAME 3: CURRENT PATH =====\nCLR 0\n`;
+  cells.forEach(c=>code+=dot(c,1,1)+'\n');
+  pathLines.forEach(l=>code+=l+'\n');
+  const activeCell=cells[zorc.current]||cells[active]||cells[0];
+  if(activeCell)code+=dot(activeCell,7,3)+'\n';
+  code+='REC 12\n';
+  return code;
+}
+
+function exportZorcEDL(){
+  const d={
+    type:'ZORC_EDL',version:1,
+    title:'CINEOSIS CD-MOS-03',
+    grid:{width:GC,height:GR,max_frames:MAX_FRAMES},
+    current_room:zorc.current,
+    inventory:zorc.inventory,
+    command_history:zorc.history,
+    cut_sequence:zorc.cut_sequence,
+    territory_map_beflix:generateTerritoryMapBFX(),
+    edits:edges.map(zorcEdgeRecord),
+    scenes:cells.map(zorcSceneRecord)
+  };
+  downloadText(JSON.stringify(d,null,2),'cineosis-zorc.edl.json','application/json');toast('Exported ZORC EDL');
+}
+
+function exportZorcTweel(){
+  const d={
+    type:'TWEEL_ZORC_BUNDLE',version:1,
+    story:{title:'CINEOSIS CD-MOS-03',format:'Twine/Twee with embedded BEFLIX'},
+    start:cells[0]?.name||'Start',
+    territory_map_beflix:generateTerritoryMapBFX(),
+    passages:cells.map((c,i)=>({
+      name:c.name,
+      tags:['zorc','beflix',inferZorcMotif(c.zorcRoom||{})],
+      text:`${c.zorcRoom?.desc||c.desc||''}\n\n{BEFLIX}\n${c.code}\n{/BEFLIX}`,
+      scene:zorcSceneRecord(c,i),
+      links:edges.filter(e=>e.from===i&&cells[e.to]).map(e=>({text:e.label||e.op,target:cells[e.to].name,source_frame:e.sourceFrame??null,command:e.command||e.op}))
+    })),
+    edits:edges.map(zorcEdgeRecord)
+  };
+  downloadText(JSON.stringify(d,null,2),'cineosis-zorc.tweel.json','application/json');toast('Exported TWEEL bundle');
+}
+
+function exportZorcTwee(){
+  let t=':: StoryData\n{"ifid":"'+((crypto&&crypto.randomUUID)?crypto.randomUUID():('CINEOSIS-'+Date.now()))+'","format":"Harlowe","format-version":"3.3.7"}\n\n:: StoryTitle\nCINEOSIS CD-MOS-03\n\n';
+  t+=':: Start\nCINEOSIS compiles each territory as a 128x96 BEFLIX code-room.\n\n';
+  if(cells[0])t+=`[[ENTER ${cells[0].name}|${cells[0].name}]]\n\n`;
+  cells.forEach((c,i)=>{
+    const room=c.zorcRoom;
+    t+=`:: ${c.name}\n`;
+    t+=`${room?.desc||c.desc||'Executable BEFLIX room.'}\n\n`;
+    t+=`{BEFLIX}\n${c.code}\n{/BEFLIX}\n\n`;
+    const outs=edges.filter(e=>e.from===i);
+    if(outs.length)t+='Exits:\n';
+    outs.forEach((e,ei)=>{
+      if(cells[e.to]){
+        const cut=e.sourceFrame!=null?` @F${e.sourceFrame+1}`:'';
+        t+=`[[${ZORC_DIRECTIONS[ei%ZORC_DIRECTIONS.length]} ${((OPS[e.op]||{}).lbl||e.op||'GO')}${cut}|${cells[e.to].name}]]\n`;
+      }
+    });
+    t+='\n';
+  });
+  downloadText(t,'cineosis-zorc.twee','text/plain');toast('Exported ZORC Twee');
+}
+
+function exportTerritoryMapBFX(){
+  downloadText(generateTerritoryMapBFX(),'cineosis-territory-map.bfx','text/plain');toast('Exported territory map');
+}
+
+function exportPathBFX(){
+  const seq=zorc.cut_sequence.length?zorc.cut_sequence:[zorc.current];
+  let out='C ZORC PATH FILM\nC Commands: '+zorc.history.map(h=>h.cmd).join(' | ')+'\n\n';
+  seq.forEach((idx,i)=>{const c=cells[idx];if(c)out+=`C ===== PATH ROOM ${i+1}: ${c.name} =====\n${c.code}\n\n`;});
+  downloadText(out,'cineosis-path-film.bfx','text/plain');toast('Exported path film');
+}
+
+function exportJSON(){
+  const d={cells:cells.map(c=>({
+    id:c.id,name:c.name,desc:c.desc,seed:c.seed,hue:c.hue,code:c.code,curFrame:c.curFrame,
+    zorcRoom:c.zorcRoom,objects:c.objects
+  })),edges,zorc};
+  downloadText(JSON.stringify(d),'cineosis-project.json','application/json');toast('Saved project');
+}
+
+function loadJSON(file){
+  const r=new FileReader();r.onload=e=>{
+    try{const d=JSON.parse(e.target.result);
+      cells=[];edges=d.edges||[];
+      (d.cells||[]).forEach(c=>{
+        cells.push({...c,polygon:[],aabb:{x:0,y:0,w:100,h:100},frames:[]});
+      });
+      tessellate();cells.forEach(c=>{if(!c.code)c.code='CLR 0\nREC 1';c.frames=parseBEFLIX(c.code);if(!c.curFrame)c.curFrame=0;});
+      if(d.zorc)zorc={...zorc,...d.zorc};
+      active=-1;$('s-cells').textContent=cells.length;
+      autoFit();render();updateTimelineUI();renderCellList();renderZorc();toast('Project loaded');
+    }catch(er){toast('Load error: '+er.message,true);}
+  };r.readAsText(file);
+}
+
+// ═══════════════════════════════════════
+// BEFLIX PARSER & RUNNER
+// ═══════════════════════════════════════
+function parseBEFLIX(code) {
+  const lines = String(code).toUpperCase().split('\n');
+  const frames = []; let mat = new Uint8Array(GR * GC);
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li].trim();
+    if (!line || line[0] === 'C' || line[0] === ';') continue;
+    const p = line.split(/\s+/), cmd = p[0], a = p.slice(1).map(Number);
+    try {
+      if (cmd === 'CLR') { mat.fill(clamp(a[0]||0,0,7)); }
+      else if (cmd === 'PNT') { const [px,py,pw,ph,pv]=a; const iv=clamp(pv||0,0,7); for(let dy=py;dy<py+ph;dy++)for(let dx=px;dx<px+pw;dx++) if(dy>=0&&dy<GR&&dx>=0&&dx<GC)mat[dy*GC+dx]=iv; }
+      else if (cmd === 'LIN') { const [x1,y1,x2,y2,lv]=a; const iv=clamp(lv||0,0,7); let lx=x1,ly=y1; const dx=Math.abs(x2-lx),sx=lx<x2?1:-1; const dy=-Math.abs(y2-ly),sy=ly<y2?1:-1;let le=dx+dy,lim=2000; while(lim-->0){if(lx>=0&&lx<GC&&ly>=0&&ly<GR)mat[ly*GC+lx]=iv;if(lx===x2&&ly===y2)break;const e2=2*le;if(e2>=dy){le+=dy;lx+=sx;}if(e2<=dx){le+=dx;ly+=sy;}} }
+      else if (cmd === 'REC') { const n=clamp(a[0]||1,1,MAX_FRAMES); for(let i=0;i<n&&frames.length<MAX_FRAMES;i++)frames.push(new Uint8Array(mat)); }
+      else if (cmd === 'SHF') { const [sdx,sdy,sn]=a; const count=clamp(sn||1,1,MAX_FRAMES); for(let fi=0;fi<count&&frames.length<MAX_FRAMES;fi++){const nm=new Uint8Array(GR*GC);for(let y=0;y<GR;y++)for(let x=0;x<GC;x++){const nx=x-sdx,ny=y-sdy;if(nx>=0&&nx<GC&&ny>=0&&ny<GR)nm[y*GC+x]=mat[ny*GC+nx];}mat=nm;frames.push(new Uint8Array(mat));} }
+    } catch(e){}
+  }
+  if (!frames.length) frames.push(new Uint8Array(mat));
+  return frames;
+}
+
+function ingest() {
+  ZORK_DATA.forEach((w, i) => {
+    cells.push({
+      id: 'c' + i, name: w.name || 'Cell-' + i,
+      seed: { x: (i % 3) * 240 + Math.random() * 30, y: Math.floor(i / 3) * 240 + Math.random() * 30 },
+      polygon: [], aabb: { x: 0, y: 0, w: 100, h: 100 },
+      frames: [], curFrame: 0, code: w.code, hue: (i * 137.5) % 360,
+      // RCC-MOS physics scaffolding
+      physics: defaultPhysics(),
+      phase: 'latent',
+      dynamic_scalars: {},
+      sediment: {},
+      layers: 0,
+    });
+  });
+  for (let i = 0; i < ZORK_DATA.length - 1; i++) { edges.push({ from: i, to: i + 1, op: 'fork' }); }
+  layout(); tessellate();
+  cells.forEach(c => { c.frames = parseBEFLIX(c.code); c.layers = c.frames.length; });
+  $('s-cells').textContent = cells.length;
+  recordEvent({ type: 'sys', text: 'RCC-MOS ENGINE INITIALIZED' });
+  recordEvent({ type: 'sys', text: `${cells.length} objects loaded into room` });
+}
+
+async function executeOpAsync(opKey, srcIdx, tgtIdx, tgtSeed, dragAngle) {
+  const op = OPS[opKey]; if (!op || !op.exec) return;
+  const src = cells[srcIdx];
+  const tgtCell = tgtIdx >= 0 && tgtIdx < cells.length ? cells[tgtIdx] : null;
+  if (opKey === 'graft' || opKey === 'transmute') $('llm-overlay').classList.add('on');
+  try {
+    const result = await op.exec(src, tgtSeed, dragAngle, tgtCell);
+    if (!result || !result.code) return;
+    if (result.merge && tgtCell) {
+      tgtCell.code = result.code; tgtCell.frames = parseBEFLIX(result.code); tgtCell.curFrame = 0;
+      selectCell(tgtIdx); toast(`${op.lbl}: ${src.name} → ${tgtCell.name}`);
+    } else {
+      const seed = tgtSeed || { x: src.seed.x + 80 + Math.random() * 40, y: src.seed.y + (Math.random() - .5) * 60 };
+      const newCell = { id: 'c'+cells.length, name: result.name||'Cell-'+cells.length, seed, polygon: [], aabb: {x:0,y:0,w:100,h:100}, frames: parseBEFLIX(result.code), curFrame: 0, code: result.code, hue: (src.hue + (op.hue||0)) % 360 };
+      if (!newCell.frames.length) newCell.frames = [new Uint8Array(GR*GC)];
+      cells.push(newCell); const newIdx = cells.length - 1;
+      edges.push({ from: srcIdx, to: newIdx, op: opKey });
+      tessellate(); selectCell(newIdx); $('s-cells').textContent = cells.length;
+      toast(`${op.lbl}: Generated ${newCell.name}`);
+      smoothZoomToShow([srcIdx, newIdx]);
+    }
+    renderOps(); render(); updateTimelineUI(); renderCellList();
+    if (active >= 0) { $('b-code').value = cells[active].code; }
+  } catch (err) { toast(`Compiler Error: ${err.message}`, true, 4000);
+  } finally { $('llm-overlay').classList.remove('on'); if (fireMode) setFireMode(true); }
+}
+
+// ═══════════════════════════════════════
+// LAYOUT & RENDER
+// ═══════════════════════════════════════
+function layout() {
+  const N = cells.length; if (!N) return;
+  const cols = Math.ceil(Math.sqrt(N)), sp = 240;
+  cells.forEach((c, i) => { if (!isFinite(c.seed.x) || (c.seed.x===0 && c.seed.y===0)) { c.seed.x = (i%cols)*sp + (Math.random()-.5)*30; c.seed.y = Math.floor(i/cols)*sp + (Math.random()-.5)*30; } });
+  for (let iter = 0; iter < 40; iter++) {
+    const f = cells.map(() => ({fx:0,fy:0}));
+    for (let i=0;i<N;i++) for (let j=i+1;j<N;j++) { let dx=cells[j].seed.x-cells[i].seed.x, dy=cells[j].seed.y-cells[i].seed.y; if(dx===0&&dy===0){dx=(Math.random()-.5)*2;dy=(Math.random()-.5)*2;} let d=Math.max(5,Math.sqrt(dx*dx+dy*dy)),rep=12000/(d*d); f[i].fx-=(dx/d)*rep;f[i].fy-=(dy/d)*rep;f[j].fx+=(dx/d)*rep;f[j].fy+=(dy/d)*rep; }
+    edges.forEach(e => { if(e.from>=N||e.to>=N)return; let dx=cells[e.to].seed.x-cells[e.from].seed.x,dy=cells[e.to].seed.y-cells[e.from].seed.y;if(dx===0&&dy===0){dx=(Math.random()-.5)*2;dy=(Math.random()-.5)*2;}let d=Math.max(5,Math.sqrt(dx*dx+dy*dy)),att=(d-sp*.7)*.04;f[e.from].fx+=(dx/d)*att;f[e.from].fy+=(dy/d)*att;f[e.to].fx-=(dx/d)*att;f[e.to].fy-=(dy/d)*att; });
+    cells.forEach((c, i) => { c.seed.x += isFinite(f[i].fx)?f[i].fx*.25:0; c.seed.y += isFinite(f[i].fy)?f[i].fy*.25:0; });
+  }
+}
+
+function tessellate() {
+  if (!cells.length) return;
+  if (layoutMode === 'grid') { tessellateGrid(); return; }
+  const vc = cells.filter(c => isFinite(c.seed.x) && isFinite(c.seed.y));
+  if (!vc.length) return;
+  const pts = vc.map(c => [c.seed.x, c.seed.y]);
+  const xs = vc.map(c => c.seed.x), ys = vc.map(c => c.seed.y);
+  const pad = 60;
+  let minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  if (minX===maxX){minX-=1;maxX+=1;} if (minY===maxY){minY-=1;maxY+=1;}
+  const bounds = [minX-pad, minY-pad, maxX+pad, maxY+pad];
+  try { delaunay = d3.Delaunay.from(pts); voronoi = delaunay.voronoi(bounds); } catch(e){return;}
+  cells.forEach((c,i) => {
+    if (!isFinite(c.seed.x)||!isFinite(c.seed.y)) return;
+    const vi = vc.indexOf(c); const poly = voronoi.cellPolygon(vi);
+    c.polygon = poly ? poly.map(p => [p[0],p[1]]) : [];
+    if (c.polygon.length) { const px2=c.polygon.map(p=>p[0]),py2=c.polygon.map(p=>p[1]); c.aabb={x:Math.min(...px2),y:Math.min(...py2),w:Math.max(...px2)-Math.min(...px2),h:Math.max(...py2)-Math.min(...py2)}; }
+  });
+}
+
+function tessellateGrid() {
+  const vc = cells.filter(c => isFinite(c.seed?.x) && isFinite(c.seed?.y));
+  const N = vc.length; if (!N) return;
+  const cols = Math.ceil(Math.sqrt(N)), cellW = 200, cellH = 150, gap = 12;
+  vc.forEach((c, i) => { const col = i%cols, row = Math.floor(i/cols), x = col*(cellW+gap), y = row*(cellH+gap); c.seed.x = x+cellW/2; c.seed.y = y+cellH/2; c.polygon = [[x,y],[x+cellW,y],[x+cellW,y+cellH],[x,y+cellH],[x,y]]; c.aabb = {x,y,w:cellW,h:cellH}; });
+  try { delaunay = d3.Delaunay.from(vc.map(c => [c.seed.x, c.seed.y])); } catch(e){}
+}
+
+function resize() { const cz=$('cz'); CW=CVS.width=cz.clientWidth; CH=CVS.height=cz.clientHeight; render(); }
+
+function render() {
+  if (!CTX) return;
+  CTX.fillStyle = '#e0deda'; CTX.fillRect(0, 0, CW, CH);
+  if (!cells.length) { CTX.fillStyle='#999'; CTX.font='900 12px '+getComputedStyle(document.body).fontFamily; CTX.textAlign='center'; CTX.fillText('NO CELLS',CW/2,CH/2); return; }
+  edges.forEach(e => { const from=cells[e.from],to=cells[e.to]; if(!from||!to)return; const h=OPS[e.op]?OPS[e.op].hue:45; CTX.strokeStyle=`hsla(${h},50%,45%,.35)`;CTX.lineWidth=1.5;CTX.beginPath();CTX.moveTo(from.seed.x*zoom+panX,from.seed.y*zoom+panY);CTX.lineTo(to.seed.x*zoom+panX,to.seed.y*zoom+panY);CTX.stroke(); const ax=to.seed.x*zoom+panX,ay=to.seed.y*zoom+panY,fx=from.seed.x*zoom+panX,fy=from.seed.y*zoom+panY,ang=Math.atan2(ay-fy,ax-fx);CTX.fillStyle=`hsla(${h},50%,45%,.5)`;CTX.beginPath();const mx2=(ax+fx)/2,my2=(ay+fy)/2;CTX.moveTo(mx2+6*Math.cos(ang),my2+6*Math.sin(ang));CTX.lineTo(mx2-5*Math.cos(ang-.4),my2-5*Math.sin(ang-.4));CTX.lineTo(mx2-5*Math.cos(ang+.4),my2-5*Math.sin(ang+.4));CTX.fill(); });
+  cells.forEach((_,i) => renderCell(i));
+  if (aiming) { CTX.strokeStyle=opC(curOp,55);CTX.lineWidth=2.5;CTX.setLineDash([6,4]);CTX.beginPath();CTX.moveTo(aiming.sx,aiming.sy);CTX.lineTo(aiming.ex,aiming.ey);CTX.stroke();CTX.setLineDash([]); if(aimingTgt>=0&&aimingTgt!==aiming.srcIdx){const c=cells[aimingTgt];const sp=c.polygon.map(p=>[p[0]*zoom+panX,p[1]*zoom+panY]);if(sp.length){CTX.strokeStyle=opC(curOp,55);CTX.lineWidth=4;CTX.beginPath();CTX.moveTo(sp[0][0],sp[0][1]);for(let i=1;i<sp.length;i++)CTX.lineTo(sp[i][0],sp[i][1]);CTX.closePath();CTX.stroke();}} }
+}
+
+function renderCell(idx) {
+  const c = cells[idx]; if (!c.polygon.length || !c.frames.length) return;
+  const fi = playhead % c.frames.length;
+  let grid = c.frames[fi];
+  if (drawing && idx === active && (tool === 'rect' || tool === 'line')) { grid = new Uint8Array(grid); if(tool==='rect'){const rx2=Math.min(drawStart[0],drawCur[0]),ry2=Math.min(drawStart[1],drawCur[1]);const rw2=Math.max(drawStart[0],drawCur[0])-rx2+1,rh2=Math.max(drawStart[1],drawCur[1])-ry2+1;for(let yy=ry2;yy<ry2+rh2;yy++)for(let xx=rx2;xx<rx2+rw2;xx++)if(xx>=0&&xx<GC&&yy>=0&&yy<GR)grid[yy*GC+xx]=ink;}else{plotLine(grid,drawStart[0],drawStart[1],drawCur[0],drawCur[1],ink,brushSz);} }
+  const a = c.aabb, sx = a.x*zoom+panX, sy = a.y*zoom+panY, sw = a.w*zoom, sh = a.h*zoom;
+  if (sx+sw<0||sy+sh<0||sx>CW||sy>CH) return;
+  const sp = c.polygon.map(p => [p[0]*zoom+panX, p[1]*zoom+panY]);
+  let rw, rh, rx, ry;
+  if (sw/sh > GC/GR) { rh=sh; rw=rh*(GC/GR); rx=sx+(sw-rw)/2; ry=sy; }
+  else { rw=sw; rh=rw/(GC/GR); rx=sx; ry=sy+(sh-rh)/2; }
+  CTX.save();
+  CTX.beginPath(); CTX.moveTo(sp[0][0],sp[0][1]); for(let i=1;i<sp.length;i++)CTX.lineTo(sp[i][0],sp[i][1]); CTX.closePath(); CTX.clip();
+  CTX.fillStyle = idx===active ? '#fff' : '#f8f7f3'; CTX.fillRect(sx,sy,sw,sh);
+  const dw = rw/GC, dh = rh/GR;
+  if (dw >= 1 && dh >= 1) {
+    for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){const val=grid[gy*GC+gx];if(val>0){const px2=rx+(gx/GC)*rw+dw/2,py2=ry+(gy/GR)*rh+dh/2,r=Math.max(.4,(dw*.38)*(val/7));const b=Math.round(255-(val/7)*220);CTX.fillStyle=`rgb(${b},${b},${b})`;CTX.beginPath();CTX.arc(px2,py2,r,0,Math.PI*2);CTX.fill();}}
+  } else {
+    const blk = Math.max(1,Math.ceil(3/zoom));
+    for(let gy=0;gy<GR;gy+=blk)for(let gx=0;gx<GC;gx+=blk){let sum=0,cnt=0;for(let by=0;by<blk&&gy+by<GR;by++)for(let bx=0;bx<blk&&gx+bx<GC;bx++){sum+=grid[(gy+by)*GC+(gx+bx)];cnt++;}const avg=sum/cnt;if(avg>.3){const b=Math.round(255-(avg/7)*220);CTX.fillStyle=`rgba(${b},${b},${b},${clamp(avg/4,.2,1)})`;CTX.fillRect(rx+(gx/GC)*rw,ry+(gy/GR)*rh,Math.max(1,(blk/GC)*rw),Math.max(1,(blk/GR)*rh));}}
+  }
+  CTX.restore();
+  CTX.beginPath();CTX.moveTo(sp[0][0],sp[0][1]);for(let i=1;i<sp.length;i++)CTX.lineTo(sp[i][0],sp[i][1]);CTX.closePath();
+  if(idx===active){CTX.strokeStyle='#000';CTX.lineWidth=3;}else{const phase=c.phase||'latent';const phaseColors={surging:'rgba(255,77,77,.7)',diffusing:'rgba(245,158,11,.6)',damaged:'rgba(189,0,255,.6)',collapsed:'rgba(100,100,100,.3)'};CTX.strokeStyle=phaseColors[phase]||'rgba(0,0,0,.2)';CTX.lineWidth=phase==='surging'||phase==='damaged'?2.5:1;}
+  CTX.stroke();
+  // Cell label with phase indicator
+  if(rw>45&&rh>25){const cx2=rx+rw/2,cy2=ry+rh-3;CTX.fillStyle=idx===active?'#000':'rgba(0,0,0,.25)';CTX.font=`900 ${clamp(Math.round(rw/14),6,10)}px ${getComputedStyle(document.body).fontFamily}`;CTX.textAlign='center';CTX.textBaseline='bottom';CTX.fillText(c.name.slice(0,18),cx2,cy2);
+    // Phase label
+    if(c.phase&&c.phase!=='latent'&&c.phase!=='active'&&rw>70){const pLabel=c.phase.toUpperCase();const pColors={surging:'#ff4d4d',diffusing:'#f59e0b',damaged:'#bd00ff',collapsed:'#888'};CTX.font=`900 ${clamp(Math.round(rw/18),5,7)}px ${getComputedStyle(document.body).fontFamily}`;CTX.fillStyle=pColors[c.phase]||'#888';CTX.fillText(pLabel,cx2,cy2+9);}
+    // Integrity bar (thin line at bottom edge)
+    if(c.physics&&rw>50){const barY=ry+rh-1,barW=rw*0.6,barX=rx+(rw-barW)/2;const integrity=c.physics.integrity||1;CTX.fillStyle='rgba(0,0,0,.15)';CTX.fillRect(barX,barY,barW,2);const iColor=integrity>0.7?'rgba(26,107,58,.6)':integrity>0.4?'rgba(245,158,11,.6)':'rgba(255,77,77,.6)';CTX.fillStyle=iColor;CTX.fillRect(barX,barY,barW*clamp(integrity,0,1),2);}
+  }
+}
+
+function smoothZoomToShow(indices) {
+  if(!indices.length)return;let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  indices.forEach(i=>{const c=cells[i];if(!c)return;x0=Math.min(x0,c.seed.x-100);y0=Math.min(y0,c.seed.y-80);x1=Math.max(x1,c.seed.x+100);y1=Math.max(y1,c.seed.y+80);});
+  const tw=x1-x0,th=y1-y0,tz=Math.min(CW/tw,CH/th)*.85;const tpx=CW/2-(x0+tw/2)*tz,tpy=CH/2-(y0+th/2)*tz;
+  const startZ=zoom,startPX=panX,startPY=panY,t0=performance.now();
+  function anim(t){const p=Math.min(1,(t-t0)/400);const ease=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;zoom=startZ+(tz-startZ)*ease;panX=startPX+(tpx-startPX)*ease;panY=startPY+(tpy-startPY)*ease;render();if(p<1)requestAnimationFrame(anim);}
+  requestAnimationFrame(anim);
+}
+
+// ═══════════════════════════════════════
+// UI & EVENT HANDLERS
+// ═══════════════════════════════════════
+function renderCellList() {
+  const cont = $('cell-list'); if(!cont) return; cont.innerHTML = '';
+  cells.forEach((c,i) => { const tc = document.createElement('div'); tc.className = 'tc' + (i===active?' sel':''); tc.innerHTML = `<div class="tc-hd"><span class="tc-n">${i+1}</span><span class="tc-name">${c.name}</span><span class="tc-frames">${c.frames.length}f</span></div>`; tc.onclick = () => { selectCell(i); closeSheets(); }; cont.appendChild(tc); });
+}
+
+function renderOps() {
+  const cont = $('c-ops'); if(!cont) return; cont.innerHTML = '';
+  Object.entries(OPS).forEach(([key, op]) => { const btn = document.createElement('div'); btn.className = 'op-card' + (key===curOp?' on':''); if(key===curOp)btn.style.cssText=`background:hsl(${op.hue},68%,45%);border-color:hsl(${op.hue},68%,35%);color:#fff`; btn.innerHTML = `${op.lbl}<div class="op-verb">${op.verb}</div>`; btn.onclick = () => { curOp=key; renderOps(); buildOpBar(); setFireMode(true); closeSheets(); toast(op.lbl+' armed — drag a cell to fire.'); }; cont.appendChild(btn); });
+}
+
+function buildOpBar() {
+  const strip = $('or-strip'); if(!strip) return; strip.innerHTML = '';
+  Object.entries(OPS).forEach(([key, op]) => { const card = document.createElement('div'); card.className = 'or-op' + (key===curOp?' cur':''); const llm = /llm/i.test(op.verb||''); if(key===curOp){card.style.background=`hsl(${op.hue},68%,46%)`;card.style.borderColor=`hsl(${op.hue},68%,30%)`;card.style.color='#fff';} card.innerHTML = `<span class="or-lbl">${op.lbl}</span><span class="or-tag">${op.reqTarget?'→ TARGET':(llm?'LLM':'SOLO')}</span>`; card.onclick = () => { curOp=key; buildOpBar(); renderOps(); setFireMode(true); }; strip.appendChild(card); });
+  const cur = strip.querySelector('.or-op.cur'); if(cur)cur.scrollIntoView({inline:'center',block:'nearest'});
+  const fb = $('or-fire'); if(fb){fb.classList.toggle('armed',fireMode);$('or-fire-lbl').textContent = fireMode?'FIRING':'FIRE';}
+}
+
+function setFireMode(on) {
+  fireMode = on; $('cz').classList.toggle('armed', on);
+  const fb = $('or-fire'); if(fb){fb.classList.toggle('armed',on);$('or-fire-lbl').textContent=on?'FIRING':'FIRE';}
+  const o = OPS[curOp]; const am = $('aim-msg');
+  if(on){am.textContent = o.reqTarget?(o.lbl+' — DRAG TO A CELL'):(o.lbl+' — TAP OR DRAG A CELL');am.classList.add('on');}
+  else{am.classList.remove('on');}
+}
+
+function updateTimelineUI() {
+  const strip = $('tl-strip'); strip.innerHTML = '';
+  const info = $('tl-info');
+  if (active < 0) { strip.innerHTML = '<span id="tl-empty">SELECT A CELL</span>'; if(info)info.textContent='NO CELL'; $('sb-frame').textContent='0/0'; return; }
+  const c = cells[active]; if(info)info.textContent=`${c.name.slice(0,14)} · ${c.curFrame+1}/${c.frames.length}`;
+  $('sb-frame').textContent = `${(c.curFrame+1).toString().padStart(2,'0')}/${c.frames.length.toString().padStart(2,'0')}`;
+  c.frames.forEach((frame,i) => {
+    const div = document.createElement('div'); div.className = 'tl-frame' + (i===c.curFrame?' cur':'');
+    const mc = document.createElement('canvas'); mc.width=GC; mc.height=GR;
+    const mx = mc.getContext('2d'); mx.fillStyle='#1a1a1a'; mx.fillRect(0,0,GC,GR);
+    for(let gy=0;gy<GR;gy+=2)for(let gx=0;gx<GC;gx+=2){const val=frame[gy*GC+gx];if(val>0){const b=50+(val/7)*205;mx.fillStyle=`rgb(${b},${b},${b})`;mx.fillRect(gx,gy,2,2);}}
+    div.appendChild(mc); div.onclick = () => { c.curFrame=i; updateTimelineUI(); render(); };
+    strip.appendChild(div);
+  });
+}
+
+function buildSwatches() {
+  [$('dt-sw'), $('c-swatches')].forEach(cont => {
+    if(!cont)return; cont.innerHTML='';
+    for(let v=0;v<=7;v++){const sw=document.createElement('div');sw.className='dt-swatch'+(v===ink?' on':'');const b=v===0?244:Math.round(255-(v/7)*220);sw.style.background=`rgb(${b},${b},${b})`;sw.onclick=()=>{ink=v;buildSwatches();};cont.appendChild(sw);}
+  });
+}
+function syncToolBtns() { document.querySelectorAll('.dt-btn[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tool)); ['tool-pen','tool-rect','tool-erase'].forEach(id=>{const el=$(id);if(el)el.classList.toggle('on',id==='tool-'+tool);}); buildSwatches(); }
+
+function selectCell(idx) {
+  active = idx; const c = cells[idx];
+  zorc.current = idx;
+  $('draw-tb').classList.add('on'); $('b-code').value = c.code;
+  render(); updateTimelineUI(); renderCellList(); renderZorc();
+}
+
+function cellAt(sx, sy) { if(!delaunay) return -1; return delaunay.find((sx-panX)/zoom, (sy-panY)/zoom); }
+function getCanvasXY(e) { const r=$('cz').getBoundingClientRect(); const cx=e.clientX??(e.touches?.[0]?.clientX??0); const cy=e.clientY??(e.touches?.[0]?.clientY??0); return [cx-r.left,cy-r.top]; }
+
+function plotDot(grid, gx, gy, val, sz) { for(let by=-sz;by<=sz;by++)for(let bx=-sz;bx<=sz;bx++)if(bx*bx+by*by<=sz*sz){const px2=gx+bx,py2=gy+by;if(px2>=0&&px2<GC&&py2>=0&&py2<GR)grid[py2*GC+px2]=val;} }
+function plotLine(grid, x0, y0, x1, y1, val, sz) { let lx=x0,ly=y0;const dx=Math.abs(x1-lx),sx=lx<x1?1:-1;const dy=-Math.abs(y1-ly),sy=ly<y1?1:-1;let le=dx+dy,lim=1000;while(lim-->0){plotDot(grid,lx,ly,val,sz);if(lx===x1&&ly===y1)break;const e2=2*le;if(e2>=dy){le+=dy;lx+=sx;}if(e2<=dx){le+=dx;ly+=sy;}} }
+function screenToGrid(mx, my, c) { const a=c.aabb,sw=a.w,sh=a.h,tr=GC/GR,ar=sw/sh; let rw,rh,rx,ry; if(ar>tr){rh=sh;rw=rh*tr;rx=a.x+(sw-rw)/2;ry=a.y;}else{rw=sw;rh=rw/tr;rx=a.x;ry=a.y+(sh-rh)/2;} const wx=(mx-panX)/zoom,wy=(my-panY)/zoom;return[clamp(Math.floor((wx-rx)/rw*GC),0,GC-1),clamp(Math.floor((wy-ry)/rh*GR),0,GR-1)]; }
+
+function onDown(e) {
+  e.preventDefault();
+  if(e.pointerId!=null){pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});try{CVS.setPointerCapture(e.pointerId);}catch(_){}}
+  if(pointers.size===2){drawing=false;panning=false;dragNode=-1;aiming=null;aimingTgt=-1;const pts=[...pointers.values()];const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);const r=$('cz').getBoundingClientRect();const cx2=(pts[0].x+pts[1].x)/2-r.left,cy2=(pts[0].y+pts[1].y)/2-r.top;pinchState={dist,zoom,wx:(cx2-panX)/zoom,wy:(cy2-panY)/zoom};render();return;}
+  if(pointers.size>2)return;
+  const [mx,my]=getCanvasXY(e); const idx=cellAt(mx,my);
+  if(e.button===2){if(idx>=0&&idx<cells.length){active=idx;$('ctx').style.left=e.clientX+'px';$('ctx').style.top=e.clientY+'px';$('ctx').classList.add('on');$('ctx-name').textContent=cells[idx].name;render();}return;}
+  $('ctx').classList.remove('on');
+  if((e.shiftKey||fireMode)&&idx>=0&&idx<cells.length){selectCell(idx);aiming={srcIdx:idx,sx:mx,sy:my,ex:mx,ey:my};aimingTgt=idx;CVS.style.cursor='crosshair';$('aim-msg').classList.add('on');$('aim-msg').textContent=OPS[curOp].reqTarget?(OPS[curOp].lbl+" — DRAG TO A CELL"):(OPS[curOp].lbl+" — RELEASE TO APPLY");return;}
+  if(fireMode&&idx<0){toast('Tap a cell to fire '+OPS[curOp].lbl,true);return;}
+  if(active>=0&&idx===active&&!e.shiftKey&&!fireMode){const c=cells[active];const [gx,gy]=screenToGrid(mx,my,c);drawing=true;drawStart=[gx,gy];drawCur=[gx,gy];drawPrev=[gx,gy];if(tool==='pen'||tool==='erase'){plotDot(c.frames[c.curFrame%c.frames.length],gx,gy,tool==='erase'?0:ink,brushSz);render();}return;}
+  if(idx>=0&&idx<cells.length){selectCell(idx);dragNode=idx;dragOff={x:mx-cells[idx].seed.x*zoom-panX,y:my-cells[idx].seed.y*zoom-panY};return;}
+  panning=true;panS={x:mx,y:my,px:panX,py:panY};CVS.style.cursor='grabbing';
+}
+
+function onMove(e) {
+  if(e.pointerId!=null&&pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinchState&&pointers.size>=2){const pts=[...pointers.values()];const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);const r=$('cz').getBoundingClientRect();const cx2=(pts[0].x+pts[1].x)/2-r.left,cy2=(pts[0].y+pts[1].y)/2-r.top;zoom=clamp(pinchState.zoom*(dist/pinchState.dist),.015,8);panX=cx2-pinchState.wx*zoom;panY=cy2-pinchState.wy*zoom;render();return;}
+  const [mx,my]=getCanvasXY(e);
+  if(aiming){aiming.ex=mx;aiming.ey=my;aimingTgt=cellAt(mx,my);render();return;}
+  if(drawing&&active>=0){const c=cells[active];const [gx,gy]=screenToGrid(mx,my,c);drawCur=[gx,gy];if(tool==='pen'||tool==='erase'){plotLine(c.frames[c.curFrame%c.frames.length],drawPrev[0],drawPrev[1],gx,gy,tool==='erase'?0:ink,brushSz);drawPrev=[gx,gy];}render();return;}
+  if(dragNode>=0&&e.buttons){const nx=(mx-dragOff.x-panX)/zoom,ny=(my-dragOff.y-panY)/zoom;if(isFinite(nx)&&isFinite(ny)){cells[dragNode].seed.x=nx;cells[dragNode].seed.y=ny;tessellate();render();}return;}
+  if(panning){panX=panS.px+(mx-panS.x);panY=panS.py+(my-panS.y);render();return;}
+  const idx=cellAt(mx,my);CVS.style.cursor=idx>=0?(active===idx?'crosshair':'pointer'):'grab';
+}
+
+async function onUp(e) {
+  if(e.pointerId!=null){pointers.delete(e.pointerId);try{CVS.releasePointerCapture(e.pointerId);}catch(_){}}
+  if(pinchState){if(pointers.size<2){pinchState=null;panning=false;dragNode=-1;CVS.style.cursor=fireMode?'crosshair':'grab';}return;}
+  const [mx,my]=getCanvasXY(e);
+  if(aiming){const tgtIdx=cellAt(mx,my);const dragAngle=Math.atan2(my-aiming.sy,mx-aiming.sx);const srcIdx=aiming.srcIdx;aiming=null;aimingTgt=-1;CVS.style.cursor=fireMode?'crosshair':'grab';if(!fireMode)$('aim-msg').classList.remove('on');if(OPS[curOp].reqTarget&&tgtIdx===srcIdx){toast(OPS[curOp].lbl+" needs a second cell",true);render();return;}if(tgtIdx>=0&&tgtIdx<cells.length&&tgtIdx!==srcIdx){await executeOpAsync(curOp,srcIdx,tgtIdx,null,dragAngle);}else if(!OPS[curOp].reqTarget){const wx=(mx-panX)/zoom,wy=(my-panY)/zoom;await executeOpAsync(curOp,srcIdx,-1,{x:wx,y:wy},dragAngle);}else{toast("Drag to a cell to apply "+OPS[curOp].lbl,true);render();}return;}
+  if(drawing){if(tool==='rect'||tool==='line'){const c=cells[active];const grid=c.frames[c.curFrame%c.frames.length];if(tool==='rect'){const rx2=Math.min(drawStart[0],drawCur[0]),ry2=Math.min(drawStart[1],drawCur[1]);const rw2=Math.max(drawStart[0],drawCur[0])-rx2+1,rh2=Math.max(drawStart[1],drawCur[1])-ry2+1;for(let yy=ry2;yy<ry2+rh2;yy++)for(let xx=rx2;xx<rx2+rw2;xx++)if(xx>=0&&xx<GC&&yy>=0&&yy<GR)grid[yy*GC+xx]=ink;}else{plotLine(grid,drawStart[0],drawStart[1],drawCur[0],drawCur[1],ink,brushSz);}}drawing=false;updateTimelineUI();render();return;}
+  dragNode=-1;if(panning){panning=false;CVS.style.cursor='grab';}
+}
+
+// ═══════════════════════════════════════
+// PLAYBACK
+// ═══════════════════════════════════════
+function togglePlay() { playing=!playing;$('play-lbl').textContent=playing?'STOP':'PLAY';$('play-btn').classList.toggle('playing',playing);$('reel-svg').classList.toggle('spinning',playing);if(playing){_lastT=performance.now();_raf=requestAnimationFrame(tick);}else if(_raf){cancelAnimationFrame(_raf);_raf=null;} }
+function tick(t) { if(!playing)return; if(t-_lastT>=1000/fps){_lastT=t-((t-_lastT)%(1000/fps));playhead++;if(active>=0){const c=cells[active];c.curFrame=playhead%c.frames.length;}tickPhysics();render();updateTimelineUI();} _raf=requestAnimationFrame(tick); }
+
+// ═══════════════════════════════════════
+// CELL CREATION & BRANCHING
+// ═══════════════════════════════════════
+function createCell({name,code,frames,parentIdx=-1,op='make',hue}) {
+  const parent=parentIdx>=0&&parentIdx<cells.length?cells[parentIdx]:null;
+  const seed=parent?{x:parent.seed.x+80+Math.random()*40,y:parent.seed.y+(Math.random()-.5)*70}:{x:panX+CW*.4/zoom+Math.random()*40,y:panY+CH*.4/zoom+Math.random()*40};
+  let f=frames; if(!f){f=code?parseBEFLIX(code):[new Uint8Array(GR*GC)];} if(!f.length)f=[new Uint8Array(GR*GC)];
+  const cell={id:'c'+cells.length,name:name||'NEW TERRITORY',seed,polygon:[],aabb:{x:0,y:0,w:100,h:100},frames:f,curFrame:0,code:code||'CLR 0\nREC 1',hue:hue!=null?hue:(parent?(parent.hue+40)%360:Math.random()*360),
+    // RCC-MOS physics
+    physics: defaultPhysics(),
+    phase: 'latent',
+    dynamic_scalars: {},
+    sediment: {},
+    layers: f.length,
+  };
+  cells.push(cell); const idx=cells.length-1;
+  if(parent){
+    edges.push({from:parentIdx,to:idx,op});
+    // Operations inject energy into source cell
+    const energyByOp = {fork:0.3, corrupt:0.6, excavate:0.2, graft:0.5, transmute:0.8, surface:0.15, illuminate:0.1, flood:0.4, branch:0.2, make:0.1};
+    parent.physics.energy = clamp(parent.physics.energy + (energyByOp[op] || 0.2), -2, 2);
+    parent.phase = 'active';
+    recordEvent({ type: op, text: `${op.toUpperCase()} → ${name}`, cellIdx: idx, cellName: name, fromCellIdx: parentIdx, op });
+  } else {
+    recordEvent({ type: 'create', text: `Created ${name}`, cellIdx: idx, cellName: name });
+  }
+  if(layoutMode==='grid')tessellateGrid();else tessellate();
+  selectCell(idx); $('s-cells').textContent=cells.length;
+  return idx;
+}
+function makeBlank() { const idx=createCell({name:'NEW TERRITORY'}); autoFit(); render(); toast('Blank cell added'); return idx; }
+function branchFrame() {
+  if(active<0){toast('Select a cell to branch',true);return;}
+  const src=cells[active];const sf=src.frames[src.curFrame]?new Uint8Array(src.frames[src.curFrame]):new Uint8Array(GR*GC);
+  createCell({name:src.name.replace(/-B\d*$/,'')+'-B',frames:[sf,new Uint8Array(sf)],parentIdx:active,op:'branch',code:`C BRANCH from ${src.name} @frame ${src.curFrame+1}`});
+  autoFit(); render(); updateTimelineUI(); toast('Branched '+src.name+' @f'+(src.curFrame+1));
+}
+
+// ═══════════════════════════════════════
+// CHAT SYSTEM (multi-model via callLLM)
+// ═══════════════════════════════════════
+let chatHistory = [], chatBusy = false, chatStarted = false;
+
+function chatAddMsg(role, text) {
+  const log = $('chat-log'); if(!log) return null;
+  const div = document.createElement('div'); div.className = 'chat-msg ' + (role==='user'?'user':role==='system'?'sys':'bot');
+  div.textContent = text; log.appendChild(div); log.scrollTop = log.scrollHeight; return div;
+}
+
+function chatInit() {
+  if(chatStarted) return; chatStarted = true;
+  chatAddMsg('system', getProvider(ACTIVE_MODEL).toUpperCase() + ' · Mosaic composition & BEFLIX code');
+  chatAddMsg('bot', "I can see your mosaic ("+cells.length+" cells). Ask me to draw, animate, suggest operators, or explain BEFLIX commands.");
+  const chips = document.createElement('div'); chips.className = 'chat-chips';
+  [['Draw a tree','Draw a simple tree in the selected cell'],['Animate a blink','Make selected cell blink'],['Which operator?','Which operator creates the most interesting variation?']].forEach(([lbl,prompt]) => {
+    const b=document.createElement('button');b.className='chat-chip';b.textContent=lbl;b.onclick=()=>{$('chat-input').value=prompt;chatSend();};chips.appendChild(b);
+  });
+  $('chat-log').appendChild(chips);
+}
+
+function chatMosaicContext() {
+  const list = cells.map((c,i) => `${i+1}. ${c.name} (${c.frames.length}f)${i===active?' [SELECTED]':''}`).join('\n');
+  const sel = active >= 0 ? cells[active].name : 'none';
+  return `You are an AI assistant inside CINEOSIS CD-MOS-03 — a BEFLIX-style pixel animation tool using Voronoi mosaic territories. You help compose shots and write BEFLIX code.\n\nCurrent: selected=${sel}; ${cells.length} cells:\n${list}\n\nBEFLIX reference (${GC}×${GR}, values 0=white..7=black):\n  CLR v | PNT x y w h v | LIN x0 y0 x1 y1 v | REC n | SHF dx dy n\n\nWhen asked to DRAW/ANIMATE, reply with a fenced \`\`\`beflix code block. Keep coordinates in-bounds. Be concise.`;
+}
+
+async function chatSend() {
+  const inp=$('chat-input'); if(!inp||chatBusy)return;
+  const text=inp.value.trim(); if(!text)return;
+  inp.value=''; inp.style.height='auto';
+  chatAddMsg('user',text); chatHistory.push({role:'user',content:text});
+  chatBusy=true; $('chat-send').disabled=true;
+  const thinking=chatAddMsg('bot','…'); if(thinking)thinking.classList.add('thinking');
+  try {
+    const reply = await callLLM(chatMosaicContext(), text, 1000);
+    if(thinking){thinking.classList.remove('thinking');thinking.textContent='';renderBotReply(thinking,reply);}
+    chatHistory.push({role:'assistant',content:reply});
+    $('chat-log').scrollTop=$('chat-log').scrollHeight;
+  } catch(err) { if(thinking){thinking.classList.remove('thinking');thinking.textContent='Error: '+err.message;} }
+  finally { chatBusy=false; $('chat-send').disabled=false; }
+}
+
+function applyBeflixToCell(code) {
+  if(active<0){if(cells.length){selectCell(0);}else{toast('No cells',true);return;}}
+  const c=cells[active]; c.code=code; c.frames=parseBEFLIX(code); c.curFrame=0;
+  if(!c.frames.length)c.frames=[new Uint8Array(GR*GC)];
+  $('b-code').value=code; render(); updateTimelineUI(); toast(c.frames.length+' frames → '+c.name);
+}
+
+function renderBotReply(container, reply) {
+  const re = /```(?:beflix)?\s*\n?([\s\S]*?)```/gi;
+  let last=0,m,any=false;
+  while((m=re.exec(reply))){any=true;const before=reply.slice(last,m.index).trim();if(before){const t=document.createElement('div');t.textContent=before;container.appendChild(t);}const code=m[1].trim();const block=document.createElement('div');block.className='chat-code';const pre=document.createElement('pre');pre.textContent=code;block.appendChild(pre);const apply=document.createElement('button');apply.className='chat-apply';apply.textContent='▶ APPLY TO '+(active>=0?cells[active].name.slice(0,16):'CELL');apply.onclick=()=>{applyBeflixToCell(code);apply.textContent='✓ APPLIED';apply.disabled=true;};block.appendChild(apply);container.appendChild(block);last=re.lastIndex;}
+  const tail=reply.slice(last).trim();if(tail){const t=document.createElement('div');t.textContent=tail;container.appendChild(t);}
+  if(!any)container.textContent=reply;
+}
+
+// ═══════════════════════════════════════
+// MAKE / GENERATE
+// ═══════════════════════════════════════
+function makeRefresh() {
+  const sel=$('mk-parent'); if(!sel) return;
+  sel.innerHTML='<option value="-1">— none (standalone) —</option>';
+  cells.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=(i+1)+'. '+c.name+(i===active?' (selected)':'');if(i===active)o.selected=true;sel.appendChild(o);});
+  const bh=$('mk-branch-hint');
+  if(bh)bh.textContent=active>=0?`BRANCH copies "${cells[active].name}" from frame ${cells[active].curFrame+1} into a new linked cell.`:'BRANCH needs a selected cell.';
+}
+
+let makeBusy = false;
+async function makeGenerate() {
+  if(makeBusy)return;
+  const prompt=$('mk-prompt').value.trim(); if(!prompt){toast('Describe what to generate',true);return;}
+  const parentIdx=parseInt($('mk-parent').value);
+  const parent=parentIdx>=0?cells[parentIdx]:null;
+  makeBusy=true; const btn=$('mk-gen'); btn.disabled=true; const lbl=btn.textContent; btn.textContent='✦ GENERATING…';
+  $('llm-overlay').classList.add('on');
+  try {
+    const sys=`You generate a single BEFLIX pixel-animation cell. Grid ${GC}x${GR}, values 0=white..7=black. Commands: CLR v | PNT x y w h v | LIN x0 y0 x1 y1 v | REC n | C comment. Output ONLY a runnable script in a \`\`\`beflix block, plus NAME: <short uppercase name>.`;
+    let user=`Create: ${prompt}`; if(parent)user+=`\n\nChild of "${parent.name}". Parent:\n${parent.code}`;
+    const txt=await callLLM(sys,user,1200);
+    const codeM=txt.match(/```(?:beflix)?\s*\n?([\s\S]*?)```/i);
+    const nameM=txt.match(/NAME:\s*(.+)/i);
+    const code=codeM?codeM[1].trim():null; if(!code)throw new Error('No script returned');
+    const name=(nameM?nameM[1].trim():prompt.slice(0,18)).toUpperCase().slice(0,22);
+    createCell({name,code,parentIdx,op:parent?'graft':'make'}); autoFit(); render(); updateTimelineUI(); renderCellList();
+    $('mk-prompt').value=''; toast('Generated '+name); closeSheets();
+  }catch(err){toast('Generate failed: '+err.message,true,4000);}
+  finally{makeBusy=false;btn.disabled=false;btn.textContent=lbl;$('llm-overlay').classList.remove('on');}
+}
+
+// ═══════════════════════════════════════
+// EXPORT FUNCTIONS
+// ═══════════════════════════════════════
+function stamp() { return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-'); }
+function downloadURL(url, name) { const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove(); }
+function downloadText(text, name, mime) { const blob=new Blob([text],{type:(mime||'text/plain')+';charset=utf-8'});const url=URL.createObjectURL(blob);downloadURL(url,name);setTimeout(()=>URL.revokeObjectURL(url),4000); }
+
+function saveCanvas() { try{render();downloadURL(CVS.toDataURL('image/png'),'cineosis-mosaic-'+stamp()+'.png');toast('Saved PNG');}catch(e){toast('Save failed: '+e.message,true);} }
+
+function exportBeflix() {
+  const parts=cells.map((c,i)=>`C ====\nC CELL ${i+1}: ${c.name}  (${c.frames.length} frames)\nC ====\n${c.code}`);
+  downloadText(`C CINEOSIS CD-MOS-03 — BEFLIX export\nC ${cells.length} cells · ${stamp()}\n\n`+parts.join('\n\n'),'cineosis-beflix-'+stamp()+'.txt');
+  toast('Exported BEFLIX'); closeExport();
+}
+
+function exportTwee() {
+  const childrenOf=i=>edges.filter(e=>e.from===i).map(e=>({to:e.to,op:e.op}));
+  const startName=cells.length?cells[0].name:'Start';
+  const ifid=(crypto&&crypto.randomUUID)?crypto.randomUUID():('CINEOSIS-'+Date.now());
+  let out=`:: StoryTitle\nCINEOSIS CD-MOS-03\n\n:: StoryData\n${JSON.stringify({ifid,format:'Harlowe','format-version':'3.3.7',start:startName},null,2)}\n\n`;
+  cells.forEach((c,i)=>{const links=childrenOf(i).map(ch=>{const t=cells[ch.to];if(!t)return'';return `[[${ch.op.toUpperCase()} -> ${t.name}->${t.name}]]`;}).filter(Boolean).join('\n');out+=`:: ${c.name}\n${c.frames.length} frames.\n\n<!-- BEFLIX -->\n${c.code}\n<!-- /BEFLIX -->\n\n${links||'(end of branch)'}\n\n`;});
+  downloadText(out,'cineosis-story-'+stamp()+'.twee'); toast('Exported Twine'); closeExport();
+}
+
+function exportPlayer() {
+  const data={title:'CINEOSIS CD-MOS-03',GC,GR,fps,cells:cells.map(c=>({name:c.name,code:c.code,hue:c.hue})),edges:edges.map(e=>({from:e.from,to:e.to,op:e.op}))};
+  const json=JSON.stringify(data).replace(/<\/script>/gi,'<\\/script>');
+  const html=PLAYER_TPL.replace('/*__DATA__*/',json);
+  downloadText(html,'cineosis-player-'+stamp()+'.html','text/html'); toast('Exported player'); closeExport();
+}
+
+const PLAYER_TPL = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CINEOSIS Player</title><style>:root{--ink:#000;--paper:#fff;--bg:#f4f4f0;--font:ui-monospace,SFMono-Regular,Menlo,monospace}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--ink);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column}header{background:var(--ink);color:var(--paper);padding:10px 14px;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}#stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}#cvs{image-rendering:pixelated;border:3px solid var(--ink);background:#fff;width:min(92vw,640px);aspect-ratio:var(--ar)}#name{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}#links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.lnk{border:2px solid var(--ink);background:var(--paper);font:900 9px/1.2 var(--font);text-transform:uppercase;padding:9px 12px;cursor:pointer;box-shadow:3px 3px 0 #000}.lnk:active{transform:translate(3px,3px);box-shadow:none}footer{display:flex;gap:8px;justify-content:center;padding:10px}.nav{border:2px solid var(--ink);background:var(--paper);font:900 9px/1 var(--font);text-transform:uppercase;padding:9px 14px;cursor:pointer}</style></head><body><header>CINEOSIS CD-MOS-03</header><div id="stage"><canvas id="cvs"></canvas><div id="name">—</div><div id="links"></div></div><footer><button class="nav" id="play">⏸ PAUSE</button><button class="nav" id="restart">⟲ RESTART</button></footer><script>const DATA=/*__DATA__*/;const GC=DATA.GC,GR=DATA.GR,FPS=DATA.fps||12,MAX=120;const $=id=>document.getElementById(id);const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));function parseBEFLIX(code){const lines=String(code).toUpperCase().split('\\n');const frames=[];let mat=new Uint8Array(GR*GC);for(const raw of lines){const line=raw.trim();if(!line||line[0]==='C'||line[0]===';')continue;const p=line.split(/\\s+/),cmd=p[0],a=p.slice(1).map(Number);try{if(cmd==='CLR')mat.fill(clamp(a[0]||0,0,7));else if(cmd==='PNT'){const[x,y,w,h,v]=a,iv=clamp(v||0,0,7);for(let dy=y;dy<y+h;dy++)for(let dx=x;dx<x+w;dx++)if(dy>=0&&dy<GR&&dx>=0&&dx<GC)mat[dy*GC+dx]=iv;}else if(cmd==='LIN'){const[x1,y1,x2,y2,v]=a,iv=clamp(v||0,0,7);let lx=x1,ly=y1;const dx=Math.abs(x2-lx),sx=lx<x2?1:-1,dy=-Math.abs(y2-ly),sy=ly<y2?1:-1;let le=dx+dy,lim=2000;while(lim-->0){if(lx>=0&&lx<GC&&ly>=0&&ly<GR)mat[ly*GC+lx]=iv;if(lx===x2&&ly===y2)break;const e2=2*le;if(e2>=dy){le+=dy;lx+=sx;}if(e2<=dx){le+=dx;ly+=sy;}}}else if(cmd==='REC'){const n=clamp(a[0]||1,1,MAX);for(let i=0;i<n&&frames.length<MAX;i++)frames.push(new Uint8Array(mat));}else if(cmd==='SHF'){const[sdx,sdy,sn]=a,cnt=clamp(sn||1,1,MAX);for(let fi=0;fi<cnt&&frames.length<MAX;fi++){const nm=new Uint8Array(GR*GC);for(let y=0;y<GR;y++)for(let x=0;x<GC;x++){const nx=x-sdx,ny=y-sdy;if(nx>=0&&nx<GC&&ny>=0&&ny<GR)nm[y*GC+x]=mat[ny*GC+nx];}mat=nm;frames.push(new Uint8Array(mat));}}}catch(e){}}if(!frames.length)frames.push(new Uint8Array(mat));return frames;}DATA.cells.forEach(c=>{c.frames=parseBEFLIX(c.code);});const cvs=$('cvs');cvs.width=GC*5;cvs.height=GR*5;document.documentElement.style.setProperty('--ar',GC+'/'+GR);const ctx=cvs.getContext('2d');ctx.imageSmoothingEnabled=false;let cur=0,frame=0,playing=true,raf=null,last=0;function childrenOf(i){return DATA.edges.filter(e=>e.from===i).map(e=>({to:e.to,op:e.op}));}function drawFrame(){const c=DATA.cells[cur];if(!c)return;const f=c.frames[frame%c.frames.length];const sx=cvs.width/GC,sy=cvs.height/GR;ctx.fillStyle='#fff';ctx.fillRect(0,0,cvs.width,cvs.height);for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){const v=f[gy*GC+gx];if(v>0){const b=Math.round(255-(v/7)*255);ctx.fillStyle='rgb('+b+','+b+','+b+')';ctx.fillRect(gx*sx,gy*sy,Math.ceil(sx),Math.ceil(sy));}}}function go(i){cur=i;frame=0;render2();}function render2(){const c=DATA.cells[cur];$('name').textContent=c.name;const links=$('links');links.innerHTML='';childrenOf(cur).forEach(k=>{const t=DATA.cells[k.to];if(!t)return;const b=document.createElement('button');b.className='lnk';b.textContent=k.op.toUpperCase()+' → '+t.name;b.onclick=()=>go(k.to);links.appendChild(b);});drawFrame();}function tick(t){if(!playing){raf=requestAnimationFrame(tick);return;}if(t-last>=1000/FPS){last=t;frame++;drawFrame();}raf=requestAnimationFrame(tick);}$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'⏸ PAUSE':'▶ PLAY';};$('restart').onclick=()=>{frame=0;drawFrame();};go(0);raf=requestAnimationFrame(tick);<\\/script></body></html>`;
+
+let _recording = false;
+async function exportVideo() {
+  if(_recording)return;
+  if(active<0){if(cells.length)selectCell(0);else{toast('No cell',true);return;}}
+  if(typeof MediaRecorder==='undefined'||!CVS.captureStream){toast('Video not supported',true);return;}
+  const c=cells[active];
+  const tryTypes=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];
+  let mime='';for(const t of tryTypes)if(MediaRecorder.isTypeSupported(t)){mime=t;break;}
+  if(!mime){toast('No video encoder',true);return;}
+  const ext=mime.startsWith('video/mp4')?'mp4':'webm';
+  const wasPlaying=playing;if(playing)togglePlay();
+  _recording=true;closeExport();toast('Recording '+c.name+'…');
+  const stream=CVS.captureStream(30);const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6000000});const chunks=[];
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+  rec.onstop=()=>{const blob=new Blob(chunks,{type:mime});const url=URL.createObjectURL(blob);downloadURL(url,'cineosis-'+c.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-'+stamp()+'.'+ext);setTimeout(()=>URL.revokeObjectURL(url),6000);_recording=false;toast('Saved '+ext.toUpperCase());if(wasPlaying&&!playing)togglePlay();};
+  const fcount=Math.max(c.frames.length,1);const loops=2,frameMs=1000/fps;const totalMs=Math.min(Math.max(fcount*loops*frameMs,1500),12000);
+  rec.start();const saved=c.curFrame;let f=0;const startT=performance.now();
+  const step=()=>{if(!_recording)return;c.curFrame=f%fcount;render();f++;if(performance.now()-startT>=totalMs){c.curFrame=saved;render();rec.stop();return;}setTimeout(()=>requestAnimationFrame(step),frameMs);};requestAnimationFrame(step);
+}
+
+function openExport() { $('export-menu').classList.add('on'); }
+function closeExport() { $('export-menu').classList.remove('on'); }
+
+// ═══════════════════════════════════════
+// BEFLIX CODE MODAL (with REGEN + REFERENCE)
+// ═══════════════════════════════════════
+let _bfxFrames = [], _bfxCur = 0, _bfxPlaying = false, _bfxRaf = null;
+
+function openBfxModal(idx) {
+  if(idx===undefined)idx=active;if(idx<0){toast('Select a cell',true);return;}
+  active=idx;const c=cells[idx];
+  $('bfx-title').textContent='BEFLIX — '+c.name;$('bfx-editor').value=c.code;
+  $('bfx-lcount').textContent=c.code.split('\n').length+' LINES';
+  $('bfx-modal').classList.add('on');
+  bfxRunPreview();
+}
+
+function bfxRunPreview() {
+  const code=$('bfx-editor').value;
+  _bfxFrames=parseBEFLIX(code);_bfxCur=0;
+  $('bfx-fcount').textContent=_bfxFrames.length+' FRAMES';
+  $('bfx-lcount').textContent=code.split('\n').length+' LINES';
+  bfxRenderFrame();bfxRenderStrip();
+}
+
+function bfxRenderFrame() {
+  if(!_bfxFrames.length)return;
+  const cvs=$('bfx-cvs');const ctx=cvs.getContext('2d');
+  const frame=_bfxFrames[_bfxCur%_bfxFrames.length];
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cvs.width,cvs.height);
+  const sx=cvs.width/GC,sy=cvs.height/GR;
+  for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){const v=frame[gy*GC+gx];if(v>0){const b=Math.round(255-(v/7)*220);ctx.fillStyle=`rgb(${b},${b},${b})`;ctx.fillRect(gx*sx,gy*sy,Math.ceil(sx),Math.ceil(sy));}}
+  $('bfx-prev-frame').textContent=(_bfxCur+1)+'/'+_bfxFrames.length;
+}
+
+function bfxRenderStrip() {
+  const strip=$('bfx-prev-strip');strip.innerHTML='';
+  _bfxFrames.forEach((frame,i)=>{const div=document.createElement('div');div.className='bfx-pf'+(i===_bfxCur?' cur':'');const mc=document.createElement('canvas');mc.width=GC;mc.height=GR;const mx=mc.getContext('2d');mx.fillStyle='#111';mx.fillRect(0,0,GC,GR);for(let gy=0;gy<GR;gy+=2)for(let gx=0;gx<GC;gx+=2){const v=frame[gy*GC+gx];if(v>0){const b=50+(v/7)*205;mx.fillStyle=`rgb(${b},${b},${b})`;mx.fillRect(gx,gy,2,2);}}div.appendChild(mc);div.onclick=()=>{_bfxCur=i;bfxRenderFrame();bfxRenderStrip();};strip.appendChild(div);});
+}
+
+async function bfxRegen() {
+  if(active<0)return;const c=cells[active];
+  $('llm-overlay').classList.add('on');
+  try {
+    const sys=`You generate BEFLIX animation code. Grid ${GC}x${GR}, values 0=white..7=black. Commands: CLR v | PNT x y w h v | LIN x0 y0 x1 y1 v | REC n | SHF dx dy n. Output ONLY a runnable script in a \`\`\`beflix block. Keep it under 50 lines. Theme: ${c.name}.`;
+    const txt=await callLLM(sys,`Regenerate the BEFLIX animation code for "${c.name}". Current code:\n${c.code}\n\nCreate a fresh, improved version.`,1200);
+    const m=txt.match(/```(?:beflix)?\s*\n?([\s\S]*?)```/i);
+    if(m){$('bfx-editor').value=m[1].trim();bfxRunPreview();toast('Regenerated');}else{toast('No code block in response',true);}
+  }catch(e){toast('Regen failed: '+e.message,true);}
+  finally{$('llm-overlay').classList.remove('on');}
+}
+
+// ═══════════════════════════════════════
+// SHEET SYSTEM (ABCD)
+// ═══════════════════════════════════════
+function setTabActive(id) {
+  document.querySelectorAll('.tab, .snav').forEach(t => t.classList.remove('on-a','on-b','on-c','on-d','on-e'));
+  if(!id) return;
+  const cls = 'on-' + id;
+  [`tab-${id}`,`snav-${id}`].forEach(eid => { const el=$(eid); if(el)el.classList.add(cls); });
+}
+
+function toggleSheet(id) {
+  const sheet = $('sheet-'+id); if(!sheet) return;
+  if(openSheet === id) { closeSheets(); return; }
+  closeSheets(); sheet.classList.add('on'); $('backdrop').classList.add('on'); openSheet=id; setTabActive(id);
+  if(id==='b') { /* auto-init chat tab if user switches to it */ }
+  if(id==='d') makeRefresh();
+  if(id==='e') { refreshEventLog(); refreshBranchTree(); refreshPhysicsPanel(); }
+}
+
+function closeSheets() {
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('on'));
+  $('backdrop').classList.remove('on'); openSheet=null; setTabActive(null);
+}
+
+function openInnerTab(tabBtn) {
+  const panel = tabBtn.dataset.stab; if(!panel) return;
+  const sheet = tabBtn.closest('.sheet'); if(!sheet) return;
+  sheet.querySelectorAll('.sh-tab').forEach(t => t.classList.remove('on'));
+  tabBtn.classList.add('on');
+  sheet.querySelectorAll('.sh-body').forEach(b => b.style.display = 'none');
+  const target = $(panel); if(target) target.style.display = '';
+  if(panel === 'b-chat-panel') { chatInit(); setTimeout(() => $('chat-input')?.focus(), 300); }
+}
+
+function autoFit() {
+  if(!cells.length) return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity,found=false;
+  cells.forEach(c=>{if(!isFinite(c.seed?.x)||!isFinite(c.seed?.y))return;if(c.polygon&&c.polygon.length){for(const [px2,py2] of c.polygon){if(!isFinite(px2)||!isFinite(py2))continue;minX=Math.min(minX,px2);minY=Math.min(minY,py2);maxX=Math.max(maxX,px2);maxY=Math.max(maxY,py2);found=true;}}else{const r=90;minX=Math.min(minX,c.seed.x-r);minY=Math.min(minY,c.seed.y-r);maxX=Math.max(maxX,c.seed.x+r);maxY=Math.max(maxY,c.seed.y+r);found=true;}});
+  if(!found||!isFinite(minX)||!isFinite(maxX))return;
+  const tw=Math.max(maxX-minX,1),th=Math.max(maxY-minY,1);const margin=24;
+  const availW=Math.max(CW-margin*2,1),availH=Math.max(CH-margin*2,1);
+  zoom=clamp(Math.min(availW/tw,availH/th),.015,3);
+  panX=(CW-tw*zoom)/2-minX*zoom;panY=(CH-th*zoom)/2-minY*zoom;
+}
+
+// ═══════════════════════════════════════
+// CONTEXT MENU
+// ═══════════════════════════════════════
+function deleteCell(idx) {
+  if(idx<0||idx>=cells.length) return;
+  cells.splice(idx,1);
+  edges = edges.filter(e => e.from!==idx && e.to!==idx).map(e => ({...e, from: e.from>idx?e.from-1:e.from, to: e.to>idx?e.to-1:e.to}));
+  if(active===idx) active=-1; else if(active>idx) active--;
+  tessellate(); $('s-cells').textContent=cells.length; render(); updateTimelineUI(); renderCellList();
+  toast('Deleted cell');
+}
+
+// ═══════════════════════════════════════
+// DOM WIRING
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  CVS = $('cvs'); CTX = CVS.getContext('2d');
+  buildSwatches(); buildOpBar(); resize(); ingest(); autoFit(); renderOps();
+  $('op-mode').textContent = layoutMode.toUpperCase();
+  render(); updateTimelineUI(); renderCellList();
+  setupZorcConsole(); renderZorc();
+
+  // Canvas interactions
+  CVS.addEventListener('pointerdown', onDown); CVS.addEventListener('pointermove', onMove); CVS.addEventListener('pointerup', onUp); CVS.addEventListener('pointercancel', onUp);
+  CVS.addEventListener('wheel', e => { e.preventDefault(); const [mx,my]=getCanvasXY(e); const [wx,wy]=[(mx-panX)/zoom,(my-panY)/zoom]; zoom=clamp(zoom*(e.deltaY<0?1.1:.9),.015,8); panX=mx-wx*zoom; panY=my-wy*zoom; render(); }, { passive: false });
+  CVS.addEventListener('contextmenu', e => e.preventDefault());
+  const zoomCenter = f => { const cx2=CW/2,cy2=CH/2,wx=(cx2-panX)/zoom,wy=(cy2-panY)/zoom;zoom=clamp(zoom*f,.015,8);panX=cx2-wx*zoom;panY=cy2-wy*zoom;render(); };
+  $('zc-in').addEventListener('click', () => zoomCenter(1.25));
+  $('zc-out').addEventListener('click', () => zoomCenter(0.8));
+  $('zc-in2')?.addEventListener('click', () => zoomCenter(1.25));
+  $('zc-out2')?.addEventListener('click', () => zoomCenter(0.8));
+  $('op-fit').addEventListener('click', () => { if(layoutMode==='grid')tessellateGrid();else tessellate();autoFit();render(); });
+  window.addEventListener('resize', resize);
+
+  // Play / FPS
+  $('play-btn').addEventListener('click', togglePlay);
+  $('fps-dn').addEventListener('click', () => { fps=Math.max(1,fps-2);$('sb-fps').textContent=fps; });
+  $('fps-up').addEventListener('click', () => { fps=Math.min(30,fps+2);$('sb-fps').textContent=fps; });
+
+  // Export dropdown
+  $('export-btn').addEventListener('click', e => { e.stopPropagation(); $('export-menu').classList.toggle('on'); });
+  ['em-png','ex-png'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{saveCanvas();closeExport();closeSheets();});});
+  ['em-player','ex-player'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportPlayer();closeSheets();});});
+  ['em-twee','ex-twee'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportTwee();closeSheets();});});
+  ['em-beflix','ex-beflix'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportBeflix();closeSheets();});});
+  ['em-video','ex-video'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportVideo();closeSheets();});});
+  // ZORC export buttons
+  $('ex-zorc-edl')?.addEventListener('click',()=>{exportZorcEDL();closeSheets();});
+  $('ex-zorc-tweel')?.addEventListener('click',()=>{exportZorcTweel();closeSheets();});
+  $('ex-zorc-map')?.addEventListener('click',()=>{exportTerritoryMapBFX();closeSheets();});
+  $('ex-zorc-path')?.addEventListener('click',()=>{exportPathBFX();closeSheets();});
+  // Save/Load project
+  $('ex-save-json')?.addEventListener('click',()=>{exportJSON();closeSheets();});
+  $('load-file')?.addEventListener('change',e=>{if(e.target.files[0])loadJSON(e.target.files[0]);e.target.value='';});
+  document.addEventListener('click', e => { const m=$('export-menu');if(m.classList.contains('on')&&!m.contains(e.target)&&e.target.id!=='export-btn')closeExport(); });
+
+  // Oprail
+  $('or-fire').addEventListener('click', () => setFireMode(!fireMode));
+  $('op-mode').addEventListener('click', () => { layoutMode=layoutMode==='voronoi'?'grid':'voronoi';$('op-mode').textContent=layoutMode.toUpperCase();if(layoutMode==='grid')tessellateGrid();else{layout();tessellate();}autoFit();render(); });
+
+  // Sheet tabs (ABCD)
+  ['a','b','c','d','e'].forEach(id => {
+    $('snav-'+id)?.addEventListener('click', () => toggleSheet(id));
+    $('tab-'+id)?.addEventListener('click', () => toggleSheet(id));
+    $('sh-'+id+'-x')?.addEventListener('click', closeSheets);
+  });
+  $('backdrop').addEventListener('click', closeSheets);
+
+  // Inner tabs
+  document.querySelectorAll('.sh-tab').forEach(btn => { btn.addEventListener('click', () => openInnerTab(btn)); });
+
+  // Chat
+  const chatSendBtn=$('chat-send'), chatInp=$('chat-input');
+  if(chatSendBtn) chatSendBtn.addEventListener('click', chatSend);
+  if(chatInp) {
+    chatInp.addEventListener('input', () => { chatInp.style.height='auto'; chatInp.style.height=Math.min(chatInp.scrollHeight,96)+'px'; });
+    chatInp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chatSend();} });
+  }
+
+  // Draw tools
+  document.querySelectorAll('.dt-btn[data-t]').forEach(btn => { btn.addEventListener('click', () => { tool=btn.dataset.t; syncToolBtns(); }); });
+  $('brush-sz')?.addEventListener('input', e => { brushSz=parseInt(e.target.value); });
+  $('c-brush-sz')?.addEventListener('input', e => { brushSz=parseInt(e.target.value); });
+  ['tool-pen','tool-rect','tool-erase'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{tool=id.replace('tool-','');syncToolBtns();closeSheets();});});
+
+  // Code editor (inline)
+  $('b-run').addEventListener('click', () => { if(active<0)return; const c=cells[active]; c.code=$('b-code').value; c.frames=parseBEFLIX(c.code); c.curFrame=0; render(); updateTimelineUI(); toast(c.frames.length+' frames rendered'); });
+  $('b-expand').addEventListener('click', () => openBfxModal());
+
+  // Cell management
+  $('btn-add-cell').addEventListener('click', () => { makeBlank(); renderCellList(); });
+  $('mk-blank')?.addEventListener('click', makeBlank);
+  $('mk-branch')?.addEventListener('click', branchFrame);
+  $('mk-gen')?.addEventListener('click', makeGenerate);
+
+  // BEFLIX code modal
+  $('bfx-close').addEventListener('click', () => { if(active>=0){cells[active].code=$('bfx-editor').value;cells[active].frames=parseBEFLIX(cells[active].code);cells[active].curFrame=0;$('b-code').value=cells[active].code;render();updateTimelineUI();} $('bfx-modal').classList.remove('on'); _bfxPlaying=false; if(_bfxRaf){cancelAnimationFrame(_bfxRaf);_bfxRaf=null;} });
+  $('bfx-run').addEventListener('click', bfxRunPreview);
+  $('bfx-regen').addEventListener('click', bfxRegen);
+  $('bfx-ref-toggle').addEventListener('click', () => { $('bfx-ref').classList.toggle('on'); });
+  $('bfx-p-prev')?.addEventListener('click', () => { _bfxCur=(_bfxCur-1+_bfxFrames.length)%_bfxFrames.length; bfxRenderFrame(); bfxRenderStrip(); });
+  $('bfx-p-next')?.addEventListener('click', () => { _bfxCur=(_bfxCur+1)%_bfxFrames.length; bfxRenderFrame(); bfxRenderStrip(); });
+  $('bfx-p-play')?.addEventListener('click', () => {
+    _bfxPlaying=!_bfxPlaying; $('bfx-p-play').classList.toggle('on',_bfxPlaying);
+    if(_bfxPlaying){let last2=0;const bfxTick=(t)=>{if(!_bfxPlaying)return;if(t-last2>=1000/fps){last2=t;_bfxCur=(_bfxCur+1)%_bfxFrames.length;bfxRenderFrame();bfxRenderStrip();}_bfxRaf=requestAnimationFrame(bfxTick);};_bfxRaf=requestAnimationFrame(bfxTick);}
+    else{if(_bfxRaf){cancelAnimationFrame(_bfxRaf);_bfxRaf=null;}}
+  });
+
+  // Context menu
+  $('ctx-select').addEventListener('click', () => { if(active>=0)selectCell(active); $('ctx').classList.remove('on'); });
+  $('ctx-edit').addEventListener('click', () => { openBfxModal(); $('ctx').classList.remove('on'); });
+  $('ctx-delete').addEventListener('click', () => { deleteCell(active); $('ctx').classList.remove('on'); });
+  document.addEventListener('click', e => { const ctx=$('ctx'); if(ctx.classList.contains('on')&&!ctx.contains(e.target))ctx.classList.remove('on'); });
+
+  // Timeline
+  $('tl-prev').addEventListener('click', () => { if(active<0)return;const c=cells[active];c.curFrame=(c.curFrame-1+c.frames.length)%c.frames.length;updateTimelineUI();render(); });
+  $('tl-next').addEventListener('click', () => { if(active<0)return;const c=cells[active];c.curFrame=(c.curFrame+1)%c.frames.length;updateTimelineUI();render(); });
+  $('tl-blk').addEventListener('click', () => { if(active<0)return;const c=cells[active];c.frames.splice(c.curFrame+1,0,new Uint8Array(GR*GC));c.curFrame++;updateTimelineUI(); });
+  $('tl-wipe').addEventListener('click', () => { if(active<0)return;cells[active].frames[cells[active].curFrame].fill(0);render();updateTimelineUI(); });
+  $('tl-branch').addEventListener('click', branchFrame);
+
+  // API key modal
+  $('key-btn').addEventListener('click', () => {
+    $('api-gemini').value=KEYS.gemini;$('api-claude').value=KEYS.claude;$('api-openai').value=KEYS.openai;
+    $('model-select').value=ACTIVE_MODEL;$('m-api').classList.add('on');
+  });
+  $('api-save').addEventListener('click', () => {
+    KEYS.gemini=$('api-gemini').value.trim();KEYS.claude=$('api-claude').value.trim();KEYS.openai=$('api-openai').value.trim();
+    ACTIVE_MODEL=$('model-select').value;
+    try{localStorage.setItem('cdmos-keys',JSON.stringify(KEYS));localStorage.setItem('cdmos-model',ACTIVE_MODEL);}catch(_){}
+    $('m-api').classList.remove('on');toast('Keys saved');
+    $('key-btn').textContent=getProvider(ACTIVE_MODEL).toUpperCase().slice(0,4);
+    $('key-btn').style.color=getActiveKey()?'var(--g)':'';
+  });
+  $('api-cancel').addEventListener('click', () => $('m-api').classList.remove('on'));
+
+  // Decision Point modal
+  $('dp-dismiss').addEventListener('click', () => { $('dp-modal').classList.remove('on'); pendingDP = null; if (!playing) togglePlay(); });
+  $('dp-accept').addEventListener('click', () => acceptDecisionPath());
+
+  // View toggle (2D/3D stub)
+  $('view-toggle')?.addEventListener('click', () => {
+    const btn = $('view-toggle');
+    const is3D = btn.textContent === '3D';
+    btn.textContent = is3D ? '2D' : '3D';
+    toast(is3D ? 'MOSAIC VIEW' : 'COLUMN VIEW (coming soon)');
+  });
+
+  // Update key button on load
+  $('key-btn').textContent=getProvider(ACTIVE_MODEL).toUpperCase().slice(0,4);
+  $('key-btn').style.color=getActiveKey()?'var(--g)':'';
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
+    if(e.key===' '){e.preventDefault();togglePlay();}
+    if(e.key==='ArrowLeft'&&active>=0){const c=cells[active];c.curFrame=(c.curFrame-1+c.frames.length)%c.frames.length;updateTimelineUI();render();}
+    if(e.key==='ArrowRight'&&active>=0){const c=cells[active];c.curFrame=(c.curFrame+1)%c.frames.length;updateTimelineUI();render();}
+    if(e.key==='1')toggleSheet('a');
+    if(e.key==='2')toggleSheet('b');
+    if(e.key==='3')toggleSheet('c');
+    if(e.key==='4')toggleSheet('d');
+    if(e.key==='5')toggleSheet('e');
+    if(e.key==='Escape'){closeSheets();$('bfx-modal').classList.remove('on');$('m-api').classList.remove('on');$('ctx').classList.remove('on');$('dp-modal').classList.remove('on');if(pendingDP){pendingDP=null;}}
+    if(e.key==='f')setFireMode(!fireMode);
+  });
+
+  // Start playing
+  togglePlay();
+});
+</script>
+</body>
+</html>

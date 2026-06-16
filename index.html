@@ -1331,7 +1331,7 @@
             <!-- Row 2 -->
             <div class="matrix-row">
               <div class="matrix-row-num">2</div>
-              <div class="module-card offline" onclick="triggerOfflineModule('a2')">
+              <div class="module-card" onclick="launchModule('a2.html')">
                 <div class="card-prefix-box">A</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -1369,7 +1369,7 @@
             <!-- Row 3 -->
             <div class="matrix-row">
               <div class="matrix-row-num">3</div>
-              <div class="module-card offline" onclick="triggerOfflineModule('a3')">
+              <div class="module-card" onclick="launchModule('a3.html')">
                 <div class="card-prefix-box">A</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -1380,7 +1380,7 @@
                 </div>
                 <div class="card-chevron">&gt;</div>
               </div>
-              <div class="module-card offline" onclick="triggerOfflineModule('b3')">
+              <div class="module-card" onclick="launchModule('b3.html')">
                 <div class="card-prefix-box">B</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -1407,7 +1407,7 @@
             <!-- Row 4 -->
             <div class="matrix-row">
               <div class="matrix-row-num">4</div>
-              <div class="module-card offline" onclick="triggerOfflineModule('a4')">
+              <div class="module-card" onclick="launchModule('a4.html')">
                 <div class="card-prefix-box">A</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -1418,7 +1418,7 @@
                 </div>
                 <div class="card-chevron">&gt;</div>
               </div>
-              <div class="module-card offline" onclick="triggerOfflineModule('b4')">
+              <div class="module-card" onclick="launchModule('b4.html')">
                 <div class="card-prefix-box">B</div>
                 <div class="card-content">
                   <div class="card-title-line">
@@ -1536,6 +1536,55 @@
                   <div class="card-meta">Derivative of C2 × D-MOS</div>
                 </div>
                 <div class="card-chevron" style="color: var(--gold);">&gt;</div>
+              </div>
+              <div class="module-card" onclick="launchModule('cd-mos-03.html')" style="border-color: var(--gold); box-shadow: 2px 2px 0 var(--gold);">
+                <div class="card-prefix-box" style="background: var(--gold); color: #000;">CD</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id" style="color: var(--gold);">cd-mos-03</span>
+                  </div>
+                  <div class="card-desc">Visual Timeline + Mosaic Territories</div>
+                  <div class="card-meta">Derivative of C3 × D-MOS</div>
+                </div>
+                <div class="card-chevron" style="color: var(--gold);">&gt;</div>
+              </div>
+            </div>
+
+            <!-- Row 9 (Mosaic Index + OpenAI Compiler) -->
+            <div class="matrix-row">
+              <div class="matrix-row-num">9</div>
+              <div class="module-card" onclick="launchModule('mosaic-index.html')" style="border-color: #1a6b3a; box-shadow: 2px 2px 0 #1a6b3a;">
+                <div class="card-prefix-box" style="background: #1a6b3a;">MI</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id" style="color: #1a6b3a;">mosaic-index</span>
+                  </div>
+                  <div class="card-desc">Experiment Launcher / Fusion Map</div>
+                  <div class="card-meta">New / Integrated</div>
+                </div>
+                <div class="card-chevron" style="color: #1a6b3a;">&gt;</div>
+              </div>
+              <div class="module-card" onclick="launchModule('d-mosaic.html')" style="border-color: #1a6b3a; box-shadow: 2px 2px 0 #1a6b3a;">
+                <div class="card-prefix-box" style="background: #1a6b3a;">D</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id" style="color: #1a6b3a;">d-mosaic</span>
+                  </div>
+                  <div class="card-desc">OpenAI ZORC Compiler</div>
+                  <div class="card-meta">New / Responses API</div>
+                </div>
+                <div class="card-chevron" style="color: #1a6b3a;">&gt;</div>
+              </div>
+              <div class="module-card" onclick="launchModule('c-mosaic.html')" style="border-color: #0033cc; box-shadow: 2px 2px 0 #0033cc;">
+                <div class="card-prefix-box" style="background: #0033cc;">Z</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id" style="color: #0033cc;">zorc-base</span>
+                  </div>
+                  <div class="card-desc">1,758 Territory BEFLIX Rooms</div>
+                  <div class="card-meta">Existing / Stabilized</div>
+                </div>
+                <div class="card-chevron" style="color: #0033cc;">&gt;</div>
               </div>
             </div>
           </div>
@@ -2426,6 +2475,22 @@
         ]
       },
       {
+        id: "a2",
+        name: "a2.html (Language Bridge)",
+        path: "a2.html",
+        description: "Runnable bridge for the former offline A2 slot, connecting premise input to causal script and mosaic compiler targets.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "BRIDGE COPY", target: "bridge-copy" },
+            { name: "LAUNCH CARDS", target: "bridge-launches" }
+          ]}
+        ],
+        script: [
+          { id: "bridge-copy", action: "Explains the language-layer role of the level" },
+          { id: "bridge-launches", action: "Routes to A1, B2, and the mosaic experiment index" }
+        ]
+      },
+      {
         id: "b1",
         name: "b1.html (Multi-API Hardened)",
         path: "b1.html",
@@ -2463,6 +2528,38 @@
           { id: "status-bar", action: "Updates script word counts and pips in status rails" },
           { id: "btn-save-proj", action: "Saves data automatically on every keystroke to local storage" },
           { id: "key-btn", action: "Key button opens status bar configuration modal" }
+        ]
+      },
+      {
+        id: "a3",
+        name: "a3.html (Worldtext Bridge)",
+        path: "a3.html",
+        description: "Runnable bridge for the former offline A3 slot, binding prose/worldtext input to ZORC territory compilers.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "WORLDTEXT ROLE", target: "bridge-copy" },
+            { name: "ZORC TARGETS", target: "bridge-launches" }
+          ]}
+        ],
+        script: [
+          { id: "bridge-copy", action: "Describes prose-to-territory compilation" },
+          { id: "bridge-launches", action: "Routes to C-Mosaic, D-Mosaic, and the Twine engine" }
+        ]
+      },
+      {
+        id: "b3",
+        name: "b3.html (Compiler Bridge)",
+        path: "b3.html",
+        description: "Runnable bridge for the former offline B3 slot, focused on BEFLIX validation and branch compilation.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "COMPILER ROLE", target: "bridge-copy" },
+            { name: "VALIDATION TARGETS", target: "bridge-launches" }
+          ]}
+        ],
+        script: [
+          { id: "bridge-copy", action: "Explains the computation-layer role of the level" },
+          { id: "bridge-launches", action: "Routes to D-Mosaic, C2, and Twine Bridge B" }
         ]
       },
       {
@@ -2542,6 +2639,38 @@
         ]
       },
       {
+        id: "a4",
+        name: "a4.html (Narrative Graph Bridge)",
+        path: "a4.html",
+        description: "Runnable bridge for the former offline A4 slot, routing into Bees on a Train and executable ZORC territories.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "NARRATIVE GRAPH", target: "bridge-copy" },
+            { name: "BEES TARGETS", target: "bridge-launches" }
+          ]}
+        ],
+        script: [
+          { id: "bridge-copy", action: "Explains the narrative-graph role of the level" },
+          { id: "bridge-launches", action: "Routes to Bees Twine, C-Mosaic, and Mosaic Index" }
+        ]
+      },
+      {
+        id: "b4",
+        name: "b4.html (Export Bridge)",
+        path: "b4.html",
+        description: "Runnable bridge for the former offline B4 slot, connecting branch operations to EDL, TWEEL, Twine, and path-film outputs.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "EXPORT ROLE", target: "bridge-copy" },
+            { name: "OUTPUT TARGETS", target: "bridge-launches" }
+          ]}
+        ],
+        script: [
+          { id: "bridge-copy", action: "Explains portable branch-output routes" },
+          { id: "bridge-launches", action: "Routes to C-Mosaic, D-Mosaic, and C-Twine Engine B" }
+        ]
+      },
+      {
         id: "c2b",
         name: "c2b.html (Semiotics - Backup)",
         path: "c2b.html",
@@ -2615,6 +2744,120 @@
           { id: "narrative-prose", action: "Prose output corresponding to the selected Voronoi world" },
           { id: "beflix-canvas", action: "Interactive stipple drawing canvas linked directly to narrative nodes" },
           { id: "timeline-frames", action: "Sequences individual frames for each separate narrative node" }
+        ]
+      },
+      {
+        id: "d-mos",
+        name: "d-mos.html (Mosaic ZORK)",
+        path: "d-mos.html",
+        description: "Voronoi territory-based mosaic animation tool with BEFLIX rendering, spatial operations (FORK, SURFACE, EXCAVATE, CORRUPT, ILLUMINATE, FLOOD, GRAFT, TRANSMUTE), and fire-mode drag interactions.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "OPERATION RAIL", target: "oprail" },
+            { name: "VORONOI CANVAS", target: "cvs" }
+          ]},
+          { type: "row", name: "TIMELINE", target: "tl-strip" },
+          { type: "row", name: "CELL LIST", target: "cell-list" }
+        ],
+        script: [
+          { id: "cvs", action: "Multi-cell Voronoi canvas with pan/zoom/pinch and fire-mode drag" },
+          { id: "oprail", action: "Selects active operation and arms fire mode for cell transformations" },
+          { id: "tl-strip", action: "Shows selected territory's frames with navigation and branching" },
+          { id: "cell-list", action: "Lists all territories with frame counts and selection highlighting" }
+        ]
+      },
+      {
+        id: "c-mos",
+        name: "c-mosaic.html (Mosaic Collage)",
+        path: "c-mosaic.html",
+        description: "Stabilized ZORC mosaic compiler expanding Bees on a Train into 1,758 executable BEFLIX territories with frame branching, EDL, TWEEL, and map-film exports.",
+        viewport: [
+          { type: "row", name: "MOSAIC CANVAS", target: "mosaic-canvas" },
+          { type: "row", name: "ZORC COMMAND DOCK", target: "zorc-console" },
+          { type: "row", name: "OPERATIONS", target: "ops-panel" }
+        ],
+        script: [
+          { id: "mosaic-canvas", action: "Displays parent and child territory cells in a spatial contact sheet" },
+          { id: "zorc-console", action: "Runs LOOK, GO LOCATION, GO OUT, frame branching, and export commands" },
+          { id: "ops-panel", action: "Provides deterministic compiler passes for BEFLIX cell transformation" }
+        ]
+      },
+      {
+        id: "mosaic-index",
+        name: "mosaic-index.html (Experiment Index)",
+        path: "mosaic-index.html",
+        description: "Searchable launcher and fusion map for the ABC Cineosis mosaic, ZORC, Twine, BEFLIX, and OpenAI compiler experiments.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "EXPERIMENT LIST", target: "experiment-list" },
+            { name: "LIVE PREVIEW", target: "experiment-preview" }
+          ]},
+          { type: "row", name: "FUSION NOTES", target: "fusion-notes" }
+        ],
+        script: [
+          { id: "experiment-list", action: "Searches and filters all major experiment files by lineage and type" },
+          { id: "experiment-preview", action: "Loads selected experiments in a live iframe preview" },
+          { id: "fusion-notes", action: "Documents why each experiment exists and how it feeds the next compiler" }
+        ]
+      },
+      {
+        id: "d-mosaic",
+        name: "d-mosaic.html (OpenAI ZORC Compiler)",
+        path: "d-mosaic.html",
+        description: "New OpenAI Responses API experiment fusing C-Mosaic's 1,758-territory ZORC graph with model-assisted BEFLIX rewrite, frame branch, and graft compiler passes.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "ZORC CANVAS", target: "mosaic-canvas" },
+            { name: "OPENAI COMPILER", target: "openai-compiler" }
+          ]},
+          { type: "row", name: "TIMELINE", target: "tl-strip" },
+          { type: "row", name: "EXPORTS", target: "save-panel" }
+        ],
+        script: [
+          { id: "mosaic-canvas", action: "Selects an executable territory as OpenAI compiler input" },
+          { id: "openai-compiler", action: "Calls OpenAI Responses API and validates returned BEFLIX before committing a linked result cell" },
+          { id: "tl-strip", action: "Shows frame-level source context for AI branch operations" },
+          { id: "save-panel", action: "Exports generated rooms as BEFLIX, EDL, TWEEL, and Twine bundles" }
+        ]
+      },
+      {
+        id: "cd-mos-02",
+        name: "cd-mos-02.html (Semiotics + Mosaic)",
+        path: "cd-mos-02.html",
+        description: "Hybrid derivative fusing C2's Semiotics Triad with D-MOS's Voronoi mosaic territories and spatial operations.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "SEMIOTICS TRIAD", target: "sem-panel" },
+            { name: "VORONOI CANVAS", target: "cvs" }
+          ]},
+          { type: "row", name: "OPERATIONS", target: "oprail" },
+          { type: "row", name: "TIMELINE", target: "tl-strip" }
+        ],
+        script: [
+          { id: "sem-panel", action: "Attention-Tax Semiotic Triad analysis per territory" },
+          { id: "cvs", action: "Multi-cell Voronoi canvas with spatial operations" },
+          { id: "oprail", action: "Operation selection and fire mode for cell transformations" },
+          { id: "tl-strip", action: "Selected territory's frames timeline" }
+        ]
+      },
+      {
+        id: "cd-mos-03",
+        name: "cd-mos-03.html (Timeline + Mosaic)",
+        path: "cd-mos-03.html",
+        description: "Hybrid derivative fusing C3's Visual Timeline engine (ABCD side rail, chat, script, semiotics, camera, export) with D-MOS's Voronoi mosaic territories and spatial operations.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "ABCD SIDE RAIL", target: "side-nav" },
+            { name: "VORONOI CANVAS", target: "cvs" }
+          ]},
+          { type: "row", name: "OPERATIONS", target: "oprail" },
+          { type: "row", name: "TIMELINE", target: "tl-strip" }
+        ],
+        script: [
+          { id: "side-nav", action: "ABCD sheet navigation: Territories, Build, Ops/Draw, Save/Export" },
+          { id: "cvs", action: "Multi-cell Voronoi canvas with pan/zoom and territory selection" },
+          { id: "oprail", action: "Operation rail with fire mode for spatial cell transformations" },
+          { id: "tl-strip", action: "Selected territory's frames timeline with C3 editing controls" }
         ]
       }
     ];
@@ -2708,6 +2951,14 @@
       'beflix-canvas': '#cvs, #canvas-wrap',
       'repl-console': '#repl-input',
       'save-load': '#btn-save, #btn-load',
+      'experiment-list': '#list',
+      'experiment-preview': '#viewer',
+      'fusion-notes': '#detail, #flow',
+      'zorc-console': '#zorc-panel, #zorc-cmd',
+      'openai-compiler': '#ai-panel, #ai-prompt, #ai-rewrite',
+      'save-panel': '#sheet-d, #d-save',
+      'bridge-copy': '.copy',
+      'bridge-launches': '.grid, .card',
       
       // Exact element IDs mapping fallback
       'key-btn': '#key-btn',

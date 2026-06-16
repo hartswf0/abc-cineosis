@@ -1,0 +1,3714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>D-MOSAIC · OpenAI ZORC Compiler</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23000%22/><circle cx=%2250%22 cy=%2250%22 r=%2230%22 fill=%22none%22 stroke=%22%23fff%22 stroke-width=%228%22 stroke-dasharray=%2210 10%22/><circle cx=%2250%22 cy=%2250%22 r=%2210%22 fill=%22%23fff%22/></svg>">
+<script src="ISLAND ECOLOGY/d3-delaunay.min.js"></script>
+<script src="ISLAND ECOLOGY/BEES ON A TRAIN/data.js"></script>
+<style>
+/* ─────────────────────────────────────────
+   DESIGN TOKENS — matches c2 white aesthetic
+───────────────────────────────────────── */
+:root {
+  --bg:      #f4f4f0;
+  --ink:     #000000;
+  --paper:   #ffffff;
+  --soft:    #ebebeb;
+  --a:       #0033cc;
+  --b:       #c8a800;
+  --c:       #e60000;
+  --g:       #1a6b3a;
+  --bw:      2px;
+  --bw3:     3px;
+  --sh:      4px 4px 0 #000;
+  --sh-sm:   2px 2px 0 #000;
+  --font:    ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans:    'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --tap:     48px;
+  --sb-h:    44px;
+  --tab-h:   54px;
+  --tl-h:    78px;
+  --nav-w:   50px;
+  --safe-b:  env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing:border-box;-webkit-tap-highlight-color:transparent; }
+html,body { margin:0;padding:0;width:100%;height:100%;overflow:hidden;position:fixed;inset:0;background:var(--bg);color:var(--ink);font-family:var(--sans); }
+button,input,textarea,select { font:inherit;-webkit-appearance:none;appearance:none;border-radius:0; }
+button { cursor:pointer;touch-action:manipulation; }
+::-webkit-scrollbar { width:3px;height:3px; }
+::-webkit-scrollbar-thumb { background:var(--ink); }
+
+/* ─────────────────────────────────────────
+   SHELL — exactly like c2
+───────────────────────────────────────── */
+#shell {
+  display:grid;
+  grid-template-rows: var(--sb-h) 1fr var(--tl-h) calc(var(--tab-h) + var(--safe-b));
+  width:100%;height:100dvh;overflow:hidden;
+}
+
+/* ─── STATUS BAR ─── */
+#sb {
+  grid-row:1;display:flex;align-items:stretch;
+  background:var(--ink);color:var(--paper);
+  border-bottom:2px solid #1a1a1a;z-index:60;
+}
+.sb-cell { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 8px;border-right:1px solid #222;flex-shrink:0; }
+.sb-lbl { font:900 6px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:#444; }
+.sb-val { font:900 12px/1 var(--font);color:var(--paper);font-variant-numeric:tabular-nums; }
+.sb-grow { flex:1;display:flex;align-items:center;padding:0 10px;border-right:1px solid #222; }
+.sb-title { font:900 9px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:var(--paper);overflow:hidden;white-space:nowrap;text-overflow:ellipsis; }
+.fps-wrap { display:flex;align-items:center;gap:3px; }
+.fps-btn {
+  width:20px;height:20px;background:#1a1a1a;border:1px solid #333;color:var(--paper);
+  font-size:14px;font-weight:900;display:grid;place-items:center;transition:background .08s;
+}
+.fps-btn:active { background:#444; }
+
+#play-btn {
+  flex-shrink:0;width:64px;align-self:stretch;
+  background:var(--c);border:0;border-left:2px solid #800;
+  color:var(--paper);font:900 10px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;
+  display:flex;align-items:center;justify-content:center;gap:4px;transition:background .1s;
+}
+#play-btn.playing { background:#1a1a1a;border-left-color:#333; }
+#play-btn:active { filter:brightness(.8); }
+
+/* ─── CANVAS ZONE ─── */
+#cz {
+  grid-row:2;position:relative;overflow:hidden;
+  background:#e0deda;
+}
+#cvs { position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab; }
+
+/* ─── FLOATING DRAW TOOLBAR ─── */
+#draw-tb {
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:30;
+  display:none;align-items:center;gap:5px;
+  background:rgba(0,0,0,.92);border:1.5px solid #555;padding:5px 10px;
+}
+#draw-tb.on { display:flex; }
+.dt-btn {
+  height:32px;min-width:42px;border:1.5px solid #555;background:transparent;
+  color:var(--paper);font:900 8px/1 var(--font);text-transform:uppercase;padding:0 8px;
+  transition:background .1s,border-color .1s;
+}
+.dt-btn.on { background:var(--paper);color:var(--ink);border-color:var(--paper); }
+.dt-sep { width:1px;height:22px;background:#444;flex-shrink:0; }
+.dt-swatch {
+  width:22px;height:22px;border:2px solid #555;cursor:pointer;flex-shrink:0;
+  transition:border-color .1s,transform .1s;
+}
+.dt-swatch.on { border:2.5px solid var(--paper);transform:scale(1.18); }
+
+/* ─── FLOATING OP BAR ─── */
+#opbar {
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);z-index:30;
+  display:flex;align-items:center;gap:0;
+  background:rgba(0,0,0,.92);border:1.5px solid #555;overflow:hidden;
+  max-width:calc(100% - 16px);overflow-x:auto;scrollbar-width:none;
+}
+#opbar::-webkit-scrollbar { display:none; }
+.op-b {
+  height:32px;min-width:48px;border:0;border-right:1px solid #333;
+  background:transparent;color:#888;font:900 7px/1 var(--font);
+  text-transform:uppercase;letter-spacing:.03em;padding:0 9px;
+  transition:background .08s,color .08s;
+}
+.op-b:last-child { border-right:0; }
+.op-b.on { color:var(--paper);background:rgba(255,255,255,.1); }
+.op-b:hover { color:#fff; }
+
+/* ─── AIM INDICATOR ─── */
+#aim-msg {
+  position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:35;
+  background:rgba(0,0,0,.88);border:2px solid var(--b);padding:7px 16px;
+  font:900 9px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;color:var(--b);
+  display:none;
+}
+#aim-msg.on { display:block; }
+
+/* ─── ZORC COMMAND DOCK ─── */
+#zorc-panel {
+  position:absolute;left:8px;right:8px;bottom:46px;z-index:32;
+  width:auto;height:38px;max-height:none;
+  display:flex;align-items:stretch;overflow:hidden;
+  background:rgba(255,255,255,.96);border:var(--bw3) solid var(--ink);box-shadow:var(--sh-sm);
+}
+#zorc-panel.min #zorc-body { display:grid; }
+#zorc-hd {
+  width:128px;flex:0 0 128px;display:flex;align-items:center;gap:8px;padding:0 9px;
+  background:var(--ink);color:var(--paper);border-right:var(--bw) solid var(--ink);
+}
+#zorc-brand { font:900 10px/1 var(--font);letter-spacing:.12em;text-transform:uppercase; }
+#zorc-count { display:none; }
+#zorc-min {
+  display:none;
+}
+#zorc-body {
+  flex:1;display:grid;grid-template-columns:minmax(150px,220px) minmax(160px,1fr) minmax(220px,36%);
+  grid-template-rows:1fr;min-height:0;
+}
+#zorc-room {
+  grid-column:1;grid-row:1;padding:11px 10px 0;font:900 10px/1 var(--font);
+  text-transform:uppercase;letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--soft);
+}
+#zorc-desc {
+  display:none;
+}
+#zorc-objects {
+  display:none;
+}
+.zorc-chip {
+  border:1px solid var(--ink);padding:3px 5px;background:var(--paper);
+  font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.04em;
+}
+#zorc-log {
+  grid-column:2;grid-row:1;padding:10px 9px 0;min-height:0;max-height:none;overflow:hidden;
+  font:600 10px/1.45 var(--font);color:#222;background:#fafafa;
+  border:0;white-space:nowrap;text-overflow:ellipsis;
+}
+.zorc-line { display:none;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.zorc-line:last-child { display:block; }
+.zorc-line.cmd { color:var(--a);font-weight:900;text-transform:uppercase; }
+#zorc-cmd-row { grid-column:3;grid-row:1;display:flex;border-left:var(--bw) solid var(--ink); }
+#zorc-cmd {
+  flex:1;min-width:0;border:0;padding:0 10px;background:var(--paper);color:var(--ink);
+  font:900 10px/1 var(--font);text-transform:uppercase;outline:0;
+}
+#zorc-run {
+  flex:0 0 64px;border:0;border-left:var(--bw) solid var(--ink);background:var(--b);color:var(--ink);
+  font:900 9px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;
+}
+#zorc-hints {
+  display:none;
+}
+#ai-panel {
+  position:absolute;right:8px;top:60px;z-index:34;width:330px;max-height:calc(100% - 154px);
+  display:flex;flex-direction:column;background:rgba(255,255,255,.96);
+  border:var(--bw3) solid var(--ink);box-shadow:var(--sh-sm);overflow:hidden;
+}
+#ai-panel.closed { width:132px;height:36px; }
+#ai-panel.closed #ai-body { display:none; }
+#ai-hd {
+  height:36px;display:flex;align-items:center;gap:8px;padding:0 9px;background:var(--ink);color:var(--paper);
+  border-bottom:var(--bw) solid var(--ink);flex:0 0 auto;
+}
+#ai-brand { font:900 10px/1 var(--font);letter-spacing:.12em;text-transform:uppercase; }
+#ai-state { margin-left:auto;font:900 7px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:#aaa; }
+#ai-min {
+  width:24px;height:24px;border:1px solid #444;background:#111;color:var(--paper);
+  font:900 11px/1 var(--font);
+}
+#ai-body {
+  display:flex;flex-direction:column;gap:8px;padding:9px;min-height:0;overflow:auto;
+}
+.ai-row { display:grid;grid-template-columns:1fr 1fr;gap:7px; }
+.ai-field { display:flex;flex-direction:column;gap:3px;min-width:0; }
+.ai-lbl { font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;color:#666; }
+.ai-field input,.ai-field select,#ai-prompt {
+  width:100%;border:var(--bw) solid var(--ink);background:var(--paper);color:var(--ink);
+  padding:7px;font:800 10px/1.25 var(--font);outline:0;min-width:0;
+}
+#ai-prompt {
+  min-height:86px;resize:vertical;text-transform:none;font-weight:700;
+}
+.ai-actions { display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px; }
+.ai-actions button,#ai-save {
+  border:var(--bw) solid var(--ink);background:var(--paper);color:var(--ink);
+  min-height:31px;font:900 8px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;
+}
+.ai-actions button.primary { background:var(--g);color:var(--paper); }
+#ai-save { background:var(--b); }
+#ai-log {
+  border:1px solid #d6d4ce;background:#fafafa;min-height:46px;max-height:110px;overflow:auto;
+  padding:7px;font:700 9px/1.35 var(--font);color:#222;white-space:pre-wrap;
+}
+.ai-note { font:700 8px/1.35 var(--font);color:#666; }
+@media (max-width:767px) {
+  #zorc-panel { left:6px;right:6px;bottom:42px;height:72px;display:grid;grid-template-columns:72px 1fr;grid-template-rows:34px 34px; }
+  #zorc-hd { grid-column:1;grid-row:1 / span 2;width:auto;display:flex;border-right:var(--bw) solid var(--ink); }
+  #zorc-body { grid-column:2;grid-row:1 / span 2;display:grid;grid-template-columns:1fr;grid-template-rows:34px 34px; }
+  #zorc-room { grid-column:1;grid-row:1;border-right:0;border-bottom:1px solid var(--soft);padding:11px 9px 0; }
+  #zorc-log { display:none; }
+  #zorc-cmd-row { grid-column:1;grid-row:2;border-left:0; }
+  #ai-panel { left:6px;right:6px;top:56px;width:auto;max-height:44%; }
+  #ai-panel.closed { width:132px;left:auto; }
+  .ai-row,.ai-actions { grid-template-columns:1fr; }
+}
+
+/* ─── CONTEXT MENU ─── */
+#ctx {
+  position:fixed;z-index:999;background:var(--paper);
+  border:var(--bw3) solid var(--ink);box-shadow:var(--sh);
+  padding:0;min-width:200px;display:none;
+}
+#ctx.on { display:block; }
+.ctx-hd {
+  padding:7px 12px;border-bottom:var(--bw) solid var(--ink);background:var(--soft);
+  font:900 8px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:var(--ink);
+}
+.ctx-item {
+  display:flex;align-items:center;gap:8px;padding:7px 12px;
+  background:transparent;border:0;width:100%;text-align:left;
+  font:900 9px/1 var(--font);text-transform:uppercase;letter-spacing:.04em;color:var(--ink);
+  transition:background .08s;border-bottom:1px solid var(--soft);
+}
+.ctx-item:last-child { border-bottom:0; }
+.ctx-item:hover { background:var(--ink);color:var(--paper); }
+.ctx-item.danger { color:var(--c); }
+.ctx-item.danger:hover { background:var(--c);color:var(--paper); }
+.ctx-sep { height:var(--bw);background:var(--ink); }
+.ctx-key { margin-left:auto;font:600 7px/1 var(--font);color:#aaa;letter-spacing:0; }
+
+/* ─── TIMELINE ─── */
+#tl {
+  grid-row:3;background:var(--bg);border-top:var(--bw3) solid var(--ink);
+  display:flex;flex-direction:column;overflow:hidden;z-index:40;
+}
+#tlc {
+  display:flex;align-items:center;gap:5px;padding:4px 8px;
+  border-bottom:2px solid var(--ink);flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+#tlc::-webkit-scrollbar { display:none; }
+.tl-btn {
+  background:var(--paper);color:var(--ink);border:var(--bw) solid var(--ink);
+  padding:4px 8px;font:900 8px/1 var(--font);text-transform:uppercase;
+  box-shadow:var(--sh-sm);flex-shrink:0;min-height:26px;
+  transition:transform .05s,box-shadow .05s;
+}
+.tl-btn:active { transform:translate(2px,2px);box-shadow:none; }
+.tl-div { width:1px;height:16px;background:var(--ink);flex-shrink:0; }
+#tl-info { margin-left:auto;font:900 7px/1 var(--font);color:#888;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap; }
+#tl-strip {
+  flex:1;display:flex;gap:4px;padding:5px 8px;overflow-x:auto;align-items:center;
+  scrollbar-width:none;overscroll-behavior-x:contain;
+}
+#tl-strip::-webkit-scrollbar { display:none; }
+.tl-frame {
+  position:relative;flex:0 0 58px;height:36px;
+  border:var(--bw3) solid var(--ink);background:#1a1a1a;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  user-select:none;transition:border-color .1s;
+}
+.tl-frame.cur { border-left:4px solid var(--c); }
+.tl-frame canvas { width:100%;height:100%;image-rendering:pixelated;position:absolute;inset:0;opacity:.6; }
+.tl-num { position:relative;z-index:2;color:var(--paper);font:900 9px/1 var(--font);text-shadow:1px 1px 0 var(--ink);pointer-events:none; }
+#tl-empty { font:900 9px/1 var(--font);color:#aaa;text-transform:uppercase;letter-spacing:.1em; }
+
+/* ─── TABS (mobile) ─── */
+#tabs {
+  grid-row:4;display:flex;border-top:var(--bw3) solid var(--ink);
+  background:var(--paper);z-index:60;padding-bottom:var(--safe-b);
+}
+.tab {
+  flex:1;height:var(--tab-h);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;
+  background:var(--paper);color:#bbb;border:0;border-right:var(--bw) solid var(--ink);
+  transition:background .12s,color .12s;position:relative;
+}
+.tab:last-child { border-right:0;flex:0 0 48px; }
+.tab-ltr { font-size:17px;line-height:1;font-weight:900; }
+.tab.on-a { background:var(--a);color:var(--paper); }
+.tab.on-b { background:var(--b);color:var(--ink); }
+.tab.on-c { background:var(--c);color:var(--paper); }
+.tab.on-d { background:var(--ink);color:var(--paper); }
+
+/* ─── SHEET SYSTEM ─── */
+#backdrop { position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;z-index:70;transition:background .22s; }
+#backdrop.on { background:rgba(0,0,0,.6);pointer-events:all; }
+.sheet {
+  position:fixed;left:0;right:0;top:var(--sb-h);
+  bottom:calc(var(--tab-h) + var(--safe-b) + var(--tl-h));
+  background:var(--paper);border:var(--bw3) solid var(--ink);z-index:80;
+  display:flex;flex-direction:column;
+  transform:translateY(calc(100% + 150px));
+  transition:transform .28s cubic-bezier(.25,1,.5,1),visibility 0s .28s;
+  visibility:hidden;overflow:hidden;
+}
+.sheet.on { transform:translateY(0);visibility:visible;transition:transform .28s cubic-bezier(.25,1,.5,1),visibility 0s 0s; }
+.sh-hd {
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px 8px;border-bottom:var(--bw3) solid var(--ink);background:var(--soft);
+}
+.sh-title { font:900 10px/1 var(--font);text-transform:uppercase;letter-spacing:.12em; }
+.sh-x { background:none;border:0;font-size:20px;font-weight:900;cursor:pointer;padding:0;color:var(--ink);line-height:1; }
+.sh-tabs { flex-shrink:0;display:flex;border-bottom:var(--bw3) solid var(--ink); }
+.sh-tab {
+  flex:1;min-height:34px;border:0;border-right:var(--bw) solid var(--ink);
+  background:var(--soft);font:900 8px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .1s,color .1s;
+}
+.sh-tab:last-child { border-right:0; }
+.sh-tab.on { background:var(--ink);color:var(--paper); }
+.sh-body {
+  overflow-y:auto;flex:1;padding:12px;
+  display:flex;flex-direction:column;gap:10px;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+}
+.sh-body.no-pad { padding:0;gap:0; }
+
+/* ─── BUTTONS (c2 style) ─── */
+.btn {
+  display:flex;align-items:center;justify-content:center;
+  min-height:var(--tap);border:var(--bw3) solid var(--ink);
+  background:var(--paper);color:var(--ink);padding:9px 12px;
+  font:900 9px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;
+  box-shadow:var(--sh-sm);width:100%;flex-shrink:0;
+  transition:transform .06s,box-shadow .06s,background .07s;
+}
+.btn:active { transform:translate(2px,2px);box-shadow:none; }
+.btn.pri { background:var(--ink);color:var(--paper); }
+.btn.a   { background:var(--a);color:var(--paper);border-color:var(--a); }
+.btn.b   { background:var(--b);color:var(--ink);border-color:var(--b); }
+.btn.c   { background:var(--c);color:var(--paper);border-color:var(--c); }
+.btn.g   { background:var(--g);color:var(--paper);border-color:var(--g); }
+.btn.sm  { min-height:30px;padding:4px 8px;font-size:7px;box-shadow:2px 2px 0 var(--ink); }
+.btn-row { display:flex;gap:7px; }
+.btn-row .btn { flex:1; }
+
+.lbl { font:900 8px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:#666;margin-bottom:3px; }
+.sep-lbl { font:900 8px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:#999;padding:3px 0;border-bottom:1px solid #ddd; }
+.inp { width:100%;border:var(--bw3) solid var(--ink);padding:9px 10px;font:700 12px/1.2 var(--font);background:var(--soft);color:var(--ink);transition:border-color .1s; }
+.inp:focus { outline:0;border-color:var(--a);background:var(--paper); }
+
+/* ─── SIDE NAV (desktop) ─── */
+#side-nav {
+  position:fixed;left:0;top:0;bottom:0;width:var(--nav-w);
+  background:var(--paper);border-right:var(--bw3) solid var(--ink);
+  flex-direction:column;z-index:90;
+}
+.snav {
+  width:100%;flex:1;border:0;border-bottom:var(--bw) solid var(--ink);
+  background:var(--paper);font:900 7px/1 var(--font);text-transform:uppercase;
+  letter-spacing:.05em;cursor:pointer;color:#bbb;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:background .12s,color .12s;
+}
+.snav:last-child { border-bottom:0; }
+.snav-ltr { font-size:17px;line-height:1;font-weight:900; }
+.snav.on-a { background:var(--a);color:var(--paper); }
+.snav.on-b { background:var(--b);color:var(--ink); }
+.snav.on-c { background:var(--c);color:var(--paper); }
+.snav.on-d { background:var(--ink);color:var(--paper); }
+
+/* ─── INK PALETTE ─── */
+.ink-grid { display:flex;flex-wrap:wrap;gap:7px; }
+.ink-sw {
+  width:42px;height:42px;border:var(--bw3) solid var(--ink);cursor:pointer;
+  box-shadow:var(--sh-sm);transition:transform .05s,box-shadow .05s;
+}
+.ink-sw.on { outline:3px solid var(--ink);outline-offset:3px;transform:translate(3px,3px);box-shadow:none; }
+input[type=range] { -webkit-appearance:none;width:100%;background:transparent;border:2px solid var(--ink);height:26px;outline:none;flex-shrink:0; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;height:26px;width:26px;background:var(--ink);border:0;cursor:pointer; }
+
+/* ─── CAUSAL CHAIN (per c2) ─── */
+.dep-chain {
+  display:flex;align-items:center;gap:4px;padding:8px 0;
+  overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+}
+.dep-chain::-webkit-scrollbar { display:none; }
+.dep-node {
+  flex-shrink:0;padding:5px 8px;border:var(--bw) solid var(--ink);
+  font:900 7px/1.3 var(--font);text-transform:uppercase;letter-spacing:.06em;
+  background:var(--soft);cursor:default;text-align:center;min-width:44px;
+}
+.dep-node.done { background:var(--ink);color:var(--paper); }
+.dep-node.active { background:var(--a);color:var(--paper);border-color:var(--a); }
+.dep-arrow { font:900 12px/1 var(--font);color:#aaa;flex-shrink:0; }
+.fact-grid { display:grid;grid-template-columns:1fr 1fr;gap:4px; }
+.fact { padding:5px 8px;border:1px solid var(--soft);font:600 9px/1.3 var(--font); }
+.fact b { display:block;font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;color:#999;margin-bottom:2px; }
+
+/* ─── INLINE CODE EDITOR (Sheet B) ─── */
+#b-code {
+  flex:1;resize:none;padding:10px;margin:0;
+  font:11px/1.6 var(--font);background:var(--ink);color:#e0e0e0;border:var(--bw3) solid var(--ink);
+  outline:0;overflow-y:auto;min-height:160px;
+}
+#b-code:focus { border-color:var(--a); }
+#b-stats { font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:#888;padding:3px 0; }
+
+/* ─── FIRE OPERATIONS ─── */
+.op-grid { display:grid;grid-template-columns:1fr 1fr;gap:4px; }
+.op-card {
+  padding:6px 8px;border:var(--bw) solid var(--ink);cursor:pointer;
+  font:900 8px/1.3 var(--font);text-transform:uppercase;letter-spacing:.04em;
+  transition:background .08s,color .08s;
+}
+.op-card.on { background:var(--ink);color:var(--paper); }
+.op-card:hover { background:var(--soft); }
+.op-card.on:hover { background:#333; }
+.op-verb { font:500 7px/1 var(--font);color:#999;text-transform:none;letter-spacing:0;margin-top:2px; }
+.op-card.on .op-verb { color:#888; }
+
+/* ─── BEFLIX CODE MODAL ─── */
+#bfx-modal { position:fixed;inset:0;background:var(--ink);z-index:300;display:none;flex-direction:column; }
+#bfx-modal.on { display:flex; }
+#bfx-hd { display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:2px solid #222;flex-shrink:0;background:var(--ink); }
+#bfx-title { font:900 11px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:var(--paper);flex:1; }
+.bfx-btn {
+  padding:6px 12px;border:1.5px solid #444;background:transparent;
+  color:var(--paper);font:900 8px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;
+  cursor:pointer;transition:background .1s,border-color .1s;
+}
+.bfx-btn:hover { border-color:var(--paper); }
+.bfx-btn.run { background:var(--g);border-color:var(--g); }
+.bfx-btn.close { color:#666; }
+
+/* Split layout: code left, preview right */
+#bfx-split { flex:1;display:flex;overflow:hidden;min-height:0; }
+#bfx-code-pane { flex:1;display:flex;flex-direction:column;min-width:0;border-right:2px solid #222; }
+#bfx-editor {
+  flex:1;resize:none;padding:14px;margin:0;
+  font:12px/1.7 var(--font);background:#111;color:#e0e0e0;border:0;outline:0;
+  overflow-y:auto;min-width:0;
+}
+#bfx-preview-pane {
+  width:360px;flex-shrink:0;display:flex;flex-direction:column;
+  background:#0a0a0a;overflow:hidden;
+}
+#bfx-prev-hd {
+  display:flex;align-items:center;gap:6px;padding:8px 10px;
+  border-bottom:1px solid #222;flex-shrink:0;
+}
+#bfx-prev-hd span { font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;color:#555; }
+#bfx-prev-frame { font:900 10px/1 var(--font);color:var(--paper);font-variant-numeric:tabular-nums;margin-left:auto; }
+.bfx-fb {
+  width:24px;height:24px;background:#1a1a1a;border:1px solid #333;
+  color:var(--paper);font:900 10px/1 var(--font);display:grid;place-items:center;
+  cursor:pointer;transition:background .08s;
+}
+.bfx-fb:active { background:#444; }
+.bfx-fb.play-f { background:var(--c);border-color:var(--c); }
+.bfx-fb.play-f.on { background:#1a1a1a;border-color:#333; }
+#bfx-cvs-wrap {
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:10px;overflow:hidden;background:#080808;
+}
+#bfx-cvs { image-rendering:pixelated;border:2px solid #333;background:#fff;max-width:100%;max-height:100%; }
+#bfx-prev-strip {
+  display:flex;gap:3px;padding:6px 8px;overflow-x:auto;
+  border-top:1px solid #222;flex-shrink:0;scrollbar-width:none;
+}
+#bfx-prev-strip::-webkit-scrollbar { display:none; }
+.bfx-pf {
+  flex:0 0 40px;height:28px;border:2px solid #333;cursor:pointer;
+  background:#111;display:flex;align-items:center;justify-content:center;
+  transition:border-color .1s;
+}
+.bfx-pf.cur { border-color:var(--c); }
+.bfx-pf canvas { width:100%;height:100%;image-rendering:pixelated; }
+
+#bfx-foot { display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid #222;flex-shrink:0;background:#0a0a0a; }
+#bfx-lcount { font:900 8px/1 var(--font);color:#444;text-transform:uppercase;letter-spacing:.06em; }
+#bfx-fcount { font:900 8px/1 var(--font);color:var(--b);text-transform:uppercase;letter-spacing:.06em;margin-left:auto; }
+#bfx-ref {
+  display:none;padding:10px 14px;border-top:1px solid #111;
+  font:10px/1.65 var(--font);color:#666;background:#0a0a0a;flex-shrink:0;
+  max-height:160px;overflow-y:auto;white-space:pre-wrap;
+}
+#bfx-ref.on { display:block; }
+@media (max-width:700px) {
+  #bfx-split { flex-direction:column; }
+  #bfx-code-pane { border-right:0;border-bottom:2px solid #222; }
+  #bfx-preview-pane { width:100%;height:220px; }
+}
+
+/* ─── TERRITORY CARD (in Sheet A) ─── */
+.tc {
+  border:var(--bw3) solid var(--ink);background:var(--paper);
+  box-shadow:var(--sh-sm);transition:transform .06s,box-shadow .06s;
+}
+.tc.sel { background:var(--ink);color:var(--paper); }
+.tc-hd {
+  display:flex;align-items:center;gap:6px;padding:7px 10px;
+  border-bottom:var(--bw) solid var(--ink);
+}
+.tc.sel .tc-hd { border-bottom-color:#333; }
+.tc-n { font:900 12px/1 var(--font); }
+.tc-name { font:900 9px/1 var(--font);text-transform:uppercase;letter-spacing:.05em;flex:1; }
+.tc-frames { font:700 8px/1 var(--font);color:#999; }
+.tc.sel .tc-frames { color:#888; }
+.tc-body { padding:6px 10px; }
+.tc-mini { display:flex;gap:3px;overflow:hidden; }
+.tc-mini canvas { width:40px;height:30px;image-rendering:pixelated;border:1px solid var(--ink); }
+.tc.sel .tc-mini canvas { border-color:#333; }
+.tc-acts { display:flex;gap:4px;padding:6px 10px;border-top:var(--bw) solid var(--ink); }
+.tc.sel .tc-acts { border-top-color:#333; }
+.tc-acts .btn { min-height:28px;padding:3px 6px;font-size:7px;box-shadow:1px 1px 0 var(--ink); }
+.tc.sel .tc-acts .btn { background:var(--ink);color:var(--paper);border-color:#333; }
+
+/* ─── TOAST ─── */
+#toast {
+  position:fixed;top:calc(var(--sb-h)+8px);left:50%;transform:translateX(-50%) translateY(-6px);
+  background:var(--paper);color:var(--ink);font:900 10px/1 var(--font);padding:9px 16px;
+  opacity:0;pointer-events:none;z-index:9999;text-transform:uppercase;letter-spacing:.1em;
+  border:var(--bw3) solid var(--ink);box-shadow:var(--sh);white-space:nowrap;
+  transition:opacity .14s,transform .14s;
+}
+#toast.on { opacity:1;transform:translateX(-50%) translateY(0); }
+#toast.err { background:var(--c);color:var(--paper);border-color:var(--c); }
+
+/* ─── DESKTOP ─── */
+@media (min-width:768px) {
+  #shell { grid-template-rows:var(--sb-h) 1fr var(--tl-h);margin-left:var(--nav-w);width:calc(100% - var(--nav-w)); }
+  #tabs { display:none; }
+  .sheet { left:var(--nav-w);right:auto;bottom:var(--tl-h);top:var(--sb-h);max-height:none;width:340px;
+    border-top:0;border-left:0;border-bottom:0;border-right:var(--bw3) solid var(--ink);
+    transform:translateX(-100%) !important; }
+  .sheet.on { transform:translateX(0) !important;visibility:visible; }
+  #backdrop.on { background:transparent;pointer-events:none; }
+  #side-nav { display:flex; }
+}
+@media (max-width:767px) { #side-nav { display:none; } }
+
+/* ZORC workspace: keep A/B/C/D on the left at every size. */
+#shell {
+  grid-template-rows:var(--sb-h) 1fr var(--tl-h);
+  margin-left:var(--nav-w);
+  width:calc(100% - var(--nav-w));
+}
+#tabs { display:none !important; }
+#side-nav { display:flex !important; }
+.sheet {
+  left:var(--nav-w);right:auto;bottom:var(--tl-h);top:var(--sb-h);max-height:none;width:min(340px,calc(100vw - var(--nav-w)));
+  border-top:0;border-left:0;border-bottom:0;border-right:var(--bw3) solid var(--ink);
+  transform:translateX(-100%) !important;
+}
+.sheet.on { transform:translateX(0) !important;visibility:visible; }
+#backdrop.on { background:transparent;pointer-events:none; }
+</style>
+</head>
+<body>
+
+<!-- SHELL -->
+<div id="shell">
+
+  <!-- STATUS BAR -->
+  <header id="sb">
+    <div class="sb-cell"><span class="sb-lbl">CELLS</span><span class="sb-val" id="s-cells">0</span></div>
+    <div class="sb-grow"><span class="sb-title" id="s-title">CINEOSIS MOSAIC</span></div>
+    <button id="layout-btn" style="padding:3px 8px;font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.08em;border:var(--bw) solid var(--ink);background:var(--paper);cursor:pointer" title="Toggle layout: Voronoi / Grid">GRID</button>
+    <div class="sb-cell"><span class="sb-lbl">FRAME</span><span class="sb-val" id="s-frame">—</span></div>
+    <div class="sb-cell" style="flex-direction:row;gap:4px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+        <span class="sb-lbl">FPS</span>
+        <div class="fps-wrap">
+          <button class="fps-btn" id="fps-dn">−</button>
+          <span class="sb-val" id="s-fps" style="min-width:18px;text-align:center">12</span>
+          <button class="fps-btn" id="fps-up">+</button>
+        </div>
+      </div>
+    </div>
+    <button id="play-btn">
+      <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor" id="play-ico">
+        <polygon points="0,0 11,6.5 0,13"/>
+      </svg>
+      <span id="play-lbl">PLAY</span>
+    </button>
+  </header>
+
+  <!-- CANVAS ZONE -->
+  <div id="cz">
+    <canvas id="cvs"></canvas>
+    <!-- Draw toolbar -->
+    <div id="draw-tb">
+      <button class="dt-btn on" data-t="pen">PEN</button>
+      <button class="dt-btn" data-t="rect">BOX</button>
+      <button class="dt-btn" data-t="line">LINE</button>
+      <button class="dt-btn" data-t="erase">ERASE</button>
+      <div class="dt-sep"></div>
+      <div id="dt-sw"></div>
+      <div class="dt-sep"></div>
+      <label style="display:flex;align-items:center;gap:3px;color:#888">
+        <span style="font:900 6px/1 var(--font);text-transform:uppercase">SZ</span>
+        <input type="range" id="brush-sz" min="1" max="12" value="3" style="width:50px;height:16px;border:1px solid #555">
+      </label>
+    </div>
+    <!-- Op bar -->
+    <div id="opbar"></div>
+    <!-- Aim indicator -->
+    <div id="aim-msg">SHIFT+DRAG TO FIRE</div>
+    <!-- ZORC command dock -->
+    <div id="zorc-panel">
+      <div id="zorc-hd">
+        <span id="zorc-brand">ZORC</span>
+        <span id="zorc-count">0 ROOMS</span>
+        <button id="zorc-min" title="Minimize ZORC dock">-</button>
+      </div>
+      <div id="zorc-body">
+        <div id="zorc-room">NO ROOM</div>
+        <div id="zorc-desc">Load the Bees on a Train territories to compile rooms.</div>
+        <div id="zorc-objects"></div>
+        <div id="zorc-log"></div>
+        <div id="zorc-cmd-row">
+          <input id="zorc-cmd" autocomplete="off" spellcheck="false" placeholder="FORK FRAME / EXCAVATE ROOM">
+          <button id="zorc-run">RUN</button>
+        </div>
+        <div id="zorc-hints">LOOK · GO LOCATION · GO OUT · EXCAVATE ROOM · CORRUPT ROOM · FORK FRAME · EXPORT MAP · EXPORT EDL</div>
+      </div>
+    </div>
+    <!-- OpenAI compiler dock -->
+    <div id="ai-panel">
+      <div id="ai-hd">
+        <span id="ai-brand">OPENAI</span>
+        <span id="ai-state">READY</span>
+        <button id="ai-min" title="Collapse OpenAI compiler">-</button>
+      </div>
+      <div id="ai-body">
+        <div class="ai-row">
+          <label class="ai-field">
+            <span class="ai-lbl">Model</span>
+            <input id="ai-model" value="gpt-5.5" spellcheck="false">
+          </label>
+          <label class="ai-field">
+            <span class="ai-lbl">Reasoning</span>
+            <select id="ai-reasoning">
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select>
+          </label>
+        </div>
+        <label class="ai-field">
+          <span class="ai-lbl">OpenAI API Key</span>
+          <input id="ai-key" type="password" placeholder="uses saved global key if blank" spellcheck="false">
+        </label>
+        <button id="ai-save">Save OpenAI Config</button>
+        <label class="ai-field">
+          <span class="ai-lbl">Compiler Prompt</span>
+          <textarea id="ai-prompt" spellcheck="false">Rewrite the active territory as a stronger ZORC room. Preserve all recognizable objects, intensify the scene geometry, and add one visible consequence frame after the current frame.</textarea>
+        </label>
+        <div class="ai-actions">
+          <button class="primary" id="ai-rewrite">Rewrite Room</button>
+          <button id="ai-frame">Branch Frame</button>
+          <button id="ai-graft">Graft Objects</button>
+        </div>
+        <div id="ai-log">OpenAI compiler ready. Select a territory, then choose a compile pass.</div>
+        <div class="ai-note">Uses the OpenAI Responses API from this browser. Keys are stored in localStorage for this local experiment.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div id="tl">
+    <div id="tlc">
+      <button class="tl-btn" id="tl-prev">&lt;</button>
+      <button class="tl-btn" id="tl-next">&gt;</button>
+      <div class="tl-div"></div>
+      <button class="tl-btn" id="tl-blk">+BLK</button>
+      <button class="tl-btn" id="tl-dup">+CPY</button>
+      <button class="tl-btn" id="tl-del" style="color:var(--c)">DEL</button>
+      <div class="tl-div"></div>
+      <button class="tl-btn" id="tl-wipe">WIPE</button>
+      <button class="tl-btn" id="tl-branch">BRANCH@FR</button>
+      <span id="tl-info">NO CELL SELECTED</span>
+    </div>
+    <div id="tl-strip">
+      <span id="tl-empty">SELECT A CELL · DOUBLE-CLICK TO EDIT · RIGHT-CLICK FOR MENU</span>
+    </div>
+  </div>
+
+  <!-- TABS (mobile) -->
+  <nav id="tabs">
+    <button class="tab" id="tab-a"><span class="tab-ltr">A</span>SHOTS</button>
+    <button class="tab" id="tab-b"><span class="tab-ltr">B</span>BUILD</button>
+    <button class="tab" id="tab-c"><span class="tab-ltr">C</span>COLOR</button>
+    <button class="tab" id="tab-d"><span class="tab-ltr">D</span>SAVE</button>
+    <button class="tab" id="tab-help" style="flex:0 0 48px"><span class="tab-ltr">?</span>HELP</button>
+  </nav>
+
+</div><!-- #shell -->
+
+<!-- SIDE NAV (desktop) -->
+<nav id="side-nav">
+  <button class="snav" id="snav-a"><span class="snav-ltr">A</span>SHOTS</button>
+  <button class="snav" id="snav-b"><span class="snav-ltr">B</span>BUILD</button>
+  <button class="snav" id="snav-c"><span class="snav-ltr">C</span>COLOR</button>
+  <button class="snav" id="snav-d"><span class="snav-ltr">D</span>SAVE</button>
+</nav>
+
+<!-- BACKDROP -->
+<div id="backdrop"></div>
+
+<!-- ── SHEET A: SHOTS ── -->
+<div class="sheet" id="sheet-a">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--a)">A · SHOTS</span>
+    <button class="sh-x" id="sh-a-x">×</button>
+  </div>
+  <div class="sh-tabs">
+    <button class="sh-tab on" data-stab="a-shots">SHOTS</button>
+    <button class="sh-tab" data-stab="a-cells">CELLS</button>
+    <button class="sh-tab" data-stab="a-info">INFO</button>
+  </div>
+
+  <!-- SHOTS panel (per-cell) -->
+  <div class="sh-body" id="a-shots">
+    <!-- Causal chain -->
+    <div class="dep-chain" id="dep-chain">
+      <div class="dep-node" id="dn-code"><b>01</b> CODE<span class="dn-sub" id="dns-code">—</span></div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-frames"><b>02</b> FRAMES<span class="dn-sub" id="dns-frames">—</span></div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-edges"><b>03</b> EDGES<span class="dn-sub" id="dns-edges">—</span></div>
+      <div class="dep-arrow">›</div>
+      <div class="dep-node" id="dn-out"><b>04</b> OUT<span class="dn-sub" id="dns-out">—</span></div>
+    </div>
+    <!-- Quick stats -->
+    <div class="fact-grid" id="a-facts">
+      <div class="fact"><b>Cell</b><span id="f-cell">None</span></div>
+      <div class="fact"><b>Code</b><span id="f-code">No code</span></div>
+      <div class="fact"><b>Frames</b><span id="f-frames">0</span></div>
+      <div class="fact"><b>Edges</b><span id="f-edges">0</span></div>
+    </div>
+    <div class="sep-lbl" style="margin-top:6px">LOAD CODE</div>
+    <div class="btn-row">
+      <button class="btn a" id="btn-open-code">✎ OPEN EDITOR</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btn-load-bfx">⬆ LOAD .BFX FILE</button>
+      <button class="btn" id="btn-paste-code">📋 PASTE</button>
+    </div>
+    <input type="file" id="bfx-file-in" accept=".bfx,.txt,.beflix" style="display:none">
+    <div class="sep-lbl">FRAMES</div>
+    <div class="btn-row">
+      <button class="btn sm" id="a-add-blk">+ BLANK</button>
+      <button class="btn sm" id="a-dup-frame">+ COPY</button>
+      <button class="btn sm c" id="a-del-frame">DEL</button>
+    </div>
+    <button class="btn g" id="a-run">▶ RUN CODE</button>
+    <button class="btn" id="a-regen">↻ REGENERATE</button>
+  </div>
+
+  <!-- CELLS panel (mosaic-wide cell list) -->
+  <div class="sh-body" id="a-cells" style="display:none">
+    <div class="btn-row">
+      <button class="btn a" id="btn-add-cell">+ NEW CELL</button>
+    </div>
+    <div id="cell-list"></div>
+  </div>
+
+  <!-- INFO panel -->
+  <div class="sh-body" id="a-info" style="display:none">
+    <div><div class="lbl">MOSAIC TITLE</div><input class="inp" id="proj-title" placeholder="UNTITLED MOSAIC" autocomplete="off"></div>
+    <div><div class="lbl">DESCRIPTION</div><textarea class="inp" id="proj-desc" rows="4" placeholder="What is this mosaic about?" style="resize:none;font:600 11px/1.5 var(--sans)"></textarea></div>
+    <button class="btn pri" id="btn-save">SAVE PROJECT</button>
+    <div class="sep-lbl">DANGER</div>
+    <button class="btn c" id="btn-clear" style="opacity:.6;font-size:8px">CLEAR ALL CELLS</button>
+  </div>
+</div>
+
+<!-- ── SHEET B: BUILD ── -->
+<div class="sheet" id="sheet-b">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--b)">B · BUILD</span>
+    <button class="sh-x" id="sh-b-x">×</button>
+  </div>
+  <div class="sh-tabs">
+    <button class="sh-tab on" data-stab="b-code-panel">CODE</button>
+    <button class="sh-tab" data-stab="b-fire">FIRE</button>
+  </div>
+
+  <!-- CODE panel: inline BEFLIX editor -->
+  <div class="sh-body no-pad" id="b-code-panel" style="display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--soft);flex-shrink:0">
+      <span id="b-cell-name" style="font:900 11px/1 var(--font);flex:1">NO CELL</span>
+      <span id="b-stats" style="font:900 7px/1 var(--font);color:#888">0 LINES · 0 FRAMES</span>
+    </div>
+    <textarea id="b-code" spellcheck="false" placeholder="C Select a cell and write BEFLIX code here...
+C
+C CLR v         — Fill grid (0–7)
+C PNT x y w h v — Rectangle
+C LIN x1 y1 x2 y2 v — Line
+C REC n         — Record n frames
+C SHF dx dy n   — Shift + record"></textarea>
+    <div style="display:flex;gap:4px;padding:8px 12px;border-top:1px solid var(--soft);flex-shrink:0">
+      <button class="btn sm g" id="b-run" style="flex:1">▶ RUN</button>
+      <button class="btn sm" id="b-expand" style="flex:1">⊞ EXPAND</button>
+      <button class="btn sm" id="b-regen" style="flex:0 0 auto">↻</button>
+    </div>
+  </div>
+
+  <!-- FIRE panel: operations + edges -->
+  <div class="sh-body" id="b-fire" style="display:none">
+    <div style="font:600 10px/1.4 var(--sans);color:#666;margin-bottom:8px">
+      Select an operation, then <b>shift+drag</b> from one cell to another on the canvas to fire it.
+      This creates a narrative link between territories.
+    </div>
+    <div class="lbl">OPERATIONS</div>
+    <div class="op-grid" id="c-ops"></div>
+    <div class="sep-lbl" style="margin-top:8px">EDGES</div>
+    <div id="c-edges" style="font:600 9px/1.4 var(--font);color:#666">No edges yet.</div>
+  </div>
+</div>
+
+<!-- ── SHEET C: COLOR ── -->
+<div class="sheet" id="sheet-c">
+  <div class="sh-hd">
+    <span class="sh-title" style="color:var(--c)">C · COLOR / DRAW</span>
+    <button class="sh-x" id="sh-c-x">×</button>
+  </div>
+  <div class="sh-body" id="c-draw">
+    <div class="lbl">ACTIVE CELL</div>
+    <div id="c-active-name" style="font:900 14px/1 var(--font);margin-bottom:6px">—</div>
+    <div class="lbl">TOOLS</div>
+    <div class="btn-row">
+      <button class="btn on" id="bt-pen">PEN</button>
+      <button class="btn" id="bt-rect">BOX</button>
+      <button class="btn" id="bt-line">LINE</button>
+      <button class="btn" id="bt-erase">ERASE</button>
+    </div>
+    <button class="btn pri" id="btn-wipe2">WIPE FRAME INK</button>
+    <div class="lbl" style="margin-top:4px">PALETTE</div>
+    <div class="ink-grid" id="b-swatches"></div>
+    <div class="lbl" style="margin-top:4px">BRUSH SIZE</div>
+    <input type="range" id="brush-sz2" min="1" max="24" value="3">
+  </div>
+</div>
+
+<!-- ── SHEET D: SAVE ── -->
+<div class="sheet" id="sheet-d">
+  <div class="sh-hd">
+    <span class="sh-title">D · SAVE / EXPORT</span>
+    <button class="sh-x" id="sh-d-x">×</button>
+  </div>
+  <div class="sh-body" id="d-save">
+    <div class="sep-lbl">THIS CELL</div>
+    <button class="btn" id="exp-cell-bfx">⭳ BEFLIX — This cell's code</button>
+    <button class="btn" id="exp-cell-png">⭳ PNG — This cell's current frame</button>
+    <div class="sep-lbl">ALL CELLS</div>
+    <button class="btn" id="exp-twee">⭳ TWEE — Twine branching</button>
+    <button class="btn" id="exp-zorc-twee">⭳ ZORC TWEE — playable code territories</button>
+    <button class="btn" id="exp-zorc-edl">⭳ ZORC EDL — branch edit list</button>
+    <button class="btn" id="exp-zorc-tweel">⭳ TWEEL JSON — territories + BEFLIX</button>
+    <button class="btn" id="exp-bfx">⭳ BEFLIX — All cells' code</button>
+    <button class="btn" id="exp-map-bfx">⭳ BEFLIX — Territory map film</button>
+    <button class="btn" id="exp-path-bfx">⭳ BEFLIX — ZORC path film</button>
+    <div class="sep-lbl">MOSAIC</div>
+    <button class="btn" id="exp-png">⭳ PNG — Current mosaic view</button>
+    <div class="sep-lbl">PROJECT</div>
+    <button class="btn" id="exp-json">⭳ JSON — Full project save</button>
+    <button class="btn" id="exp-load">⬆ LOAD PROJECT</button>
+    <input type="file" id="load-in" accept=".json" style="display:none">
+  </div>
+</div>
+
+<!-- BEFLIX CODE MODAL -->
+<div id="bfx-modal">
+  <div id="bfx-hd">
+    <span id="bfx-title">BEFLIX CODE</span>
+    <button class="bfx-btn run" id="bfx-run">▶ RUN</button>
+    <button class="bfx-btn" id="bfx-ref-btn">REF</button>
+    <button class="bfx-btn close" id="bfx-close">CLOSE</button>
+  </div>
+  <div id="bfx-split">
+    <div id="bfx-code-pane">
+      <textarea id="bfx-editor" spellcheck="false" placeholder="C Enter BEFLIX code here...
+C
+C Commands:
+C   CLR v           — Fill grid with intensity v
+C   PNT x y w h v   — Paint rectangle
+C   LIN x1 y1 x2 y2 v — Draw line
+C   REC n           — Record n frames
+C   SHF dx dy n     — Shift pixels and record
+C
+C Grid: 128×96  Intensity: 0–7"></textarea>
+    </div>
+    <div id="bfx-preview-pane">
+      <div id="bfx-prev-hd">
+        <span>PREVIEW</span>
+        <button class="bfx-fb" id="bfx-p-prev">‹</button>
+        <button class="bfx-fb" id="bfx-p-next">›</button>
+        <button class="bfx-fb play-f" id="bfx-p-play">▶</button>
+        <span id="bfx-prev-frame">—</span>
+      </div>
+      <div id="bfx-cvs-wrap">
+        <canvas id="bfx-cvs" width="640" height="480"></canvas>
+      </div>
+      <div id="bfx-prev-strip"></div>
+    </div>
+  </div>
+  <div id="bfx-ref">CLR v           — Fill entire grid with intensity v (0=white, 7=black)
+PNT x y w h v   — Paint rectangle at (x,y) width w height h value v
+LIN x1 y1 x2 y2 v — Draw line between two points at value v
+REC n           — Record current state as n frames
+SHF dx dy n     — Shift all pixels by (dx,dy) and record n frames
+
+Grid: 128 columns × 96 rows. Origin = top-left.
+Intensity: 0=empty/white, 7=brightest/black.
+Lines starting with C or ; are comments.</div>
+  <div id="bfx-foot">
+    <span id="bfx-lcount">0 LINES</span>
+    <span id="bfx-fcount">0 FRAMES</span>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx">
+  <div class="ctx-hd" id="ctx-name">CELL</div>
+  <button class="ctx-item" id="ctx-select">▸ Select<span class="ctx-key">click</span></button>
+  <button class="ctx-item" id="ctx-edit">✎ Edit code<span class="ctx-key">enter</span></button>
+  <button class="ctx-item" id="ctx-regen">↻ Regenerate<span class="ctx-key">r</span></button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item" id="ctx-addframe">+ Add blank frame</button>
+  <button class="ctx-item" id="ctx-dupframe">⧉ Duplicate frame</button>
+  <button class="ctx-item" id="ctx-wipe">⊘ Wipe current frame</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item" id="ctx-paste">📋 Paste BEFLIX code</button>
+  <button class="ctx-item" id="ctx-clone">⭐ Clone cell</button>
+  <button class="ctx-item" id="ctx-spread4">▦ Spread ×4 (2×2 collage)</button>
+  <button class="ctx-item" id="ctx-spread9">▦ Spread ×9 (3×3 collage)</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-item" id="ctx-solo">⊞ Solo view<span class="ctx-key">s</span></button>
+  <button class="ctx-item" id="ctx-rename">✏ Rename</button>
+  <button class="ctx-item danger" id="ctx-delete">✕ Delete cell<span class="ctx-key">del</span></button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════
+const GC=128,GR=96,BS=5,MAX_FRAMES=120;
+const $=id=>document.getElementById(id);
+const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
+
+function toast(msg,err=false,dur=1500){
+  const el=$('toast');el.textContent=msg;el.classList.toggle('err',err);
+  el.classList.add('on');clearTimeout(toast._t);
+  toast._t=setTimeout(()=>el.classList.remove('on'),dur);
+}
+
+// ═══════════════════════════════════════
+// CODE TRANSFORMATION HELPERS
+// ═══════════════════════════════════════
+
+// Transform PNT/LIN coordinates in BEFLIX code
+function transformBEFLIXCoords(code, xFn, yFn, wFn, hFn, vFn){
+  return code.split('\n').map(line => {
+    const raw = line.trim();
+    if (!raw || raw[0]==='C' || raw[0]===';') return line;
+    const p = raw.split(/\s+/), cmd = p[0].toUpperCase();
+    if (cmd==='PNT') {
+      const [x,y,w,h,v] = p.slice(1).map(Number);
+      return `PNT ${clamp(Math.round(xFn(x)),0,127)} ${clamp(Math.round(yFn(y)),0,95)} ${clamp(Math.round(wFn?wFn(w):w),1,128)} ${clamp(Math.round(hFn?hFn(h):h),1,96)} ${clamp(Math.round(vFn?vFn(v):v),0,7)}`;
+    }
+    if (cmd==='LIN') {
+      const [x1,y1,x2,y2,v] = p.slice(1).map(Number);
+      return `LIN ${clamp(Math.round(xFn(x1)),0,127)} ${clamp(Math.round(yFn(y1)),0,95)} ${clamp(Math.round(xFn(x2)),0,127)} ${clamp(Math.round(yFn(y2)),0,95)} ${clamp(Math.round(vFn?vFn(v):v),0,7)}`;
+    }
+    return line;
+  }).join('\n');
+}
+
+// Convert a frame (pixel data) to BEFLIX code using run-length PNT commands
+function frameToBEFLIX(frame, comment){
+  let code = comment ? `C ${comment}\n` : '';
+  code += 'CLR 0\n';
+  // Group adjacent pixels by value in rows
+  for (let y = 0; y < GR; y++) {
+    let x = 0;
+    while (x < GC) {
+      const v = frame[y * GC + x];
+      if (v > 0) {
+        let runEnd = x + 1;
+        while (runEnd < GC && frame[y * GC + runEnd] === v) runEnd++;
+        code += `PNT ${x} ${y} ${runEnd - x} 1 ${v}\n`;
+        x = runEnd;
+      } else x++;
+    }
+  }
+  code += 'REC 1\n';
+  return code;
+}
+
+// Find the bounding box of non-zero pixels in a frame
+function frameBounds(frame){
+  let x0=GC, y0=GR, x1=0, y1=0;
+  for (let y=0; y<GR; y++) for (let x=0; x<GC; x++) {
+    if (frame[y*GC+x] > 0) { x0=Math.min(x0,x); y0=Math.min(y0,y); x1=Math.max(x1,x); y1=Math.max(y1,y); }
+  }
+  if (x0 > x1) return {x:0,y:0,w:GC,h:GR}; // empty
+  return {x:x0, y:y0, w:x1-x0+1, h:y1-y0+1};
+}
+
+// Blend two frames together (additive, clamped to 7)
+function blendFrames(a, b, ratio=0.5){
+  const out = new Uint8Array(GR*GC);
+  for (let i=0; i<GR*GC; i++) out[i] = clamp(Math.round(a[i]*(1-ratio) + b[i]*ratio), 0, 7);
+  return out;
+}
+
+// Extract the composition prompt from C comments
+function extractPrompt(code){
+  const lines = code.split('\n');
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.startsWith('C BEFLIX') || t.startsWith('C COMPOSITION') || (t.startsWith('C ') && t.includes('COMPOSITION')))
+      return t.slice(2).trim();
+    if (t.startsWith('C ') && (t.includes('"') || t.includes('Subject') || t.includes('SUBJECT')))
+      return t.slice(2).trim();
+  }
+  return '';
+}
+
+// ═══════════════════════════════════════
+// ZORC ROOM COMPILER
+// ═══════════════════════════════════════
+const ZORC_DIRECTIONS=['NORTH','EAST','SOUTH','WEST','UP','DOWN','IN','OUT','NEXT'];
+
+function zorcHash(str){
+  let h=2166136261;
+  for(let i=0;i<String(str).length;i++){h^=String(str).charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+function zorcRng(seedText){
+  let s=zorcHash(seedText)||1;
+  return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};
+}
+function zorcClean(v){
+  return String(v||'').replace(/^["']|["']$/g,'').replace(/[;,]+$/,'').trim();
+}
+function zorcTitle(name){
+  return String(name||'').replace(/[_-]/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').trim();
+}
+function zorcNorm(s){
+  return zorcTitle(s).toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+}
+function zorcId(s){
+  return zorcNorm(s).replace(/\s+/g,'_')||'OBJECT';
+}
+function zorcProp(body,key){
+  const re=new RegExp(key+'\\s*:\\s*([^\\n]+)','i');
+  const m=String(body||'').match(re);
+  return m?zorcClean(m[1]):'';
+}
+function zorcTraits(body){
+  const m=String(body||'').match(/traits\s*:\s*\[([^\]]*)\]/i);
+  if(!m)return[];
+  return m[1].split(',').map(x=>zorcClean(x)).filter(Boolean);
+}
+function zorcBlocks(raw,kind,hasType=false){
+  const out=[];
+  const re=hasType
+    ? new RegExp(kind+'\\s+<([^>]+)>\\s*:\\s*([^\\s{]+)\\s*\\{([^{}]*)\\}','gi')
+    : new RegExp(kind+'\\s+<([^>]+)>\\s*\\{([^{}]*)\\}','gi');
+  let m;
+  while((m=re.exec(raw))){
+    const name=m[1],type=hasType?m[2]:kind,body=hasType?m[3]:m[2];
+    out.push({name,type,body,description:zorcProp(body,'description'),location:zorcProp(body,'location'),traits:zorcTraits(body)});
+  }
+  return out;
+}
+function parseZorcManifest(world){
+  const raw=world.raw||'';
+  const locations=zorcBlocks(raw,'location',false);
+  const entities=zorcBlocks(raw,'entity',true);
+  const events=zorcBlocks(raw,'event',false);
+  const rules=zorcBlocks(raw,'rule',false);
+  const relations=[];let rm;
+  const relRe=/rel\s+\[([^\]]+)\]\(([^)]*)\)/gi;
+  while((rm=relRe.exec(raw)))relations.push({verb:zorcClean(rm[1]),body:zorcClean(rm[2])});
+  const states=[];let sm;
+  const stateRe=/state\s+<([^>]+)>\s*=\s*([^\n]+)/gi;
+  while((sm=stateRe.exec(raw)))states.push({name:zorcClean(sm[1]),value:zorcClean(sm[2])});
+  const times=[];let tm;
+  const timeRe=/time\s+<([^>]+)>/gi;
+  while((tm=timeRe.exec(raw)))times.push(zorcClean(tm[1]));
+  return {raw,locations,entities,events,rules,relations,states,times};
+}
+function zorcPortable(item){
+  const t=(item.name+' '+item.type+' '+item.body).toLowerCase();
+  return /tool|weapon|patch|watch|toy|rod|material|artifact|interface|device|lamp|honey|package|key|rope|sword|title|text/.test(t);
+}
+function inferObjectVerbs(item){
+  const t=(item.name+' '+item.type+' '+item.body).toLowerCase();
+  const verbs=['LOOK','EXCAVATE','CORRUPT','SURFACE'];
+  if(zorcPortable(item))verbs.push('TAKE','GRAFT');
+  if(/lamp|light|arc|grid|power|sun|window|glass|screen|projector|terminal/.test(t))verbs.push('ILLUMINATE');
+  if(/water|ocean|pool|river|tunnel|channel|flood|rain|subterranean/.test(t))verbs.push('FLOOD');
+  if(/fire|heat|carbon|smolder|explosive|crater|burn|slag/.test(t))verbs.push('BURN','TRANSMUTE');
+  if(/software|code|server|data|network|terminal|signal|script|protocol/.test(t))verbs.push('FORK');
+  return [...new Set(verbs)];
+}
+function buildZorcRoom(world,i){
+  const manifest=parseZorcManifest(world);
+  const objects=[];
+  manifest.locations.forEach((x,idx)=>objects.push({
+    id:zorcId(x.name),name:x.name,kind:'location',c_prompt:x.description||x.body||'territory location',
+    visible:true,portable:false,states:{},surfaces:[],verbs:inferObjectVerbs(x),bounds:null,source:'location',order:idx,
+    raw:x.body||'',location:x.location||''
+  }));
+  manifest.entities.forEach((x,idx)=>objects.push({
+    id:zorcId(x.name),name:x.name,kind:x.type||'entity',c_prompt:[x.type,(x.traits||[]).join(', '),x.location].filter(Boolean).join(' | '),
+    visible:true,portable:zorcPortable(x),states:{},surfaces:[],verbs:inferObjectVerbs(x),bounds:null,source:'entity',order:idx,
+    raw:x.body||'',location:x.location||''
+  }));
+  manifest.events.forEach((x,idx)=>objects.push({
+    id:zorcId(x.name),name:x.name,kind:'event',c_prompt:x.body||'event compiler cue',
+    visible:true,portable:false,states:{},surfaces:[],verbs:inferObjectVerbs(x),bounds:null,source:'event',order:idx,
+    raw:x.body||'',location:x.location||''
+  }));
+  manifest.rules.forEach((x,idx)=>objects.push({
+    id:zorcId(x.name),name:x.name,kind:'rule',c_prompt:x.body||'rule compiler cue',
+    visible:true,portable:false,states:{},surfaces:[],verbs:['LOOK','EXCAVATE','CORRUPT','FORK'],bounds:null,source:'rule',order:idx,
+    raw:x.body||'',location:x.location||''
+  }));
+  manifest.states.forEach((x,idx)=>{
+    const parts=String(x.name||'').split('.');
+    objects.push({
+      id:zorcId(x.name),name:x.name,kind:'state',c_prompt:`${parts[0]||'room'} state ${parts[1]||'value'} = ${x.value}`,
+      visible:true,portable:false,states:{value:x.value},surfaces:[],verbs:['LOOK','EXCAVATE','CORRUPT','FORK','SURFACE'],
+      bounds:null,source:'state',order:idx,target:parts[0]||'',value:x.value,raw:`state <${x.name}> = ${x.value}`
+    });
+  });
+  manifest.times.forEach((x,idx)=>objects.push({
+    id:zorcId(x),name:x,kind:'time',c_prompt:`timeline marker ${x}`,
+    visible:true,portable:false,states:{},surfaces:[],verbs:['LOOK','EXCAVATE','CORRUPT','FORK','SURFACE'],
+    bounds:null,source:'time',order:idx,raw:`time <${x}>`
+  }));
+  const desc=world.meta?.description||manifest.locations[0]?.description||'An executable BEFLIX territory.';
+  return {
+    id:world.uid||('R-'+i),name:world.name||('Room-'+i),desc,
+    c_prompt:[
+      `C ROOM: ${world.name||('Room-'+i)}`,
+      `C Genre: ${world.meta?.genre||'unknown'}`,
+      `C Description: ${desc}`,
+      `C Objects: ${objects.map(o=>o.name).join(', ')}`,
+      `C Rule: every command rewrites room code and leaves an edge`
+    ].join('\n'),
+    beflix_code:'',objects,exits:[],flags:{},room_variables:{},
+    history:[],source_room_id:null,source_verb:null,manifest
+  };
+}
+function inferZorcMotif(room){
+  const t=(room.name+' '+room.desc+' '+(room.manifest?.raw||'')).toLowerCase();
+  const tests=[
+    ['train',/train|station|platform|tunnel|rail|shinkansen|eurostar|commuter|tarmac|airport/],
+    ['apiary',/bee|apiary|hive|honey|pollinat|colony|bumble|insect|orchard/],
+    ['cyber',/server|data|cyber|terminal|network|software|code|signal|radar|grid|protocol|ai/],
+    ['institution',/court|legal|law|ruling|classification|fbi|office|bureau|jurisdiction/],
+    ['water',/ship|ocean|channel|harbor|coastal|water|rain|reservoir|marine|atlantic/],
+    ['industry',/factory|industrial|packaging|conveyor|farm|line|warehouse|stockroom|manufactur|render farm/],
+    ['rupture',/crater|strike|explosive|fire|smolder|slag|military|assault|barricade|breach|collapse/],
+    ['domestic',/apartment|residence|suburban|home|dinner|table|property|picket/],
+    ['cinema',/camera|film|projector|screen|script|movie|theater|lumi[eè]re|cinema|frame/]
+  ];
+  let best=['territory',0];
+  tests.forEach(([name,re])=>{
+    const m=t.match(new RegExp(re.source,'g'));
+    const score=m?m.length:0;
+    if(score>best[1])best=[name,score];
+  });
+  return best[0];
+}
+function layoutZorcObjects(room){
+  const rng=zorcRng(room.id+room.name);
+  const motif=inferZorcMotif(room);
+  const slots={
+    train:[[9,54,24,15],[39,48,22,18],[67,44,22,18],[94,38,21,18],[16,72,10,8],[48,70,10,8],[80,68,10,8],[108,66,10,8]],
+    apiary:[[10,58,18,18],[31,54,18,20],[54,50,18,23],[78,54,18,20],[101,58,17,18],[24,26,8,7],[48,22,8,7],[76,25,8,7],[100,20,8,7]],
+    cyber:[[9,18,16,54],[30,14,16,58],[52,18,16,54],[76,14,16,58],[99,18,16,54],[18,80,10,6],[60,78,10,6],[102,80,10,6]],
+    institution:[[10,55,28,22],[47,36,34,38],[91,54,27,22],[21,20,10,30],[96,20,10,30],[55,72,18,10]],
+    water:[[8,58,30,14],[45,52,32,18],[86,56,30,14],[16,30,14,10],[62,26,14,10],[102,32,14,10]],
+    industry:[[8,60,24,16],[38,55,24,19],[68,50,24,22],[98,56,20,16],[15,79,16,6],[56,78,16,6],[96,79,16,6]],
+    rupture:[[14,52,22,16],[48,42,28,24],[88,50,24,18],[33,72,12,9],[70,70,12,9],[105,68,10,8]],
+    domestic:[[10,52,30,23],[49,46,30,29],[91,52,27,23],[18,28,10,19],[62,26,12,22],[100,30,10,18]],
+    cinema:[[8,28,34,26],[50,22,28,35],[89,30,28,24],[18,68,20,7],[54,70,20,7],[91,68,20,7]],
+    territory:[[10,56,22,18],[38,45,24,24],[70,50,24,20],[99,58,18,16],[20,24,10,9],[56,20,10,9],[94,25,10,9]]
+  }[motif]||[];
+  room.objects.forEach((obj,i)=>{
+    const s=slots[i%slots.length]||[8+(i%7)*17,18+Math.floor(i/7)*14,12,10];
+    const jx=Math.floor((rng()-.5)*4),jy=Math.floor((rng()-.5)*4);
+    obj.bounds={x:clamp(s[0]+jx,0,120),y:clamp(s[1]+jy,0,90),w:clamp(s[2],3,34),h:clamp(s[3],3,28)};
+  });
+}
+function motifLines(motif,stage=1){
+  const v=clamp(stage,1,7),lo=Math.max(1,v-2);
+  if(motif==='train')return[
+    `LIN 0 78 127 67 ${lo}`,`LIN 0 86 127 75 ${lo+1}`,`PNT 5 38 116 28 ${Math.max(1,v-1)}`,
+    `LIN 5 38 121 38 ${v}`,`LIN 5 66 121 66 ${v}`,`PNT 14 43 15 9 ${lo}`,`PNT 37 43 15 9 ${lo}`,`PNT 60 43 15 9 ${lo}`,`PNT 83 43 15 9 ${lo}`
+  ];
+  if(motif==='apiary')return[
+    `LIN 0 84 127 84 ${lo+1}`,`PNT 0 76 128 20 ${lo}`,`PNT 14 51 24 24 ${Math.max(1,v-1)}`,
+    `PNT 47 48 24 27 ${Math.max(1,v-1)}`,`PNT 80 51 24 24 ${Math.max(1,v-1)}`,`LIN 12 51 106 51 ${v}`
+  ];
+  if(motif==='cyber')return[
+    `PNT 5 10 118 70 ${lo}`,`LIN 12 18 116 18 ${v}`,`LIN 12 72 116 72 ${v}`,
+    `PNT 17 22 14 44 ${Math.max(1,v-1)}`,`PNT 38 22 14 44 ${Math.max(1,v-1)}`,`PNT 59 22 14 44 ${Math.max(1,v-1)}`,`PNT 80 22 14 44 ${Math.max(1,v-1)}`,`PNT 101 22 14 44 ${Math.max(1,v-1)}`
+  ];
+  if(motif==='institution')return[
+    `PNT 9 22 110 50 ${lo}`,`LIN 9 22 119 22 ${v}`,`LIN 9 72 119 72 ${v}`,
+    `PNT 18 28 8 38 ${Math.max(1,v-1)}`,`PNT 45 28 8 38 ${Math.max(1,v-1)}`,`PNT 72 28 8 38 ${Math.max(1,v-1)}`,`PNT 99 28 8 38 ${Math.max(1,v-1)}`,`PNT 33 68 62 9 ${v}`
+  ];
+  if(motif==='water')return[
+    `PNT 0 71 128 25 ${lo}`,`LIN 0 70 127 67 ${v}`,`LIN 0 78 127 75 ${Math.max(1,v-1)}`,
+    `PNT 16 42 34 16 ${Math.max(1,v-1)}`,`PNT 58 38 28 18 ${Math.max(1,v-1)}`,`PNT 91 44 23 14 ${Math.max(1,v-1)}`
+  ];
+  if(motif==='industry')return[
+    `LIN 0 78 127 78 ${v}`,`PNT 5 58 118 14 ${lo+1}`,`LIN 8 58 120 58 ${v}`,
+    `PNT 14 34 22 22 ${Math.max(1,v-1)}`,`PNT 48 29 26 27 ${Math.max(1,v-1)}`,`PNT 88 36 24 20 ${Math.max(1,v-1)}`
+  ];
+  if(motif==='rupture')return[
+    `PNT 0 77 128 19 ${lo}`,`LIN 0 79 127 79 ${v}`,`PNT 45 34 36 29 ${Math.max(1,v-1)}`,
+    `LIN 63 12 44 72 ${v}`,`LIN 63 12 84 72 ${v}`,`LIN 20 54 108 42 ${Math.max(1,v-1)}`
+  ];
+  if(motif==='domestic')return[
+    `PNT 0 74 128 22 ${lo}`,`PNT 12 38 104 38 ${Math.max(1,v-1)}`,`LIN 12 38 64 17 ${v}`,`LIN 64 17 116 38 ${v}`,
+    `PNT 26 54 15 20 ${Math.max(1,v-1)}`,`PNT 80 52 22 22 ${Math.max(1,v-1)}`
+  ];
+  if(motif==='cinema')return[
+    `PNT 6 14 84 50 ${lo}`,`LIN 6 14 90 14 ${v}`,`LIN 6 64 90 64 ${v}`,`PNT 96 28 20 22 ${Math.max(1,v-1)}`,
+    `LIN 96 39 123 24 ${v}`,`LIN 96 39 123 54 ${v}`,`PNT 14 72 90 8 ${lo+1}`
+  ];
+  return[
+    `PNT 0 0 128 10 ${lo}`,`PNT 0 78 128 18 ${lo}`,`LIN 0 84 127 84 ${v}`,
+    `PNT 14 45 22 24 ${Math.max(1,v-1)}`,`PNT 52 34 26 34 ${Math.max(1,v-1)}`,`PNT 91 48 24 22 ${Math.max(1,v-1)}`
+  ];
+}
+function roomSignatureLines(room,stage=1){
+  const rng=zorcRng(`${room.id}|${room.name}|${stage}`);
+  const lines=[];
+  const count=3+Math.floor(rng()*4);
+  for(let i=0;i<count;i++){
+    const x=Math.floor(rng()*108)+4,y=Math.floor(rng()*68)+8;
+    const w=Math.floor(rng()*18)+5,h=Math.floor(rng()*14)+3;
+    const v=clamp(stage+Math.floor(rng()*3),1,7);
+    if(rng()<.55)lines.push(`PNT ${x} ${y} ${w} ${h} ${v}`);
+    else lines.push(`LIN ${x} ${y} ${clamp(x+w+Math.floor(rng()*22),0,127)} ${clamp(y+h+Math.floor((rng()-.5)*26),0,95)} ${v}`);
+  }
+  return lines;
+}
+function roomBaseLines(room,motif,stage=1){
+  return [...motifLines(motif,stage),...roomSignatureLines(room,stage)];
+}
+function drawObjectLines(obj,v=3,detail=false){
+  const b=obj.bounds||{x:10,y:10,w:10,h:10};
+  const t=(obj.name+' '+obj.kind+' '+obj.c_prompt).toLowerCase();
+  const lines=[];
+  if(/swarm|bee|insect|cloud|drone|nanobot|micro/.test(t)){
+    for(let i=0;i<6;i++)lines.push(`PNT ${clamp(b.x+(i*5)%Math.max(6,b.w),0,127)} ${clamp(b.y+((i*7)%Math.max(5,b.h)),0,95)} 2 2 ${clamp(v+i%2,1,7)}`);
+    lines.push(`LIN ${b.x} ${b.y+b.h} ${clamp(b.x+b.w,0,127)} ${b.y} ${Math.max(1,v-1)}`);
+  }else if(/human|actor|operator|passenger|person|personnel|patron|victim|user/.test(t)){
+    lines.push(`PNT ${b.x+Math.floor(b.w/2)-2} ${b.y} 4 4 ${clamp(v+1,1,7)}`);
+    lines.push(`PNT ${b.x+Math.floor(b.w/2)-3} ${b.y+5} 6 ${Math.max(5,b.h-5)} ${v}`);
+    lines.push(`LIN ${b.x} ${b.y+b.h-2} ${b.x+b.w} ${b.y+b.h-2} ${clamp(v+1,1,7)}`);
+  }else{
+    lines.push(`PNT ${b.x} ${b.y} ${b.w} ${b.h} ${v}`);
+    lines.push(`LIN ${b.x} ${b.y} ${clamp(b.x+b.w,0,127)} ${b.y} ${clamp(v+1,1,7)}`);
+    lines.push(`LIN ${b.x} ${clamp(b.y+b.h,0,95)} ${clamp(b.x+b.w,0,127)} ${clamp(b.y+b.h,0,95)} ${clamp(v+1,1,7)}`);
+    if(detail)lines.push(`PNT ${b.x+Math.floor(b.w*.25)} ${b.y+Math.floor(b.h*.35)} ${Math.max(2,Math.floor(b.w*.5))} 2 ${clamp(v+2,1,7)}`);
+  }
+  return lines;
+}
+function relationLines(room,v=5){
+  const objs=room.objects||[];
+  const out=[];
+  const findObj=name=>{
+    const n=zorcNorm(name);
+    return objs.find(o=>n.includes(zorcNorm(o.name))||zorcNorm(o.name).includes(n));
+  };
+  (room.manifest?.relations||[]).slice(0,10).forEach((rel,i)=>{
+    const names=[...rel.body.matchAll(/<([^>]+)>/g)].map(m=>m[1]);
+    const a=findObj(names[0]||'')||objs[i%objs.length];
+    const b=findObj(names[names.length-1]||'')||objs[(i+1)%objs.length];
+    if(!a||!b||!a.bounds||!b.bounds)return;
+    const ax=a.bounds.x+Math.floor(a.bounds.w/2),ay=a.bounds.y+Math.floor(a.bounds.h/2);
+    const bx=b.bounds.x+Math.floor(b.bounds.w/2),by=b.bounds.y+Math.floor(b.bounds.h/2);
+    out.push(`LIN ${ax} ${ay} ${bx} ${by} ${clamp(v+(i%2),1,7)}`);
+  });
+  return out;
+}
+function zorcFrame(n,label,lines,rec=3){
+  return `C ===== FRAME ${n}: ${label} =====\n${lines.join('\n')}\nREC ${rec}\n\n`;
+}
+function genZorcBEFLIX(room){
+  layoutZorcObjects(room);
+  const motif=inferZorcMotif(room);
+  const objList=(room.objects||[]).map(o=>o.name).join(', ')||'none';
+  const stateList=(room.manifest?.states||[]).slice(0,8).map(s=>`${s.name}=${s.value}`).join('; ')||'latent';
+  let c='';
+  c+=`C BEFLIX-128 COMPOSITION: "${zorcTitle(room.name).toUpperCase()} TERRITORY"\n`;
+  c+=`C Subject fills frame: executable room, 128x96, motif ${motif}\n`;
+  c+=`C Structure: establish field, territory physics, object registry, per-object plates, relations, state pressure, event climax, hold\n`;
+  c+=room.c_prompt+'\n';
+  c+=`C States: ${stateList}\n`;
+  c+=`C Timeline: ${(room.manifest?.times||[]).join(', ')||'continuous'}\n`;
+  c+=`C Objects: ${objList}\n\n`;
+  (room.objects||[]).forEach(obj=>{
+    const b=obj.bounds;
+    c+=`C OBJECT ${obj.name}\nC KIND ${obj.kind}\nC BOUNDS ${b.x} ${b.y} ${b.w} ${b.h}\nC PORTABLE ${obj.portable?'true':'false'}\nC VERBS ${obj.verbs.join(' ')}\nC PROMPT ${zorcTitle(obj.c_prompt).slice(0,160)}\nC END_OBJECT\n`;
+  });
+  c+='\n';
+  const base1=['CLR 0',...roomBaseLines(room,motif,1)];
+  c+=zorcFrame(1,'ESTABLISH - empty field and ground law',base1,4);
+  c+=zorcFrame(2,'TERRITORY PHYSICS - room scaffold appears',['CLR 0',...roomBaseLines(room,motif,2)],4);
+  const ghost=['CLR 0',...roomBaseLines(room,motif,2),...(room.objects||[]).slice(0,12).flatMap(o=>drawObjectLines(o,2,false))];
+  c+=zorcFrame(3,'GHOST MASS - all manifest elements blocked in',ghost,3);
+  const registry=['CLR 0',...roomBaseLines(room,motif,3),...(room.objects||[]).flatMap(o=>drawObjectLines(o,3,false))];
+  c+=zorcFrame(4,'OBJECT REGISTRY - subprogram bounds assigned',registry,3);
+  let frameNo=5;
+  (room.objects||[]).forEach((obj,i)=>{
+    const plate=['CLR 0',...roomBaseLines(room,motif,2),...drawObjectLines(obj,6,true)];
+    const b=obj.bounds;
+    plate.push(`LIN ${Math.max(0,b.x-2)} ${Math.max(0,b.y-2)} ${clamp(b.x+b.w+2,0,127)} ${Math.max(0,b.y-2)} 7`);
+    plate.push(`LIN ${Math.max(0,b.x-2)} ${clamp(b.y+b.h+2,0,95)} ${clamp(b.x+b.w+2,0,127)} ${clamp(b.y+b.h+2,0,95)} 7`);
+    c+=zorcFrame(frameNo++,`OBJECT PLATE ${i+1} - ${zorcTitle(obj.name).toUpperCase()} SUBPROGRAM`,plate,(room.objects.length>18?1:2));
+  });
+  const relation=['CLR 0',...roomBaseLines(room,motif,4),...(room.objects||[]).flatMap(o=>drawObjectLines(o,5,true)),...relationLines(room,6)];
+  c+=zorcFrame(frameNo++,'RELATIONS - semantic edges become visible traces',relation,4);
+  const state=['CLR 0',...roomBaseLines(room,motif,5),...(room.objects||[]).flatMap(o=>drawObjectLines(o,5,true)),...relationLines(room,6)];
+  (room.manifest?.states||[]).slice(0,6).forEach((s,i)=>state.push(`PNT ${8+i*19} ${8+(i%2)*6} 13 3 ${5+i%3}`));
+  c+=zorcFrame(frameNo++,'STATE PRESSURE - flags and variables illuminate',state,4);
+  const event=['CLR 0',...roomBaseLines(room,motif,6),...(room.objects||[]).flatMap(o=>drawObjectLines(o,6,true)),...relationLines(room,7)];
+  (room.objects||[]).filter(o=>o.source==='event'||o.source==='rule').slice(0,5).forEach(o=>event.push(...drawObjectLines(o,7,true)));
+  c+=zorcFrame(frameNo++,'EVENT CLIMAX - room compiler reaches maximum density',event,6);
+  const trace=['CLR 0',...roomBaseLines(room,motif,4),...(room.objects||[]).flatMap(o=>drawObjectLines(o,6,true)),...relationLines(room,7),'SHF 1 0 2','SHF -1 0 2'];
+  c+=zorcFrame(frameNo++,'COMPILER TRACE - operation residue and drift',trace,1);
+  const hold=['CLR 0',...roomBaseLines(room,motif,6),...(room.objects||[]).flatMap(o=>drawObjectLines(o,6,true)),...relationLines(room,7)];
+  c+=zorcFrame(frameNo++,'FULL RENDER HOLD - every manifest object visible',hold,10);
+  const beat=['CLR 0',...roomBaseLines(room,motif,6),...(room.objects||[]).flatMap((o,i)=>{
+    const moved={...o,bounds:{...o.bounds,x:clamp(o.bounds.x+(i%2?1:-1),0,127),y:o.bounds.y}};
+    return drawObjectLines(moved,6,true);
+  }),...relationLines(room,7)];
+  c+=zorcFrame(frameNo++,'LIFE BEAT - one-frame territory respiration',beat,3);
+  c+=zorcFrame(frameNo++,'RESOLVE - final room hold',hold,12);
+  room.beflix_code=c;
+  return c;
+}
+function genObjectBEFLIX(obj,roomName='ROOM'){
+  const b={x:42,y:30,w:44,h:34};
+  const centered={...obj,bounds:b};
+  return [
+    `C BEFLIX-128 COMPOSITION: "${zorcTitle(obj.name).toUpperCase()} OBJECT"`,
+    `C ZORC OBJECT FROM: ${roomName}`,
+    `C KIND ${obj.kind}`,
+    `C PROMPT ${zorcTitle(obj.c_prompt).slice(0,180)}`,
+    `C ===== FRAME 1: OBJECT GHOST =====`,
+    'CLR 0',
+    ...drawObjectLines(centered,2,false),
+    'REC 4',
+    `C ===== FRAME 2: OBJECT SUBPROGRAM =====`,
+    'CLR 0',
+    ...drawObjectLines(centered,5,true),
+    'REC 8',
+    `C ===== FRAME 3: OBJECT HOLD =====`,
+    'CLR 0',
+    ...drawObjectLines(centered,6,true),
+    'REC 12'
+  ].join('\n')+'\n';
+}
+function maxFrameNumber(code){
+  let n=0,m;const re=/FRAME\s+(\d+)/gi;
+  while((m=re.exec(code)))n=Math.max(n,Number(m[1])||0);
+  return n;
+}
+function excavateBEFLIX(code){
+  const parts=String(code).split(/(?=^C\s*=+\s*FRAME\s+\d+:)/gmi);
+  if(parts.length<=4)return code;
+  const head=parts.shift();
+  return `${head}C ZORC VERB: EXCAVATE\nC Effect: late detail frames removed; construction mass remains.\n\n${parts.slice(0,4).join('')}`;
+}
+function corruptBEFLIX(code,seedText='corrupt'){
+  const rng=zorcRng(seedText);
+  return String(code).split('\n').map(line=>{
+    const raw=line.trim(),p=raw.split(/\s+/),cmd=(p[0]||'').toUpperCase();
+    if(cmd==='CLR'&&Number(p[1])===0&&rng()<.82)return'C CLR 0 REMOVED BY CORRUPT - persistence enabled';
+    if(cmd==='PNT'&&p.length>=6){
+      let[x,y,w,h,v]=p.slice(1).map(Number);
+      x+=Math.round((rng()-.5)*5);y+=Math.round((rng()-.5)*5);
+      v=clamp(v+(rng()<.5?-1:1),1,7);
+      return`PNT ${clamp(x,0,127)} ${clamp(y,0,95)} ${clamp(w,1,128)} ${clamp(h,1,96)} ${v}`;
+    }
+    if(cmd==='LIN'&&p.length>=6){
+      let[x1,y1,x2,y2,v]=p.slice(1).map(Number);
+      x1+=Math.round((rng()-.5)*5);y1+=Math.round((rng()-.5)*5);x2+=Math.round((rng()-.5)*5);y2+=Math.round((rng()-.5)*5);
+      return`LIN ${clamp(x1,0,127)} ${clamp(y1,0,95)} ${clamp(x2,0,127)} ${clamp(y2,0,95)} ${clamp(v,1,7)}`;
+    }
+    if(cmd==='REC'&&rng()<.22)return`${line}\nSHF ${rng()<.5?-1:1} ${rng()<.5?0:1} 1`;
+    return line;
+  }).join('\n');
+}
+function illuminateBEFLIX(code,bounds){
+  const cx=bounds?bounds.x+bounds.w/2:64,cy=bounds?bounds.y+bounds.h/2:48,r=bounds?Math.max(24,bounds.w+bounds.h+18):38;
+  return String(code).split('\n').map(line=>{
+    const raw=line.trim(),p=raw.split(/\s+/),cmd=(p[0]||'').toUpperCase();
+    if(cmd==='PNT'&&p.length>=6){
+      let[x,y,w,h,v]=p.slice(1).map(Number);
+      const d=Math.hypot((x+w/2)-cx,(y+h/2)-cy);
+      v=d<=r?clamp(v+3,0,7):clamp(v-1,0,7);
+      return`PNT ${x} ${y} ${w} ${h} ${v}`;
+    }
+    if(cmd==='LIN'&&p.length>=6){
+      let[x1,y1,x2,y2,v]=p.slice(1).map(Number);
+      const d=Math.hypot(((x1+x2)/2)-cx,((y1+y2)/2)-cy);
+      v=d<=r?clamp(v+3,0,7):clamp(v-1,0,7);
+      return`LIN ${x1} ${y1} ${x2} ${y2} ${v}`;
+    }
+    return line;
+  }).join('\n')+`\n\nC ZORC VERB: ILLUMINATE\nC Light center ${Math.round(cx)} ${Math.round(cy)} radius ${Math.round(r)}\n`;
+}
+function floodBEFLIX(code,sourceName='RESERVOIR'){
+  const n=maxFrameNumber(code)+1;
+  const lines=[`C ===== FRAME ${n}: FLOOD FROM ${zorcTitle(sourceName).toUpperCase()} =====`,'CLR 0'];
+  for(let y=92;y>=58;y-=5)lines.push(`PNT 0 ${y} 128 ${Math.min(4,96-y)} ${2+((92-y)/5)%3|0}`);
+  lines.push('LIN 0 58 127 58 6','SHF 0 -1 4','REC 8');
+  return `${code}\n\nC ZORC VERB: FLOOD\nC Source room: ${sourceName}\n${lines.join('\n')}\n`;
+}
+function transmuteObjectBEFLIX(cell,obj,target='ASH'){
+  const b=obj.bounds||{x:40,y:32,w:30,h:24},n=maxFrameNumber(cell.code)+1;
+  const debris=[];
+  for(let i=0;i<10;i++)debris.push(`PNT ${clamp(b.x+(i*7)%Math.max(8,b.w),0,127)} ${clamp(b.y+b.h+Math.floor(i/3)*3,0,95)} 2 2 ${2+i%4}`);
+  return `${cell.code}\n\nC ZORC VERB: TRANSMUTE ${obj.name} INTO ${target}\nC ===== FRAME ${n}: ${zorcTitle(obj.name).toUpperCase()} COLLAPSES INTO ${target.toUpperCase()} =====\nCLR 0\n${motifLines(inferZorcMotif(cell.zorcRoom||{}),3).join('\n')}\nPNT ${b.x} ${b.y} ${b.w} ${Math.max(2,Math.floor(b.h/3))} 3\n${debris.join('\n')}\nREC 10\n`;
+}
+function graftObjectsBEFLIX(cell,a,b){
+  const n=maxFrameNumber(cell.code)+1;
+  const left={...a,bounds:{x:24,y:34,w:30,h:24}},right={...b,bounds:{x:74,y:34,w:30,h:24}};
+  const hybrid={id:zorcId(a.name+'_'+b.name),name:`${a.name}_${b.name}`,kind:'graft',c_prompt:`hybrid of ${a.name} and ${b.name}`,portable:a.portable||b.portable,visible:true,verbs:['LOOK','TAKE','SURFACE','GRAFT','TRANSMUTE'],bounds:{x:46,y:30,w:38,h:32}};
+  const center={...hybrid};
+  const code=`${cell.code}\n\nC BEFLIX-128 GRAFT COMPILER v0.1\nC Input A: ${a.name} | ${a.kind}\nC Input B: ${b.name} | ${b.kind}\nC Output: ${hybrid.name}\nC Constraint: preserve both object identities and show mechanical attachment.\n\n`+
+    zorcFrame(n,'GRAFT APPROACH - source objects separated',['CLR 0',...drawObjectLines(left,4,true),...drawObjectLines(right,4,true)],4)+
+    zorcFrame(n+1,'GRAFT CONTACT - anchors touch',['CLR 0',...drawObjectLines(left,5,true),...drawObjectLines(right,5,true),'LIN 54 46 74 46 7'],4)+
+    zorcFrame(n+2,'GRAFT FUSE - one hybrid subprogram',['CLR 0',...drawObjectLines(center,6,true),'LIN 42 46 88 46 7','PNT 58 42 12 8 5'],8);
+  return {code,hybrid};
+}
+function cloneZorcObjects(objects){
+  return (objects||[]).map(o=>({...o,bounds:o.bounds?{...o.bounds}:null,verbs:[...(o.verbs||[])]}));
+}
+function deriveZorcRoomFromResult(srcCell,name,desc,code,opKey,objects){
+  const base=srcCell?.zorcRoom||buildZorcRoom({uid:srcCell?.id,name:srcCell?.name,meta:{description:srcCell?.desc||''},raw:''},0);
+  return {...base,id:(srcCell?.id||'R')+'-'+opKey+'-'+cells.length,name,desc:desc||base.desc,beflix_code:code,
+    objects:objects||cloneZorcObjects(srcCell?.objects||base.objects),source_room_id:srcCell?.id||base.id,source_verb:opKey,
+    history:[...(base.history||[]),opKey]};
+}
+function addZorcCellFromCode(srcIdx,name,code,opKey,desc,objects){
+  const src=cells[srcIdx];if(!src)return-1;
+  const newIdx=cells.length;
+  const room=deriveZorcRoomFromResult(src,name,desc,code,opKey,objects);
+  const seed={x:src.seed.x+110+Math.random()*45,y:src.seed.y+(Math.random()-.5)*80};
+  const newCell={id:'c'+newIdx,name,desc:desc||`${opKey.toUpperCase()} from ${src.name}`,seed,polygon:[],aabb:{x:0,y:0,w:100,h:100},
+    frames:parseBEFLIX(code),curFrame:0,code,hue:(src.hue+(OPS[opKey]?.hue||45))%360,zorcRoom:room,objects:room.objects};
+  if(!newCell.frames.length)newCell.frames=[new Uint8Array(GR*GC)];
+  cells.push(newCell);edges.push({from:srcIdx,to:newIdx,op:opKey,label:opKey.toUpperCase(),command:opKey.toUpperCase(),created_by:'zorc'});
+  zorc.cut_sequence.push(newIdx);
+  tessellate();selectCell(newIdx);$('s-cells').textContent=cells.length;
+  renderOps();render();renderTimeline();renderCellList();smoothZoomToShow([newIdx]);
+  return newIdx;
+}
+function branchConsequenceCode(opKey,anchorCode,cell,cutFrame){
+  const key=(opKey||'fork').toLowerCase();
+  if(key==='corrupt'||key==='haunt')return corruptBEFLIX(anchorCode,cell.name+'-frame-'+cutFrame);
+  if(key==='illuminate')return illuminateBEFLIX(anchorCode,{x:42,y:28,w:44,h:34});
+  if(key==='flood')return floodBEFLIX(anchorCode,cell.name+' frame '+(cutFrame+1));
+  if(key==='excavate')return transformBEFLIXCoords(anchorCode,x=>x,y=>y,w=>w,h=>h,v=>Math.max(1,Math.min(v,3)));
+  if(key==='surface'||key==='zoom')return transformBEFLIXCoords(anchorCode,x=>(x-24)*1.6,y=>(y-18)*1.6,w=>w*1.6,h=>h*1.6,v=>clamp(v+1,0,7));
+  if(key==='modes')return transformBEFLIXCoords(anchorCode,x=>x,y=>y,w=>w,h=>h,v=>7-v);
+  if(key==='transmute')return anchorCode+`\nC FRAME CONSEQUENCE: TRANSMUTE INTO ASH\nPNT 24 70 80 8 2\nPNT 34 74 58 5 4\nSHF 0 1 5\nREC 6\n`;
+  return transformBEFLIXCoords(anchorCode,x=>x+(x<64?-8:8),y=>y+(y<48?-5:5),w=>w,h=>h,v=>clamp(v+1,0,7));
+}
+function branchAtFrame(opKey=curOp){
+  if(active<0){toast('Select a room',true);return-1;}
+  const cell=cells[active];
+  const cut=clamp(cell.curFrame||0,0,cell.frames.length-1);
+  const prefixStart=Math.max(0,cut-11);
+  let code=`C ZORC FRAME BRANCH\nC Source room: ${cell.name}\nC Cut frame: ${cut+1}/${cell.frames.length}\nC Operation: ${(opKey||curOp).toUpperCase()}@FRAME\nC Containment: parent film before the cut remains linked by edge; this room rewrites consequence frames after the selected frame.\n\n`;
+  for(let i=prefixStart;i<=cut;i++){
+    code+=frameToBEFLIX(cell.frames[i],`FRAME BRANCH PREFIX ${i+1} OF ${cell.name}`);
+  }
+  const anchor=frameToBEFLIX(cell.frames[cut],`FRAME ${cut+1} ANCHOR FOR ${(opKey||curOp).toUpperCase()} CONSEQUENCE`);
+  code+=`\nC ===== CONSEQUENCE AFTER FRAME ${cut+1}: ${(opKey||curOp).toUpperCase()} =====\n`;
+  code+=branchConsequenceCode(opKey,anchor,cell,cut);
+  const name=`${cell.name}-F${cut+1}-${(opKey||curOp).toUpperCase()}`;
+  const n=addZorcCellFromCode(active,name,code,opKey||curOp,`Frame ${cut+1} ${opKey||curOp} branch from ${cell.name}`,cloneZorcObjects(cell.objects));
+  if(n>=0){
+    edges[edges.length-1].label=`${(opKey||curOp).toUpperCase()}@F${cut+1}`;
+    edges[edges.length-1].command=`${(opKey||curOp).toUpperCase()} FRAME ${cut+1}`;
+    edges[edges.length-1].sourceFrame=cut;
+    edges[edges.length-1].sourceFrameLabel=`F${cut+1}`;
+    edges[edges.length-1].branchType='frame';
+    zorcLog(`Frame branch compiled: ${(opKey||curOp).toUpperCase()} at frame ${cut+1}.`);
+  }
+  return n;
+}
+function zorcLog(text,type='out'){
+  if(!zorc)return;
+  zorc.log.push({text:String(text),type});
+  if(zorc.log.length>16)zorc.log.shift();
+  renderZorc();
+}
+function renderZorc(){
+  if(!$('zorc-room'))return;
+  const idx=active>=0?active:zorc.current;
+  if(idx>=0)zorc.current=idx;
+  const c=cells[zorc.current];
+  $('zorc-count').textContent=`${cells.length} TERRITORIES`;
+  const objBox=$('zorc-objects');objBox.innerHTML='';
+  const logBox=$('zorc-log');logBox.innerHTML='';
+  if(!c){
+    $('zorc-room').textContent='NO ROOM';
+    $('zorc-desc').textContent='No executable rooms are loaded.';
+    return;
+  }
+  const room=c.zorcRoom;
+  $('zorc-room').textContent=zorcTitle(c.name);
+  $('zorc-desc').textContent=room?.desc||c.desc||'Executable BEFLIX room.';
+  (c.objects||room?.objects||[]).slice(0,18).forEach(o=>{
+    const chip=document.createElement('span');
+    chip.className='zorc-chip';
+    chip.textContent=zorcTitle(o.name);
+    chip.title=`${o.kind} | ${(o.verbs||[]).join(' ')}`;
+    chip.onclick=()=>{$('zorc-cmd').value='LOOK '+zorcTitle(o.name);$('zorc-cmd').focus();};
+    objBox.appendChild(chip);
+  });
+  if(!(c.objects||[]).length){
+    const chip=document.createElement('span');chip.className='zorc-chip';chip.textContent='ROOM';objBox.appendChild(chip);
+  }
+  zorc.log.slice(-10).forEach(l=>{
+    const row=document.createElement('div');
+    row.className='zorc-line '+(l.type||'out');
+    row.textContent=l.text;
+    logBox.appendChild(row);
+  });
+  logBox.scrollTop=logBox.scrollHeight;
+}
+function resolveZorcObject(cell,phrase){
+  const q=zorcNorm(phrase);
+  if(!q||q==='ROOM'||q==='CELL'||q==='TERRITORY')return null;
+  const objs=cell.objects||cell.zorcRoom?.objects||[];
+  return objs.find(o=>zorcNorm(o.name)===q)||objs.find(o=>zorcNorm(o.name).includes(q)||q.includes(zorcNorm(o.name)));
+}
+function resolveZorcRoomIndex(phrase){
+  const q=zorcNorm(phrase);
+  if(!q||q==='ROOM'||q==='CELL'||q==='HERE'||q==='TERRITORY')return zorc.current;
+  const exact=cells.findIndex(c=>zorcNorm(c.name)===q||zorcNorm(c.zorcRoom?.name||'')===q);
+  if(exact>=0)return exact;
+  const fuzzy=cells.findIndex(c=>zorcNorm(c.name).includes(q)||q.includes(zorcNorm(c.name)));
+  return fuzzy>=0?fuzzy:zorc.current;
+}
+function zorcDescribe(cell){
+  const room=cell.zorcRoom;
+  const objs=(cell.objects||room?.objects||[]).slice(0,12).map(o=>zorcTitle(o.name)).join(', ');
+  zorcLog(`${zorcTitle(cell.name)}: ${room?.desc||cell.desc||'A BEFLIX room.'}`);
+  zorcLog(`Objects: ${objs||'none visible'}.`);
+}
+function zorcGo(arg){
+  const current=zorc.current;
+  const outs=edges.filter(e=>e.from===current);
+  if(!outs.length){zorcLog('No exits have been compiled from this room. Try FORK ROOM or EXCAVATE ROOM.');return;}
+  const word=zorcNorm(arg.replace(/^GO\s+/i,'')).split(' ')[0]||'NEXT';
+  let edge=null;
+  if(word==='NEXT')edge=outs.find(e=>e.label==='NEXT'||e.created_by==='source sequence');
+  else if(['OUT','UP','BACK','PARENT','RETURN'].includes(word))edge=outs.find(e=>e.label==='PARENT'||e.to===cells[current]?.parentCellIndex);
+  else edge=outs.find(e=>
+    zorcNorm(e.label||'').includes(word)||
+    zorcNorm(e.command||'').includes(word)||
+    zorcNorm(cells[e.to]?.name||'').includes(word)
+  );
+  let pick=0;
+  const dirIdx=ZORC_DIRECTIONS.indexOf(word);
+  if(!edge&&dirIdx>=0)pick=dirIdx%outs.length;
+  edge=edge||outs[pick];
+  const to=edge.to;
+  if(!cells[to]){zorcLog('That exit points to missing code.');return;}
+  selectCell(to);zorc.current=to;
+  zorcLog(`Moved ${word} through ${((OPS[edge.op]||{}).lbl||edge.op||'EDGE')} to ${zorcTitle(cells[to].name)}.`);
+}
+function runZorcCommand(input){
+  const raw=String(input||'').trim();
+  if(!raw)return;
+  if(active>=0)zorc.current=active;
+  const cell=cells[zorc.current];
+  if(!cell){zorcLog('No room is active.');return;}
+  zorc.history.push({cmd:raw,cell:zorc.current});
+  zorcLog('> '+raw,'cmd');
+  const cmd=raw.toUpperCase().trim();
+  if(cmd==='LOOK'||cmd==='L'){zorcDescribe(cell);return;}
+  if(cmd.startsWith('LOOK ')){
+    const obj=resolveZorcObject(cell,raw.replace(/^LOOK\s+/i,''));
+    if(obj)zorcLog(`${zorcTitle(obj.name)}: ${obj.kind}. ${zorcTitle(obj.c_prompt)||'A compiled object subprogram.'}`);
+    else zorcDescribe(cell);
+    return;
+  }
+  if(cmd==='INVENTORY'||cmd==='INV'||cmd==='I'){zorcLog(`Inventory: ${zorc.inventory.map(zorcTitle).join(', ')||'empty'}.`);return;}
+  const frameBranch=cmd.match(/^(BRANCH|FORK|CORRUPT|HAUNT|ILLUMINATE|FLOOD|EXCAVATE|SURFACE|ZOOM|MODES|TRANSMUTE)\s+FRAME/);
+  if(frameBranch){
+    const op=frameBranch[1]==='BRANCH'?curOp:frameBranch[1].toLowerCase();
+    const n=branchAtFrame(op);
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);}
+    return;
+  }
+  if(cmd.startsWith('GO ')){zorcGo(raw);return;}
+  if(cmd.startsWith('TAKE ')){
+    const obj=resolveZorcObject(cell,raw.replace(/^TAKE\s+/i,''));
+    if(!obj){zorcLog('No matching object in this room.');return;}
+    if(!obj.portable){zorcLog(`${zorcTitle(obj.name)} is part of the room physics. SURFACE or EXCAVATE it instead.`);return;}
+    if(!zorc.inventory.includes(obj.name))zorc.inventory.push(obj.name);
+    zorcLog(`Taken: ${zorcTitle(obj.name)}.`);
+    renderZorc();return;
+  }
+  if(cmd.startsWith('EXCAVATE')){
+    const idx=resolveZorcRoomIndex(raw.replace(/^EXCAVATE\s*/i,''));
+    const n=executeOp('excavate',idx,-1);
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('Late render detail stripped. The room returns to ghost mass and underdrawing.');}
+    return;
+  }
+  if(cmd.startsWith('CORRUPT')||cmd.startsWith('HAUNT')){
+    const idx=resolveZorcRoomIndex(raw.replace(/^(CORRUPT|HAUNT)\s*/i,''));
+    const n=executeOp('corrupt',idx,-1);
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('CLR commands were damaged. Previous frames now bleed forward.');}
+    return;
+  }
+  if(cmd.startsWith('FORK')){
+    const idx=resolveZorcRoomIndex(raw.replace(/^FORK\s*/i,''));
+    const n=executeOp('fork',idx,-1);
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('Forked a new branch room.');}
+    return;
+  }
+  if(cmd.startsWith('ILLUMINATE')){
+    const withPart=raw.match(/\bWITH\b(.+)$/i);
+    const obj=withPart?resolveZorcObject(cell,withPart[1]):(cell.objects||[]).find(o=>(o.verbs||[]).includes('ILLUMINATE'))||(cell.objects||[])[0];
+    const code=illuminateBEFLIX(cell.code,obj?.bounds);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-LIT',code,'illuminate',`Illuminated version of ${cell.name}`,cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog(`Light pass compiled${obj?' from '+zorcTitle(obj.name):''}.`);}
+    return;
+  }
+  if(cmd.startsWith('FLOOD')){
+    const m=raw.match(/^FLOOD\s*(.*?)\s*(?:FROM\s+(.+))?$/i);
+    const targetIdx=resolveZorcRoomIndex(m?.[1]||'ROOM');
+    const sourceIdx=m?.[2]?resolveZorcRoomIndex(m[2]):zorc.current;
+    const target=cells[targetIdx],source=cells[sourceIdx]||cell;
+    const code=floodBEFLIX(target.code,source.name);
+    const n=addZorcCellFromCode(targetIdx,target.name+'-FLOODED',code,'flood',`Flooded from ${source.name}`,cloneZorcObjects(target.objects));
+    if(n>=0){
+      if(sourceIdx!==targetIdx)edges.push({from:sourceIdx,to:n,op:'flood',label:'FLOOD SOURCE',created_by:'zorc'});
+      zorc.current=n;smoothZoomToShow([n]);zorcLog(`Waterline injected from ${zorcTitle(source.name)}.`);
+    }
+    return;
+  }
+  if(cmd.startsWith('SURFACE')){
+    const phrase=raw.replace(/^SURFACE\s*/i,'');
+    const obj=resolveZorcObject(cell,phrase);
+    if(obj){
+      const code=genObjectBEFLIX(obj,cell.name);
+      const room=deriveZorcRoomFromResult(cell,zorcTitle(obj.name)+'-SURFACE',`Surfaced object room from ${cell.name}`,code,'surface',[obj]);
+      const n=addZorcCellFromCode(zorc.current,room.name,code,'surface',room.desc,room.objects);
+      if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog(`Surfaced ${zorcTitle(obj.name)} into its own code-room.`);}
+    }else{
+      const n=executeOp('surface',zorc.current,-1);
+      if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog('Surfaced a directional crop of the current room.');}
+    }
+    return;
+  }
+  if(cmd.startsWith('GRAFT')){
+    const m=raw.match(/^GRAFT\s+(.+?)\s+(?:TO|WITH)\s+(.+)$/i);
+    if(!m){zorcLog('Use: GRAFT OBJECT TO OBJECT.');return;}
+    const a=resolveZorcObject(cell,m[1]),b=resolveZorcObject(cell,m[2]);
+    if(!a||!b){zorcLog('Both graft targets must be visible objects in this room.');return;}
+    const graft=graftObjectsBEFLIX(cell,a,b);
+    const objs=cloneZorcObjects(cell.objects);objs.push(graft.hybrid);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-GRAFT',graft.code,'graft',`Grafted ${a.name} to ${b.name}`,objs);
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog(`Hybrid object compiled: ${zorcTitle(graft.hybrid.name)}.`);}
+    return;
+  }
+  if(cmd.startsWith('TRANSMUTE')){
+    const m=raw.match(/^TRANSMUTE\s+(.+?)(?:\s+INTO\s+(.+))?$/i);
+    const obj=resolveZorcObject(cell,m?.[1]||'');
+    if(!obj){zorcLog('No matching object to transmute.');return;}
+    const target=zorcClean(m?.[2]||'ASH').toUpperCase();
+    const code=transmuteObjectBEFLIX(cell,obj,target);
+    const n=addZorcCellFromCode(zorc.current,cell.name+'-'+target,code,'transmute',`Transmuted ${obj.name} into ${target}`,cloneZorcObjects(cell.objects));
+    if(n>=0){zorc.current=n;smoothZoomToShow([n]);zorcLog(`${zorcTitle(obj.name)} transmuted into ${target}.`);}
+    return;
+  }
+  if(cmd.startsWith('EXPORT')){
+    if(cmd.includes('EDL'))exportZorcEDL();
+    else if(cmd.includes('TWEEL')||cmd.includes('JSON'))exportZorcTweel();
+    else if(cmd.includes('MAP')||cmd.includes('TERRITORY'))exportTerritoryMapBFX();
+    else if(cmd.includes('PATH'))exportPathBFX();
+    else if(cmd.includes('TWINE')||cmd.includes('TWEE'))exportZorcTwee();
+    else exportZorcTwee();
+    return;
+  }
+  zorcLog('Unknown verb. Try LOOK, GO NEXT, EXCAVATE ROOM, CORRUPT ROOM, ILLUMINATE ROOM, FLOOD ROOM, GRAFT A TO B, SURFACE OBJECT.');
+}
+const OPENAI_DEFAULT_MODEL='gpt-5.5';
+function aiLog(text){
+  const el=$('ai-log');if(el)el.textContent=String(text||'');
+}
+function aiSetState(text,busy=false){
+  const el=$('ai-state');if(el){el.textContent=text;el.style.color=busy?'#d4af37':'#aaa';}
+}
+function loadOpenAIConfig(){
+  const globalModel=localStorage.getItem('cau_active_model')||'';
+  const savedModel=localStorage.getItem('zorc_openai_model')||(globalModel.startsWith('gpt')||globalModel.startsWith('o')?globalModel:OPENAI_DEFAULT_MODEL);
+  const savedReasoning=localStorage.getItem('zorc_openai_reasoning')||'low';
+  const savedKey=localStorage.getItem('cau_openai_key')||localStorage.getItem('zorc_openai_key')||'';
+  if($('ai-model'))$('ai-model').value=savedModel||OPENAI_DEFAULT_MODEL;
+  if($('ai-reasoning'))$('ai-reasoning').value=savedReasoning;
+  if($('ai-key'))$('ai-key').value=savedKey;
+}
+function saveOpenAIConfig(){
+  const key=($('ai-key')?.value||'').trim();
+  const model=($('ai-model')?.value||OPENAI_DEFAULT_MODEL).trim();
+  const reasoning=$('ai-reasoning')?.value||'low';
+  if(key){
+    localStorage.setItem('cau_openai_key',key);
+    localStorage.setItem('zorc_openai_key',key);
+  }
+  localStorage.setItem('cau_active_model',model);
+  localStorage.setItem('zorc_openai_model',model);
+  localStorage.setItem('zorc_openai_reasoning',reasoning);
+  aiLog(`Saved OpenAI config: ${model} / ${reasoning}.`);
+}
+function getOpenAIKey(){
+  return ($('ai-key')?.value||'').trim()||localStorage.getItem('cau_openai_key')||localStorage.getItem('zorc_openai_key')||'';
+}
+function openAIOutputText(data){
+  if(data?.output_text)return data.output_text;
+  const parts=[];
+  (data?.output||[]).forEach(item=>{
+    (item.content||[]).forEach(c=>{
+      if(typeof c.text==='string')parts.push(c.text);
+      else if(typeof c.output_text==='string')parts.push(c.output_text);
+    });
+  });
+  return parts.join('\n').trim();
+}
+async function callOpenAICompiler(instructions,input){
+  const key=getOpenAIKey();
+  if(!key)throw new Error('OpenAI key missing. Save it in this panel or the main settings page.');
+  const model=($('ai-model')?.value||OPENAI_DEFAULT_MODEL).trim();
+  const reasoning=$('ai-reasoning')?.value||'low';
+  const payload={model,reasoning:{effort:reasoning},instructions,input};
+  const res=await fetch('https://api.openai.com/v1/responses',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify(payload)
+  });
+  const text=await res.text();
+  let data=null;
+  try{data=JSON.parse(text);}catch(e){}
+  if(!res.ok)throw new Error(data?.error?.message||text||`OpenAI request failed: ${res.status}`);
+  const out=openAIOutputText(data);
+  if(!out)throw new Error('OpenAI returned no text output.');
+  return out;
+}
+function extractOpenAIBeflix(text){
+  const src=String(text||'').trim();
+  const fenced=src.match(/```(?:beflix|bfx|text)?\s*([\s\S]*?)```/i);
+  const marked=src.match(/BEGIN_ZORC_BEFLIX\s*([\s\S]*?)\s*END_ZORC_BEFLIX/i);
+  return (marked?.[1]||fenced?.[1]||src).trim();
+}
+function validateOpenAIBeflix(code){
+  const allowed=new Set(['CLR','PNT','LIN','REC','SHF']);
+  const errors=[];
+  let recs=0,ops=0;
+  String(code||'').split('\n').forEach((line,i)=>{
+    const raw=line.trim();
+    if(!raw||raw[0]==='C'||raw[0]===';')return;
+    const cmd=raw.split(/\s+/)[0].toUpperCase();
+    if(!allowed.has(cmd))errors.push(`L${i+1}: illegal command ${cmd}`);
+    else{ops++;if(cmd==='REC')recs++;}
+  });
+  if(!ops)errors.push('No BEFLIX drawing commands found.');
+  if(!recs)errors.push('No REC commands found; no frames will record.');
+  return errors;
+}
+function selectedOpenAIContext(mode){
+  const idx=active>=0?active:zorc.current;
+  const cell=cells[idx]||cells[0];
+  const frame=cell?.frames?.[cell.curFrame||0];
+  const frameCode=frame?frameToBEFLIX(frame,`CURRENT FRAME ${cell.curFrame+1} FROM ${cell.name}`):'';
+  const objects=(cell?.objects||cell?.zorcRoom?.objects||[]).slice(0,18).map(o=>`${o.name} (${o.kind}) verbs:${(o.verbs||[]).join('/')}`).join('\n');
+  return {
+    idx,cell,frameCode,
+    input:[
+      `MODE: ${mode}`,
+      `USER COMPILER REQUEST: ${$('ai-prompt')?.value||''}`,
+      `ACTIVE TERRITORY: ${cell?.name||'none'}`,
+      `DESCRIPTION: ${cell?.zorcRoom?.desc||cell?.desc||''}`,
+      `OBJECTS:\n${objects||'none'}`,
+      `CURRENT FRAME CODE:\n${frameCode}`,
+      `SOURCE BEFLIX CODE:\n${String(cell?.code||'').slice(0,26000)}`
+    ].join('\n\n')
+  };
+}
+function openAIInstructions(mode){
+  return [
+    'You are the ZORC OpenAI compiler for ABC CINEOSIS.',
+    'Return only BEFLIX source text between BEGIN_ZORC_BEFLIX and END_ZORC_BEFLIX.',
+    'Allowed executable commands: CLR, PNT, LIN, REC, SHF. C comments are allowed.',
+    'Grid is 128 by 96. Clamp all coordinates to x 0-127 and y 0-95. Intensities must be 0-7.',
+    'Produce a complete playable code-room with 6 to 18 recorded frames.',
+    'Preserve recognizable objects and relations from the source territory.',
+    'Show compiler consequence: approach, rewrite, relation trace, final hold.',
+    `Compiler pass: ${mode}.`
+  ].join('\n');
+}
+async function runOpenAICompile(mode){
+  if(active<0&&zorc.current<0){aiLog('Select a territory before compiling.');return;}
+  const ctx=selectedOpenAIContext(mode);
+  const cell=ctx.cell;
+  try{
+    aiSetState('RUNNING',true);
+    aiLog(`Sending ${mode} compiler pass for ${cell.name}...`);
+    const raw=await callOpenAICompiler(openAIInstructions(mode),ctx.input);
+    const code=extractOpenAIBeflix(raw);
+    const errors=validateOpenAIBeflix(code);
+    if(errors.length){
+      aiLog('Compiler output rejected:\n'+errors.slice(0,8).join('\n'));
+      aiSetState('REJECTED');
+      return;
+    }
+    const op=mode==='frame'?'fork':(mode==='graft'?'graft':'holistic');
+    const name=`${cell.name}-AI-${mode.toUpperCase()}`;
+    const n=addZorcCellFromCode(ctx.idx,name,code,op,`OpenAI ${mode} compiler result from ${cell.name}`,cloneZorcObjects(cell.objects||cell.zorcRoom?.objects));
+    if(n>=0){
+      edges[edges.length-1].label=`AI ${mode.toUpperCase()}`;
+      edges[edges.length-1].command=`OPENAI ${mode.toUpperCase()}`;
+      edges[edges.length-1].created_by='openai responses compiler';
+      zorcLog(`OpenAI compiler added ${zorcTitle(name)}.`);
+      aiLog(`Compiled ${name}: ${cells[n].frames.length} frames, ${code.split('\n').length} lines.`);
+      aiSetState('READY');
+    }
+  }catch(err){
+    aiLog(err.message||String(err));
+    aiSetState('ERROR');
+  }
+}
+function setupOpenAICompiler(){
+  loadOpenAIConfig();
+  $('ai-min')?.addEventListener('click',()=>{
+    $('ai-panel').classList.toggle('closed');
+    $('ai-min').textContent=$('ai-panel').classList.contains('closed')?'+':'-';
+  });
+  $('ai-save')?.addEventListener('click',saveOpenAIConfig);
+  $('ai-rewrite')?.addEventListener('click',()=>runOpenAICompile('rewrite'));
+  $('ai-frame')?.addEventListener('click',()=>runOpenAICompile('frame'));
+  $('ai-graft')?.addEventListener('click',()=>runOpenAICompile('graft'));
+}
+function setupZorcConsole(){
+  $('zorc-run').addEventListener('click',()=>{runZorcCommand($('zorc-cmd').value);$('zorc-cmd').value='';});
+  $('zorc-cmd').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runZorcCommand($('zorc-cmd').value);$('zorc-cmd').value='';}});
+  $('zorc-min').addEventListener('click',()=>{$('zorc-panel').classList.toggle('min');$('zorc-min').textContent=$('zorc-panel').classList.contains('min')?'Z':'-';});
+  zorcLog('ZORC online. Type LOOK or EXCAVATE ROOM.');
+}
+
+// ═══════════════════════════════════════
+// OPERATIONS — each is a film grammar verb
+// ═══════════════════════════════════════
+const OPS = {
+  fork: {
+    lbl:'FORK', hue:320, verb:'Alternate take — variant framing',
+    exec(src, tgtSeed) {
+      // Duplicate source code with coordinate mutations
+      const jx = (Math.random()-.5)*20, jy = (Math.random()-.5)*16;
+      const scale = .85 + Math.random()*.3; // 85-115% scale
+      const dv = Math.random() < .5 ? 1 : -1;
+      const prompt = extractPrompt(src.code);
+      let newCode = transformBEFLIXCoords(src.code,
+        x => x * scale + jx,
+        y => y * scale + jy,
+        w => w * scale,
+        h => h * scale,
+        v => v + (Math.random() < .3 ? dv : 0)
+      );
+      // Update composition comment
+      if (prompt) {
+        const angle = ['3/4 VIEW','PROFILE LEFT','SLIGHT ANGLE','HEAD-ON','REAR 3/4'][Math.floor(Math.random()*5)];
+        newCode = newCode.replace(/C.*COMPOSITION.*/i, `C FORK — ${angle} variant of: ${prompt}`);
+      }
+      return { code: newCode, name: src.name + '-F' + Math.floor(Math.random()*99) };
+    }
+  },
+  surface: {
+    lbl:'SURFACE', hue:205, verb:'Camera move — crop & zoom in',
+    exec(src, tgtSeed, dragAngle) {
+      // Determine crop quadrant based on drag angle
+      const frame = src.frames[src.curFrame] || src.frames[0];
+      let cx, cy, cw = 64, ch = 48; // crop half the frame
+      // Use drag angle to pick region: right=east side, up=north, etc.
+      if (dragAngle !== undefined) {
+        const a = ((dragAngle % (Math.PI*2)) + Math.PI*2) % (Math.PI*2);
+        if (a < Math.PI*.25 || a > Math.PI*1.75) { cx=64; cy=24; } // right/east
+        else if (a < Math.PI*.75) { cx=32; cy=48; } // down/south
+        else if (a < Math.PI*1.25) { cx=0; cy=24; } // left/west
+        else { cx=32; cy=0; } // up/north
+      } else { cx=32; cy=24; } // center crop
+      // Transform all coordinates: scale up from crop region to full frame
+      const scaleX = GC / cw, scaleY = GR / ch;
+      let newCode = transformBEFLIXCoords(src.code,
+        x => (x - cx) * scaleX,
+        y => (y - cy) * scaleY,
+        w => w * scaleX,
+        h => h * scaleY,
+        v => v
+      );
+      const dir = ['EAST','SOUTH','WEST','NORTH'][Math.floor(((dragAngle||0)+Math.PI*.25)/(Math.PI*.5))%4] || 'CENTER';
+      newCode = `C SURFACE — ${dir} crop of ${src.name}\n` + newCode;
+      return { code: newCode, name: src.name + '-S' + dir[0] };
+    }
+  },
+  zoom: {
+    lbl:'ZOOM', hue:168, verb:'Close-up — auto-find detail center',
+    exec(src) {
+      // Find densest region of the frame
+      const frame = src.frames[src.curFrame] || src.frames[0];
+      const bounds = frameBounds(frame);
+      // Zoom into the content bounds with some padding
+      const pad = 8;
+      const cx = Math.max(0, bounds.x - pad);
+      const cy = Math.max(0, bounds.y - pad);
+      const cw = Math.min(GC - cx, bounds.w + pad*2);
+      const ch = Math.min(GR - cy, bounds.h + pad*2);
+      const scaleX = GC / cw, scaleY = GR / ch;
+      let newCode = transformBEFLIXCoords(src.code,
+        x => (x - cx) * scaleX,
+        y => (y - cy) * scaleY,
+        w => w * scaleX,
+        h => h * scaleY,
+        v => v
+      );
+      newCode = `C ZOOM — Close-up of ${src.name} content region\n` + newCode;
+      return { code: newCode, name: src.name + '-Z' };
+    }
+  },
+  modes: {
+    lbl:'MODES', hue:148, verb:'Parallel mood — re-level intensities',
+    exec(src) {
+      // Invert or shift all intensity values
+      const mode = Math.floor(Math.random()*3);
+      let vFn;
+      if (mode === 0) vFn = v => 7 - v; // invert
+      else if (mode === 1) vFn = v => clamp(v + 2, 0, 7); // brighten
+      else vFn = v => clamp(Math.round(v * 0.6), 0, 7); // darken/flatten
+      const modeNames = ['INVERT','BRIGHT','DARK'];
+      let newCode = transformBEFLIXCoords(src.code, x=>x, y=>y, w=>w, h=>h, vFn);
+      newCode = `C MODES — ${modeNames[mode]} exposure of ${src.name}\n` + newCode;
+      return { code: newCode, name: src.name + '-M' + modeNames[mode][0] };
+    }
+  },
+  manip: {
+    lbl:'MANIP', hue:35, verb:'Action→reaction — continuity bridge',
+    exec(src, tgtSeed, dragAngle, tgtCell) {
+      // Take source's last frame, make it target's first frame
+      const lastFrame = src.frames[src.frames.length - 1] || src.frames[0];
+      const bridgeCode = frameToBEFLIX(lastFrame, `MANIP — Continuity from ${src.name} final frame`);
+      if (tgtCell && tgtCell.code) {
+        // Prepend bridge frame to target's existing code
+        return { code: bridgeCode + '\n' + tgtCell.code, name: tgtCell.name, merge: true };
+      }
+      return { code: bridgeCode, name: src.name + '-ACT' };
+    }
+  },
+  limits: {
+    lbl:'LIMITS', hue:270, verb:'Constrain palette — reduce to source values',
+    exec(src, tgtSeed, dragAngle, tgtCell) {
+      if (!tgtCell) {
+        // No target — create a constrained copy using only values 0,1,7
+        let newCode = transformBEFLIXCoords(src.code, x=>x, y=>y, null, null,
+          v => v <= 2 ? 1 : v >= 5 ? 7 : 0
+        );
+        newCode = `C LIMITS — Reduced palette of ${src.name}\n` + newCode;
+        return { code: newCode, name: src.name + '-LIM' };
+      }
+      // Constrain target to only use intensity values present in source
+      const srcVals = new Set();
+      src.frames.forEach(f => f.forEach(v => { if(v>0) srcVals.add(v); }));
+      const allowed = [...srcVals];
+      const nearestAllowed = v => {
+        if (v === 0) return 0;
+        let best = allowed[0]||0, bd = 99;
+        allowed.forEach(a => { if(Math.abs(a-v)<bd){bd=Math.abs(a-v);best=a;} });
+        return best;
+      };
+      let newCode = transformBEFLIXCoords(tgtCell.code, x=>x, y=>y, null, null, nearestAllowed);
+      newCode = `C LIMITS — Constrained to ${src.name} palette [${allowed.join(',')}]\n` + newCode;
+      return { code: newCode, name: tgtCell.name, merge: true };
+    }
+  },
+  holistic: {
+    lbl:'HOLISTIC', hue:355, verb:'Superimpose — composite layers',
+    exec(src, tgtSeed, dragAngle, tgtCell) {
+      if (!tgtCell) {
+        // No target — just duplicate with a comment
+        return { code: `C HOLISTIC — Layer from ${src.name}\n` + src.code, name: src.name + '-HOL' };
+      }
+      // Composite: blend source frames onto target frames
+      const srcFrames = src.frames, tgtFrames = tgtCell.frames;
+      const maxLen = Math.max(srcFrames.length, tgtFrames.length);
+      const blended = [];
+      for (let i = 0; i < maxLen && i < MAX_FRAMES; i++) {
+        const sf = srcFrames[i % srcFrames.length];
+        const tf = tgtFrames[i % tgtFrames.length];
+        blended.push(blendFrames(sf, tf, 0.5));
+      }
+      // Generate code from blended frames
+      let code = `C HOLISTIC — ${src.name} composited onto ${tgtCell.name}\n`;
+      blended.forEach((f, i) => { code += frameToBEFLIX(f, `Composite frame ${i+1}`); });
+      return { code, name: tgtCell.name, merge: true, directFrames: blended };
+    }
+  },
+  excavate: {
+    lbl:'EXCAVATE', hue:18, verb:'Compiler archaeology — remove late render layers',
+    exec(src) {
+      const code=excavateBEFLIX(src.code);
+      return {code,name:src.name+'-EXC',zorcRoom:deriveZorcRoomFromResult(src,src.name+'-EXC','Excavated construction state',code,'excavate'),objects:cloneZorcObjects(src.objects)};
+    }
+  },
+  corrupt: {
+    lbl:'CORRUPT', hue:286, verb:'Hauntological pass — damage clears and drift geometry',
+    exec(src) {
+      const code=`C ZORC VERB: CORRUPT\nC Effect: missing clear frames, coordinate drift, image persistence.\n`+corruptBEFLIX(src.code,src.name);
+      return {code,name:src.name+'-HAUNT',zorcRoom:deriveZorcRoomFromResult(src,src.name+'-HAUNT','Corrupted persistent-trace room',code,'corrupt'),objects:cloneZorcObjects(src.objects)};
+    }
+  },
+  illuminate: {
+    lbl:'ILLUMINATE', hue:48, verb:'Environmental pass — raise local intensity',
+    exec(src, tgtSeed, dragAngle, tgtCell) {
+      const base=tgtCell||src;
+      const light=(src.objects||[]).find(o=>(o.verbs||[]).includes('ILLUMINATE'))||(src.objects||[])[0];
+      const code=illuminateBEFLIX(base.code,light?.bounds);
+      return {code,name:base.name+'-LIT',zorcRoom:deriveZorcRoomFromResult(base,base.name+'-LIT','Illuminated room',code,'illuminate'),objects:cloneZorcObjects(base.objects)};
+    }
+  },
+  flood: {
+    lbl:'FLOOD', hue:196, verb:'Environmental transfer — inject rising waterline',
+    exec(src, tgtSeed, dragAngle, tgtCell) {
+      const base=tgtCell||src;
+      const code=floodBEFLIX(base.code,src.name);
+      return {code,name:base.name+'-FLOOD',zorcRoom:deriveZorcRoomFromResult(base,base.name+'-FLOOD','Flooded room',code,'flood'),objects:cloneZorcObjects(base.objects)};
+    }
+  },
+  graft: {
+    lbl:'GRAFT', hue:88, verb:'Synthesis pass — fuse two code rooms',
+    exec(src, tgtSeed, dragAngle, tgtCell) {
+      const target=tgtCell||src;
+      const srcObj=(src.objects||[])[0]||{name:src.name,kind:'room',c_prompt:src.desc,bounds:{x:22,y:36,w:28,h:24},portable:false,verbs:['LOOK']};
+      const tgtObj=(target.objects||[])[0]||{name:target.name,kind:'room',c_prompt:target.desc,bounds:{x:78,y:36,w:28,h:24},portable:false,verbs:['LOOK']};
+      const graft=graftObjectsBEFLIX(target,srcObj,tgtObj);
+      const objects=cloneZorcObjects(target.objects);objects.push(graft.hybrid);
+      const code=`C ZORC ROOM-GRAFT\nC Source room: ${src.name}\nC Target room: ${target.name}\n`+graft.code;
+      return {code,name:target.name+'-GRAFT',zorcRoom:deriveZorcRoomFromResult(target,target.name+'-GRAFT','Room graft synthesis',code,'graft',objects),objects};
+    }
+  },
+  transmute: {
+    lbl:'TRANSMUTE', hue:12, verb:'Ontology pass — collapse object into new state',
+    exec(src) {
+      const obj=(src.objects||[])[0]||{name:src.name,kind:'room',c_prompt:src.desc,bounds:{x:44,y:34,w:34,h:26},portable:false,verbs:['LOOK']};
+      const code=transmuteObjectBEFLIX(src,obj,'ASH');
+      return {code,name:src.name+'-ASH',zorcRoom:deriveZorcRoomFromResult(src,src.name+'-ASH','Transmuted room',code,'transmute'),objects:cloneZorcObjects(src.objects)};
+    }
+  },
+};
+let curOp = 'fork';
+const opC = (op, l=55) => `hsl(${(OPS[op]||OPS.fork).hue},68%,${l}%)`;
+
+// ═══════════════════════════════════════
+// EXECUTE OPERATION
+// ═══════════════════════════════════════
+function executeOp(opKey, srcIdx, tgtIdx, tgtSeed, dragAngle) {
+  const op = OPS[opKey];
+  if (!op || !op.exec) return;
+  const src = cells[srcIdx];
+  const tgtCell = tgtIdx >= 0 && tgtIdx < cells.length ? cells[tgtIdx] : null;
+
+  const result = op.exec(src, tgtSeed, dragAngle, tgtCell);
+  if (!result || !result.code) return;
+  let committedIdx = -1;
+
+  if (result.merge && tgtCell) {
+    // Transform existing target cell
+    tgtCell.code = result.code;
+    tgtCell.zorcRoom = result.zorcRoom || deriveZorcRoomFromResult(tgtCell, result.name || tgtCell.name, tgtCell.desc, result.code, opKey, result.objects || tgtCell.objects);
+    tgtCell.objects = result.objects || tgtCell.zorcRoom.objects || tgtCell.objects;
+    if (result.directFrames) {
+      tgtCell.frames = result.directFrames;
+    } else {
+      tgtCell.frames = parseBEFLIX(result.code);
+    }
+    tgtCell.curFrame = 0;
+    selectCell(tgtIdx);
+    committedIdx = tgtIdx;
+    toast(`${op.lbl}: ${src.name} → ${tgtCell.name} (${tgtCell.frames.length} frames)`);
+  } else {
+    // Create new cell
+    const seed = tgtSeed || { x: src.seed.x + 80 + Math.random()*40, y: src.seed.y + (Math.random()-.5)*60 };
+    const room = result.zorcRoom || deriveZorcRoomFromResult(src, result.name || 'Cell-' + cells.length, `${op.lbl} from ${src.name}`, result.code, opKey, result.objects || src.objects);
+    const newCell = {
+      id: 'c' + cells.length,
+      name: result.name || 'Cell-' + cells.length,
+      desc: `${op.lbl} from ${src.name}`,
+      seed: seed,
+      polygon: [], aabb: {x:0,y:0,w:100,h:100},
+      frames: [new Uint8Array(GR*GC)], curFrame: 0,
+      code: result.code,
+      hue: (src.hue + OPS[opKey].hue) % 360,
+      zorcRoom: room,
+      objects: result.objects || room.objects || cloneZorcObjects(src.objects),
+    };
+    cells.push(newCell);
+    const newIdx = cells.length - 1;
+    newCell.frames = parseBEFLIX(result.code);
+    if (!newCell.frames.length) newCell.frames = [new Uint8Array(GR*GC)];
+    // Create edge
+    edges.push({ from: srcIdx, to: newIdx, op: opKey, label: op.lbl, command: op.lbl, created_by: 'operation' });
+    tessellate();
+    selectCell(newIdx);
+    committedIdx = newIdx;
+    $('s-cells').textContent = cells.length;
+    toast(`${op.lbl}: ${src.name} → ${newCell.name} (${newCell.frames.length} frames)`);
+    // Smooth zoom to show both source and new cell
+    smoothZoomToShow([srcIdx, newIdx]);
+  }
+  renderOps(); updateCausalChain(); render(); renderTimeline(); renderCellList();
+  // Sync inline editor
+  if (active >= 0) { $('b-code').value = cells[active].code; updateBStats(); }
+  if (committedIdx >= 0) zorc.cut_sequence.push(committedIdx);
+  renderZorc();
+  return committedIdx;
+}
+
+// Smooth animated zoom to show a set of cells
+function smoothZoomToShow(indices) {
+  if (!indices.length) return;
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+  indices.forEach(i => {
+    const c = cells[i]; if (!c) return;
+    x0 = Math.min(x0, c.seed.x - 100);
+    y0 = Math.min(y0, c.seed.y - 80);
+    x1 = Math.max(x1, c.seed.x + 100);
+    y1 = Math.max(y1, c.seed.y + 80);
+  });
+  const tw = x1 - x0, th = y1 - y0;
+  const tz = Math.min(CW / tw, CH / th) * 0.85;
+  const tpx = CW/2 - (x0 + tw/2) * tz;
+  const tpy = CH/2 - (y0 + th/2) * tz;
+  // Animate over 400ms
+  const startZ = zoom, startPX = panX, startPY = panY;
+  const t0 = performance.now();
+  function anim(t) {
+    const p = Math.min(1, (t - t0) / 400);
+    const ease = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2,2)/2; // easeInOutQuad
+    zoom = startZ + (tz - startZ) * ease;
+    panX = startPX + (tpx - startPX) * ease;
+    panY = startPY + (tpy - startPY) * ease;
+    render();
+    if (p < 1) requestAnimationFrame(anim);
+  }
+  requestAnimationFrame(anim);
+}
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let cells=[], edges=[];
+let active=-1, playhead=0, playing=false, fps=12;
+let tool='pen', ink=5, brushSz=3;
+let panX=0, panY=0, zoom=1;
+let delaunay=null, voronoi=null;
+let CVS, CTX, CW=800, CH=600;
+let panning=false, panS={x:0,y:0,px:0,py:0};
+let aiming=null, dragging=false, dragNode=-1, dragOff={x:0,y:0};
+let drawing=false, drawPrev=[0,0];
+let _raf=null, _lastT=0;
+let openSheet=null;
+let layoutMode='grid'; // 'voronoi' or 'grid'
+let bfxPreviewFrames=[],bfxPreviewCur=0,bfxPreviewPlaying=false,bfxPreviewRAF=null,bfxPreviewLastT=0;
+let zorc={current:0,inventory:[],global_flags:{},history:[],cut_sequence:[],compiler_log:[],log:[]};
+
+// ═══════════════════════════════════════
+// BEFLIX INTERPRETER
+// ═══════════════════════════════════════
+function parseBEFLIX(code){
+  const lines=String(code).toUpperCase().split('\n');
+  const frames=[]; let mat=new Uint8Array(GR*GC);
+  for(let li=0;li<lines.length;li++){
+    const line=lines[li].trim();
+    if(!line||line[0]==='C'||line[0]===';')continue;
+    const p=line.split(/\s+/),cmd=p[0],a=p.slice(1).map(Number);
+    try{
+      if(cmd==='CLR'){mat.fill(clamp(a[0]||0,0,7));}
+      else if(cmd==='PNT'){const[px,py,pw,ph,pv]=a;const iv=clamp(pv||0,0,7);
+        for(let dy=py;dy<py+ph;dy++)for(let dx=px;dx<px+pw;dx++)
+          if(dy>=0&&dy<GR&&dx>=0&&dx<GC)mat[dy*GC+dx]=iv;}
+      else if(cmd==='LIN'){const[x1,y1,x2,y2,lv]=a;const iv=clamp(lv||0,0,7);
+        let lx=x1,ly=y1;const dx=Math.abs(x2-lx),sx=lx<x2?1:-1;
+        const dy=-Math.abs(y2-ly),sy=ly<y2?1:-1;let le=dx+dy,lim=2000;
+        while(lim-->0){if(lx>=0&&lx<GC&&ly>=0&&ly<GR)mat[ly*GC+lx]=iv;
+          if(lx===x2&&ly===y2)break;const e2=2*le;
+          if(e2>=dy){le+=dy;lx+=sx;}if(e2<=dx){le+=dx;ly+=sy;}}}
+      else if(cmd==='REC'){const n=clamp(a[0]||1,1,MAX_FRAMES);
+        for(let i=0;i<n&&frames.length<MAX_FRAMES;i++)frames.push(new Uint8Array(mat));}
+      else if(cmd==='SHF'){const[sdx,sdy,sn]=a;const count=clamp(sn||1,1,MAX_FRAMES);
+        for(let fi=0;fi<count&&frames.length<MAX_FRAMES;fi++){
+          const nm=new Uint8Array(GR*GC);
+          for(let y=0;y<GR;y++)for(let x=0;x<GC;x++){
+            const nx=x-sdx,ny=y-sdy;
+            if(nx>=0&&nx<GC&&ny>=0&&ny<GR)nm[y*GC+x]=mat[ny*GC+nx];}
+          mat=nm;frames.push(new Uint8Array(mat));}}
+    }catch(e){}
+  }
+  if(!frames.length)frames.push(new Uint8Array(mat));
+  return frames;
+}
+
+function genBEFLIX(cell){
+  if(cell.zorcRoom)return genZorcBEFLIX(cell.zorcRoom);
+  let s=0;for(let i=0;i<cell.name.length;i++)s=((s<<5)-s+cell.name.charCodeAt(i))|0;
+  const rng=()=>{s=(s*1103515245+12345)&0x7fffffff;return(s%1000)/1000;};
+  let c=`C ═══════════════════════════════\nC ${cell.name}\nC ═══════════════════════════════\n\n`;
+  c+=`C FRAME 1: ARCHITECTURE\nCLR 0\n`;
+  const nb=2+Math.floor(rng()*4);
+  for(let i=0;i<nb;i++){
+    const bx=8+Math.floor(rng()*90),by=8+Math.floor(rng()*50),bw=10+Math.floor(rng()*30),bh=10+Math.floor(rng()*25);
+    c+=`PNT ${bx} ${by} ${bw} ${bh} ${1+Math.floor(rng()*3)}\n`;
+    c+=`LIN ${bx} ${by} ${bx+bw} ${by} ${3+Math.floor(rng()*3)}\n`;
+    c+=`LIN ${bx} ${by+bh} ${bx+bw} ${by+bh} ${3+Math.floor(rng()*3)}\n`;
+  }
+  c+=`REC 8\n\nC FRAME 2: ENTITIES\n`;
+  const ne=3+Math.floor(rng()*6);
+  for(let i=0;i<ne;i++){
+    c+=`PNT ${10+Math.floor(rng()*108)} ${10+Math.floor(rng()*76)} ${2+Math.floor(rng()*4)} ${2+Math.floor(rng()*4)} ${4+Math.floor(rng()*4)}\n`;
+  }
+  c+=`REC 8\n\nC FRAME 3: DYNAMICS\n`;
+  const nl=3+Math.floor(rng()*5);
+  for(let i=0;i<nl;i++)c+=`LIN ${10+Math.floor(rng()*108)} ${10+Math.floor(rng()*76)} ${10+Math.floor(rng()*108)} ${10+Math.floor(rng()*76)} ${3+Math.floor(rng()*4)}\n`;
+  c+=`REC 6\n\nC FRAME 4: EVENT\n`;
+  c+=`PNT ${20+Math.floor(rng()*70)} ${15+Math.floor(rng()*50)} ${20+Math.floor(rng()*20)} ${15+Math.floor(rng()*15)} 7\nREC 4\n\n`;
+  c+=`C FRAME 5: SHIFT\nSHF ${Math.floor(rng()*4)-1} ${Math.floor(rng()*3)-1} 10\n`;
+  c+=`C FRAME 6: SETTLE\nCLR 1\nPNT ${30+Math.floor(rng()*60)} ${20+Math.floor(rng()*40)} 24 18 3\nREC 6\n`;
+  return c;
+}
+
+function zorcCellFromRoom(room,hue,seed,extra={}){
+  return {
+    id:room.id,name:room.name,desc:room.desc||'Executable BEFLIX territory.',
+    seed:seed||{x:0,y:0},polygon:[],aabb:{x:0,y:0,w:100,h:100},
+    frames:[],curFrame:0,code:'',hue,zorcRoom:room,objects:room.objects,
+    territoryKind:room.territoryKind||extra.territoryKind||'room',
+    parentRoomId:room.parentRoomId||extra.parentRoomId||null,
+    parentCellIndex:room.parentCellIndex??extra.parentCellIndex??null,
+    territorySource:room.territorySource||extra.territorySource||'world'
+  };
+}
+
+function zorcObjectCue(obj){
+  return [obj.name,obj.kind,obj.c_prompt,obj.raw,obj.location,obj.target,obj.value]
+    .filter(Boolean).map(zorcTitle).join(' | ');
+}
+
+function zorcTerritoryOp(source){
+  return ({
+    location:'zoom',
+    entity:'surface',
+    event:'manip',
+    rule:'limits',
+    state:'holistic',
+    time:'fork',
+    parent:'surface'
+  })[source]||'surface';
+}
+
+function zorcTerritoryLabel(source){
+  return ({
+    location:'LOCATION',
+    entity:'ENTITY',
+    event:'EVENT',
+    rule:'RULE',
+    state:'STATE',
+    time:'TIME',
+    parent:'PARENT'
+  })[source]||'TERRITORY';
+}
+
+function zorcLookupKey(roomId,name){
+  return `${roomId}::${zorcNorm(name)}`;
+}
+
+function zorcManifestForTerritory(parentRoom,obj){
+  const source=obj.source||'territory';
+  const block={name:obj.name,type:obj.kind||source,body:obj.raw||obj.c_prompt||'',description:obj.c_prompt||'',location:obj.location||'',traits:[]};
+  return {
+    raw:[
+      parentRoom.manifest?.raw||'',
+      `territory_node <${obj.name}> { parent: <${parentRoom.name}> source: ${source} kind: ${obj.kind||source} }`,
+      obj.raw||obj.c_prompt||''
+    ].join('\n'),
+    locations:source==='location'?[block]:[],
+    entities:source==='entity'?[block]:[],
+    events:source==='event'?[block]:[],
+    rules:source==='rule'?[block]:[],
+    relations:[],
+    states:source==='state'?[{name:obj.name,value:obj.value||obj.states?.value||obj.c_prompt||'active'}]:[],
+    times:source==='time'?[obj.name]:[]
+  };
+}
+
+function buildZorcTerritoryRoom(parentRoom,obj,idx){
+  const child=cloneZorcObjects([obj])[0]||{...obj};
+  child.bounds=null;
+  const parentTrace={
+    id:zorcId(parentRoom.name+'_parent_trace'),name:parentRoom.name,kind:'parent_room',
+    c_prompt:'parent territory trace',visible:true,portable:false,states:{},surfaces:[],
+    verbs:['LOOK','GO','RETURN'],bounds:null,source:'parent',order:-1
+  };
+  const source=obj.source||'territory';
+  const manifest=zorcManifestForTerritory(parentRoom,obj);
+  const desc=`${zorcTerritoryLabel(source)} territory inside ${zorcTitle(parentRoom.name)}. ${zorcTitle(obj.c_prompt||obj.raw||obj.kind).slice(0,180)}`;
+  return {
+    id:`${parentRoom.id}-${source}-${idx}-${obj.id||zorcId(obj.name)}`,
+    name:`${zorcTitle(parentRoom.name)} - ${zorcTitle(obj.name)}`,
+    desc,
+    c_prompt:[
+      `C ROOM: ${zorcTitle(parentRoom.name)} / ${zorcTitle(obj.name)}`,
+      `C Parent Room: ${parentRoom.name}`,
+      `C Territory Layer: ${zorcTerritoryLabel(source)}`,
+      `C Object Kind: ${obj.kind||source}`,
+      `C Prompt: ${zorcObjectCue(obj).slice(0,220)}`,
+      `C Rule: this child room is a compartmentalized subprogram of the parent`
+    ].join('\n'),
+    beflix_code:'',
+    objects:[child,parentTrace],
+    exits:[],flags:{territory:true},room_variables:{parent:parentRoom.id,source},
+    history:[`territorialize:${source}`],
+    source_room_id:parentRoom.id,source_verb:'territorialize',
+    manifest,
+    territoryKind:'child',parentRoomId:parentRoom.id,territorySource:source
+  };
+}
+
+function pushTerritoryEdge(from,to,op,label,command,created_by='territorialization'){
+  if(from==null||to==null||from<0||to<0||from===to)return;
+  const exists=edges.some(e=>e.from===from&&e.to===to&&e.label===label&&e.created_by===created_by);
+  if(exists)return;
+  edges.push({from,to,op,label,command,created_by,branchType:'territory',territory:true});
+}
+
+function addZorcTerritoryChildren(rootIdx,territoryLookup){
+  const parent=cells[rootIdx];if(!parent?.zorcRoom)return[];
+  const room=parent.zorcRoom;
+  const kids=[];
+  const rng=zorcRng(room.id+'-territory-children');
+  (room.objects||[]).forEach((obj,i)=>{
+    const angle=(i/Math.max(1,room.objects.length))*Math.PI*2;
+    const ring=105+Math.floor(i/12)*58+rng()*22;
+    const seed={x:parent.seed.x+Math.cos(angle)*ring,y:parent.seed.y+Math.sin(angle)*ring};
+    const childRoom=buildZorcTerritoryRoom(room,obj,i);
+    childRoom.parentCellIndex=rootIdx;
+    const childIdx=cells.length;
+    const hue=(parent.hue+35+i*17)%360;
+    cells.push(zorcCellFromRoom(childRoom,hue,seed,{territoryKind:obj.source||'territory',parentCellIndex:rootIdx,parentRoomId:room.id,territorySource:obj.source||'territory'}));
+    [obj.name,obj.id,zorcId(obj.name)].filter(Boolean).forEach(k=>territoryLookup.set(zorcLookupKey(room.id,k),childIdx));
+    kids.push(childIdx);
+    pushTerritoryEdge(rootIdx,childIdx,zorcTerritoryOp(obj.source),zorcTerritoryLabel(obj.source),`SURFACE ${zorcTitle(obj.name)}`);
+    pushTerritoryEdge(childIdx,rootIdx,'surface','PARENT','GO OUT','territorialization parent');
+  });
+  return kids;
+}
+
+function findTerritoryChild(room,territoryLookup,name){
+  if(!name)return-1;
+  const direct=territoryLookup.get(zorcLookupKey(room.id,name));
+  if(direct!=null)return direct;
+  const q=zorcNorm(name);
+  for(const [key,idx] of territoryLookup.entries()){
+    if(!key.startsWith(room.id+'::'))continue;
+    const n=key.slice((room.id+'::').length);
+    if(n===q||n.includes(q)||q.includes(n))return idx;
+  }
+  return-1;
+}
+
+function connectZorcTerritoryEdges(rootIdx,territoryLookup){
+  const parent=cells[rootIdx];if(!parent?.zorcRoom)return;
+  const room=parent.zorcRoom;
+  (room.objects||[]).filter(o=>o.source==='entity'&&o.location).forEach(obj=>{
+    const ent=findTerritoryChild(room,territoryLookup,obj.name);
+    const loc=findTerritoryChild(room,territoryLookup,obj.location);
+    if(ent>=0&&loc>=0)pushTerritoryEdge(loc,ent,'zoom','LOCATES',`GO ${zorcTitle(obj.name)}`,'territorialization location');
+  });
+  (room.objects||[]).filter(o=>o.source==='state').forEach(obj=>{
+    const state=findTerritoryChild(room,territoryLookup,obj.name);
+    const target=findTerritoryChild(room,territoryLookup,obj.target);
+    if(state>=0)pushTerritoryEdge(target>=0?target:rootIdx,state,'limits','STATE',`STATE ${zorcTitle(obj.name)}`,'territorialization state');
+  });
+  (room.manifest?.relations||[]).forEach(rel=>{
+    const names=[...String(rel.body||'').matchAll(/<([^>]+)>/g)].map(m=>m[1]);
+    for(let i=0;i<names.length-1;i++){
+      const a=findTerritoryChild(room,territoryLookup,names[i]);
+      const b=findTerritoryChild(room,territoryLookup,names[i+1]);
+      if(a>=0&&b>=0)pushTerritoryEdge(a,b,'holistic',zorcTitle(rel.verb).toUpperCase().slice(0,18),`REL ${zorcTitle(rel.verb)}`,'territorialization relation');
+    }
+  });
+  (room.objects||[]).filter(o=>o.source==='event'||o.source==='rule').forEach(obj=>{
+    const from=findTerritoryChild(room,territoryLookup,obj.name);
+    if(from<0)return;
+    const refs=[...String(obj.raw||obj.c_prompt||'').matchAll(/<([^>]+)>/g)].map(m=>m[1]);
+    refs.forEach(ref=>{
+      const to=findTerritoryChild(room,territoryLookup,ref);
+      if(to>=0)pushTerritoryEdge(from,to,obj.source==='event'?'manip':'limits',zorcTerritoryLabel(obj.source),`${zorcTitle(obj.source)} ${zorcTitle(ref)}`,'territorialization reference');
+    });
+  });
+}
+
+// ═══════════════════════════════════════
+// INGEST
+// ═══════════════════════════════════════
+function ingest(){
+  if(typeof WORLDS_DATA==='undefined')return;
+  cells=[];edges=[];
+  const rootIndices=[];
+  const territoryLookup=new Map();
+  WORLDS_DATA.forEach((w,i)=>{
+    const room=buildZorcRoom(w,i);
+    const idx=cells.length;
+    rootIndices[i]=idx;
+    cells.push(zorcCellFromRoom(room,(i*137.5)%360,{x:0,y:0},{territoryKind:'world',territorySource:'world'}));
+    territoryLookup.set(zorcLookupKey(room.id,room.name),idx);
+  });
+  rootIndices.forEach(idx=>addZorcTerritoryChildren(idx,territoryLookup));
+  rootIndices.forEach(idx=>connectZorcTerritoryEdges(idx,territoryLookup));
+  const byS={};
+  WORLDS_DATA.forEach((w,i)=>{const s=w.source||'x';if(!byS[s])byS[s]=[];byS[s].push(rootIndices[i]);});
+  Object.values(byS).forEach(g=>{for(let i=0;i<g.length-1;i++)edges.push({from:g[i],to:g[i+1],op:'fork',label:'NEXT',command:'GO NEXT',created_by:'source sequence'});});
+  if(layoutMode==='grid')tessellateGrid();
+  else{layout();tessellate();}
+  cells.forEach(c=>{c.code=genBEFLIX(c);c.frames=parseBEFLIX(c.code);});
+  $('s-cells').textContent=cells.length;
+  zorc.current=0;
+}
+
+// ═══════════════════════════════════════
+// LAYOUT + TESSELLATE
+// ═══════════════════════════════════════
+function layoutTerritoryClusters(){
+  const roots=cells.map((c,i)=>({c,i})).filter(x=>x.c.parentCellIndex==null).map(x=>x.i);
+  const cols=Math.ceil(Math.sqrt(Math.max(1,roots.length)));
+  const spX=460,spY=360;
+  roots.forEach((idx,r)=>{
+    const c=cells[idx];
+    c.seed.x=(r%cols)*spX;
+    c.seed.y=Math.floor(r/cols)*spY;
+  });
+  const childCounts=new Map();
+  cells.forEach((c,i)=>{
+    if(c.parentCellIndex==null)return;
+    const p=cells[c.parentCellIndex];
+    if(!p)return;
+    const n=childCounts.get(c.parentCellIndex)||0;
+    childCounts.set(c.parentCellIndex,n+1);
+    const angle=n*2.399963229728653;
+    const ring=92+Math.floor(n/9)*44;
+    c.seed.x=p.seed.x+Math.cos(angle)*ring;
+    c.seed.y=p.seed.y+Math.sin(angle)*ring;
+  });
+  const mx=Math.min(...cells.map(c=>c.seed.x)),my=Math.min(...cells.map(c=>c.seed.y));
+  cells.forEach(c=>{c.seed.x-=mx-80;c.seed.y-=my-80;});
+}
+function layout(){
+  const N=cells.length;if(!N)return;
+  if(N>700){layoutTerritoryClusters();return;}
+  const cols=Math.ceil(Math.sqrt(N)),sp=240;
+  cells.forEach((c,i)=>{c.seed.x=(i%cols)*sp+(Math.random()-.5)*30;c.seed.y=Math.floor(i/cols)*sp+(Math.random()-.5)*30;});
+  for(let iter=0;iter<40;iter++){
+    const f=cells.map(()=>({fx:0,fy:0}));
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+      let dx=cells[j].seed.x-cells[i].seed.x,dy=cells[j].seed.y-cells[i].seed.y;
+      let d=Math.sqrt(dx*dx+dy*dy)||1,rep=12000/(d*d);
+      f[i].fx-=(dx/d)*rep;f[i].fy-=(dy/d)*rep;f[j].fx+=(dx/d)*rep;f[j].fy+=(dy/d)*rep;
+    }
+    edges.forEach(e=>{
+      let dx=cells[e.to].seed.x-cells[e.from].seed.x,dy=cells[e.to].seed.y-cells[e.from].seed.y;
+      let d=Math.sqrt(dx*dx+dy*dy)||1,att=(d-sp*.7)*.04;
+      f[e.from].fx+=(dx/d)*att;f[e.from].fy+=(dy/d)*att;f[e.to].fx-=(dx/d)*att;f[e.to].fy-=(dy/d)*att;
+    });
+    cells.forEach((c,i)=>{c.seed.x+=f[i].fx*.25;c.seed.y+=f[i].fy*.25;});
+  }
+  const mx=Math.min(...cells.map(c=>c.seed.x)),my=Math.min(...cells.map(c=>c.seed.y));
+  cells.forEach(c=>{c.seed.x-=mx-80;c.seed.y-=my-80;});
+}
+
+function tessellate(){
+  if(!cells.length)return;
+  if(layoutMode==='grid'){
+    tessellateGrid(); return;
+  }
+  const pts=cells.map(c=>[c.seed.x,c.seed.y]);
+  const xs=cells.map(c=>c.seed.x),ys=cells.map(c=>c.seed.y);
+  const pad=60;
+  const bounds=[Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)+pad,Math.max(...ys)+pad];
+  delaunay=d3.Delaunay.from(pts);voronoi=delaunay.voronoi(bounds);
+  cells.forEach((c,i)=>{
+    const poly=voronoi.cellPolygon(i);c.polygon=poly?poly.map(p=>[p[0],p[1]]):[];
+    if(c.polygon.length){
+      const px=c.polygon.map(p=>p[0]),py=c.polygon.map(p=>p[1]);
+      c.aabb={x:Math.min(...px),y:Math.min(...py),w:Math.max(...px)-Math.min(...px),h:Math.max(...py)-Math.min(...py)};
+    }
+  });
+}
+
+// Grid layout: equal 4:3 rectangles in a contact sheet arrangement
+function tessellateGrid(){
+  const N=cells.length;if(!N)return;
+  const cols=Math.ceil(Math.sqrt(N));
+  const rows=Math.ceil(N/cols);
+  const cellW=200, cellH=150; // 4:3 aspect ratio
+  const gap=12;
+  cells.forEach((c,i)=>{
+    const col=i%cols, row=Math.floor(i/cols);
+    const x=col*(cellW+gap), y=row*(cellH+gap);
+    c.seed.x=x+cellW/2; c.seed.y=y+cellH/2;
+    c.polygon=[[x,y],[x+cellW,y],[x+cellW,y+cellH],[x,y+cellH],[x,y]];
+    c.aabb={x:x, y:y, w:cellW, h:cellH};
+  });
+  // Build delaunay from seeds (for cellAt to work)
+  const pts=cells.map(c=>[c.seed.x,c.seed.y]);
+  delaunay=d3.Delaunay.from(pts);
+  const xs=cells.map(c=>c.seed.x),ys=cells.map(c=>c.seed.y);
+  const pad=60;
+  const bounds=[Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)+pad,Math.max(...ys)+pad];
+  voronoi=delaunay.voronoi(bounds);
+}
+
+function toggleLayout(){
+  layoutMode = layoutMode==='voronoi' ? 'grid' : 'voronoi';
+  $('layout-btn').textContent = layoutMode.toUpperCase();
+  if(layoutMode==='grid'){
+    tessellateGrid();
+  } else {
+    layout(); tessellate();
+  }
+  autoFit(); render();
+  toast('Layout: '+layoutMode.toUpperCase());
+}
+
+// ═══════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════
+function resize(){const cz=$('cz');CW=CVS.width=cz.clientWidth;CH=CVS.height=cz.clientHeight;render();}
+
+function render(){
+  if(!CTX)return;
+  CTX.fillStyle='#e0deda';CTX.fillRect(0,0,CW,CH);
+  if(!cells.length){CTX.fillStyle='#999';CTX.font='900 12px '+getComputedStyle(document.body).fontFamily;
+    CTX.textAlign='center';CTX.fillText('NO CELLS — load data or add cells',CW/2,CH/2);return;}
+
+  // Edges
+  edges.forEach(e=>{
+    const from=cells[e.from],to=cells[e.to];if(!from||!to)return;
+    const h=OPS[e.op]?OPS[e.op].hue:45;
+    CTX.strokeStyle=`hsla(${h},50%,45%,.35)`;CTX.lineWidth=1.5;
+    CTX.beginPath();
+    CTX.moveTo(from.seed.x*zoom+panX,from.seed.y*zoom+panY);
+    CTX.lineTo(to.seed.x*zoom+panX,to.seed.y*zoom+panY);
+    CTX.stroke();
+    // Arrow
+    const ax=to.seed.x*zoom+panX,ay=to.seed.y*zoom+panY;
+    const fx=from.seed.x*zoom+panX,fy=from.seed.y*zoom+panY;
+    const ang=Math.atan2(ay-fy,ax-fx);
+    CTX.fillStyle=`hsla(${h},50%,45%,.5)`;
+    CTX.beginPath();
+    const mx2=(ax+fx)/2,my2=(ay+fy)/2;
+    CTX.moveTo(mx2+6*Math.cos(ang),my2+6*Math.sin(ang));
+    CTX.lineTo(mx2-5*Math.cos(ang-.4),my2-5*Math.sin(ang-.4));
+    CTX.lineTo(mx2-5*Math.cos(ang+.4),my2-5*Math.sin(ang+.4));
+    CTX.fill();
+  });
+
+  cells.forEach((_,i)=>renderCell(i));
+
+  // Aim line
+  if(aiming){
+    CTX.strokeStyle=opC(curOp,55);CTX.lineWidth=2.5;CTX.setLineDash([6,4]);
+    CTX.beginPath();CTX.moveTo(aiming.sx,aiming.sy);CTX.lineTo(aiming.ex,aiming.ey);CTX.stroke();
+    CTX.setLineDash([]);
+    const ang=Math.atan2(aiming.ey-aiming.sy,aiming.ex-aiming.sx);
+    CTX.fillStyle=opC(curOp,55);CTX.beginPath();
+    CTX.moveTo(aiming.ex,aiming.ey);
+    CTX.lineTo(aiming.ex-12*Math.cos(ang-.3),aiming.ey-12*Math.sin(ang-.3));
+    CTX.lineTo(aiming.ex-12*Math.cos(ang+.3),aiming.ey-12*Math.sin(ang+.3));CTX.fill();
+  }
+}
+
+function renderCell(idx){
+  const c=cells[idx];if(!c.polygon.length||!c.frames.length)return;
+  const fi=playhead%c.frames.length,grid=c.frames[fi];
+  const a=c.aabb,sx=a.x*zoom+panX,sy=a.y*zoom+panY,sw=a.w*zoom,sh=a.h*zoom;
+  if(sx+sw<0||sy+sh<0||sx>CW||sy>CH)return;
+  const sp=c.polygon.map(p=>[p[0]*zoom+panX,p[1]*zoom+panY]);
+
+  // Compute aspect-ratio-preserving render rect (4:3 = GC:GR)
+  const targetRatio = GC / GR; // 128/96 = 1.333
+  const aabbRatio = sw / sh;
+  let rw, rh, rx, ry;
+  if(aabbRatio > targetRatio){
+    // Territory is wider than 4:3 — pillarbox (center horizontally)
+    rh = sh; rw = rh * targetRatio;
+    rx = sx + (sw - rw) / 2; ry = sy;
+  } else {
+    // Territory is taller than 4:3 — letterbox (center vertically)
+    rw = sw; rh = rw / targetRatio;
+    rx = sx; ry = sy + (sh - rh) / 2;
+  }
+
+  CTX.save();
+  CTX.beginPath();CTX.moveTo(sp[0][0],sp[0][1]);
+  for(let i=1;i<sp.length;i++)CTX.lineTo(sp[i][0],sp[i][1]);CTX.closePath();CTX.clip();
+
+  // Background — fill the whole territory
+  CTX.fillStyle=idx===active?'#fff':'#f8f7f3';CTX.fillRect(sx,sy,sw,sh);
+
+  // Dots — rendered in the aspect-ratio-preserving rect
+  const dw=rw/GC,dh=rh/GR;
+  if(dw>=1&&dh>=1){
+    for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){
+      const val=grid[gy*GC+gx];
+      if(val>0){
+        const px=rx+(gx/GC)*rw,py=ry+(gy/GR)*rh;
+        const b=clamp(Math.round(210-val*42),0,210);
+        CTX.fillStyle=`rgb(${b},${b},${b})`;
+        if(idx===active){
+          CTX.fillRect(px,py,Math.max(1,Math.ceil(dw)),Math.max(1,Math.ceil(dh)));
+        }else{
+          const r=Math.max(.45,(dw*.42)*(val/7));
+          CTX.beginPath();CTX.arc(px+dw/2,py+dh/2,r,0,Math.PI*2);CTX.fill();
+        }
+      }
+    }
+  }else{
+    const blk=Math.max(1,Math.ceil(3/zoom));
+    for(let gy=0;gy<GR;gy+=blk)for(let gx=0;gx<GC;gx+=blk){
+      let sum=0,cnt=0;
+      for(let by=0;by<blk&&gy+by<GR;by++)for(let bx=0;bx<blk&&gx+bx<GC;bx++){sum+=grid[(gy+by)*GC+(gx+bx)];cnt++;}
+      const avg=sum/cnt;if(avg>.3){
+        const b=clamp(Math.round(210-avg*42),0,210);
+        CTX.fillStyle=`rgba(${b},${b},${b},${clamp(avg/4,.2,1)})`;
+        CTX.fillRect(rx+(gx/GC)*rw,ry+(gy/GR)*rh,Math.max(1,(blk/GC)*rw),Math.max(1,(blk/GR)*rh));
+      }
+    }
+  }
+  CTX.restore();
+
+  // Border
+  CTX.beginPath();CTX.moveTo(sp[0][0],sp[0][1]);
+  for(let i=1;i<sp.length;i++)CTX.lineTo(sp[i][0],sp[i][1]);CTX.closePath();
+  if(idx===active){CTX.strokeStyle='#000';CTX.lineWidth=3;}
+  else{CTX.strokeStyle='rgba(0,0,0,.2)';CTX.lineWidth=1;}
+  CTX.stroke();
+
+  // Label
+  if(rw>45&&rh>25){
+    const cx=rx+rw/2,cy=ry+rh-3;
+    CTX.fillStyle=idx===active?'#000':'rgba(0,0,0,.25)';
+    CTX.font=`900 ${clamp(Math.round(rw/14),6,10)}px ${getComputedStyle(document.body).fontFamily}`;
+    CTX.textAlign='center';CTX.textBaseline='bottom';
+    CTX.fillText(c.name.replace(/([A-Z])/g,' $1').trim().slice(0,18),cx,cy);
+  }
+}
+
+// ═══════════════════════════════════════
+// TIMELINE
+// ═══════════════════════════════════════
+function renderTimeline(){
+  const strip=$('tl-strip');strip.innerHTML='';
+  if(active<0){strip.innerHTML='<span id="tl-empty">SELECT A CELL · DOUBLE-CLICK TO EDIT · RIGHT-CLICK FOR MENU</span>';$('tl-info').textContent='NO CELL';$('s-frame').textContent='—';return;}
+  const c=cells[active];
+  $('tl-info').textContent=`${c.name} · ${c.frames.length} FRAMES`;
+  $('s-frame').textContent=`${c.curFrame+1}/${c.frames.length}`;
+  c.frames.forEach((frame,i)=>{
+    const div=document.createElement('div');div.className='tl-frame'+(i===c.curFrame?' cur':'');
+    const mc=document.createElement('canvas');mc.width=GC;mc.height=GR;
+    const mx=mc.getContext('2d');mx.fillStyle='#1a1a1a';mx.fillRect(0,0,GC,GR);
+    for(let gy=0;gy<GR;gy+=2)for(let gx=0;gx<GC;gx+=2){
+      const val=frame[gy*GC+gx];if(val>0){const b=50+(val/7)*205;mx.fillStyle=`rgb(${b},${b},${b})`;mx.fillRect(gx,gy,2,2);}
+    }
+    div.appendChild(mc);
+    const num=document.createElement('span');num.className='tl-num';num.textContent=i+1;div.appendChild(num);
+    div.onclick=()=>{c.curFrame=i;renderTimeline();render();};
+    strip.appendChild(div);
+  });
+  const cur=strip.querySelector('.tl-frame.cur');if(cur)cur.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════
+// DRAWING
+// ═══════════════════════════════════════
+function plotDot(grid,gx,gy,val,sz){
+  for(let by=-sz;by<=sz;by++)for(let bx=-sz;bx<=sz;bx++)
+    if(bx*bx+by*by<=sz*sz){const px=gx+bx,py=gy+by;if(px>=0&&px<GC&&py>=0&&py<GR)grid[py*GC+px]=val;}
+}
+function plotLine(grid,x0,y0,x1,y1,val,sz){
+  let lx=x0,ly=y0;const dx=Math.abs(x1-lx),sx=lx<x1?1:-1;
+  const dy=-Math.abs(y1-ly),sy=ly<y1?1:-1;let le=dx+dy,lim=1000;
+  while(lim-->0){plotDot(grid,lx,ly,val,sz);
+    if(lx===x1&&ly===y1)break;const e2=2*le;
+    if(e2>=dy){le+=dy;lx+=sx;}if(e2<=dx){le+=dx;ly+=sy;}}
+}
+
+function screenToGrid(mx,my,c){
+  const a=c.aabb;
+  // Compute the same AR-preserving rect as renderCell
+  const sw=a.w, sh=a.h;
+  const targetRatio = GC / GR;
+  const aabbRatio = sw / sh;
+  let rw, rh, rx, ry;
+  if(aabbRatio > targetRatio){ rh=sh; rw=rh*targetRatio; rx=a.x+(sw-rw)/2; ry=a.y; }
+  else { rw=sw; rh=rw/targetRatio; rx=a.x; ry=a.y+(sh-rh)/2; }
+  const worldX=(mx-panX)/zoom, worldY=(my-panY)/zoom;
+  const gx=Math.floor((worldX-rx)/rw*GC);
+  const gy=Math.floor((worldY-ry)/rh*GR);
+  return[clamp(gx,0,GC-1),clamp(gy,0,GR-1)];
+}
+
+// ═══════════════════════════════════════
+// CLONE + SPREAD (COLLAGE)
+// ═══════════════════════════════════════
+function cloneCell(srcIdx){
+  const src = cells[srcIdx];
+  const seed = { x: src.seed.x + 100 + Math.random()*40, y: src.seed.y + (Math.random()-.5)*60 };
+  const newCell = {
+    id: 'c'+cells.length, name: src.name+'-CLN',
+    desc: 'Clone of '+src.name,
+    seed: seed, polygon:[], aabb:{x:0,y:0,w:100,h:100},
+    frames: src.frames.map(f => new Uint8Array(f)),
+    curFrame: 0, code: src.code, hue: src.hue,
+  };
+  cells.push(newCell);
+  const newIdx = cells.length - 1;
+  edges.push({ from: srcIdx, to: newIdx, op: 'fork' });
+  tessellate();
+  selectCell(newIdx);
+  $('s-cells').textContent = cells.length;
+  toast('Cloned: '+newCell.name);
+  render(); renderCellList();
+}
+
+function spreadCells(srcIdx, count){
+  const src = cells[srcIdx];
+  const cols = Math.ceil(Math.sqrt(count));
+  const newIndices = [];
+  for(let i = 0; i < count; i++){
+    const col = i % cols, row = Math.floor(i / cols);
+    const jx = (Math.random()-.5)*16, jy = (Math.random()-.5)*12;
+    const scale = .8 + Math.random()*.4;
+    const dv = Math.random() < .5 ? 1 : -1;
+    // Transform code for this variant
+    let varCode = transformBEFLIXCoords(src.code,
+      x => x * scale + jx,
+      y => y * scale + jy,
+      w => w * scale,
+      h => h * scale,
+      v => v + (Math.random() < .25 ? dv : 0)
+    );
+    const variant = ['WIDE','TIGHT','HIGH','LOW','OFFSET','DRIFT','NEAR','FAR','ASKEW'][i % 9];
+    varCode = `C SPREAD variant ${i+1}: ${variant} of ${src.name}\n` + varCode;
+    const seed = {
+      x: src.seed.x + (col - (cols-1)/2) * 220 + jx*2,
+      y: src.seed.y + (row+1) * 200 + jy*2
+    };
+    const newCell = {
+      id: 'c'+cells.length, name: src.name+'-'+variant,
+      desc: `Spread variant ${i+1} of ${src.name}`,
+      seed: seed, polygon:[], aabb:{x:0,y:0,w:100,h:100},
+      frames: [new Uint8Array(GR*GC)], curFrame: 0,
+      code: varCode, hue: (src.hue + i*40) % 360,
+    };
+    cells.push(newCell);
+    const newIdx = cells.length - 1;
+    newCell.frames = parseBEFLIX(varCode);
+    if(!newCell.frames.length) newCell.frames = [new Uint8Array(GR*GC)];
+    edges.push({ from: srcIdx, to: newIdx, op: 'fork' });
+    newIndices.push(newIdx);
+  }
+  tessellate();
+  $('s-cells').textContent = cells.length;
+  toast(`Spread: ${count} variants of ${src.name}`);
+  smoothZoomToShow([srcIdx, ...newIndices]);
+  render(); renderTimeline(); renderCellList();
+}
+
+// ═══════════════════════════════════════
+// CELL MANAGEMENT
+// ═══════════════════════════════════════
+function selectCell(idx){
+  active=idx;const c=cells[idx];
+  zorc.current=idx;
+  $('s-title').textContent=c.name.replace(/([A-Z])/g,' $1').trim();
+  $('c-active-name').textContent=c.name;
+  // Update Sheet B code editor
+  $('b-cell-name').textContent=c.name;
+  $('b-code').value=c.code;
+  updateBStats();
+  // Update Sheet A causal chain
+  updateCausalChain();
+  render();renderTimeline();renderCellList();renderZorc();
+}
+
+function updateBStats(){
+  if(active<0){$('b-stats').textContent='—';return;}
+  const c=cells[active];
+  const lines=c.code?c.code.split('\n').length:0;
+  $('b-stats').textContent=lines+' LINES · '+c.frames.length+' FRAMES';
+}
+
+function updateCausalChain(){
+  if(active<0){
+    $('dns-code').textContent='—';$('dns-frames').textContent='—';
+    $('dns-edges').textContent='—';$('dns-out').textContent='—';
+    $('f-cell').textContent='None';$('f-code').textContent='No code';
+    $('f-frames').textContent='0';$('f-edges').textContent='0';
+    ['dn-code','dn-frames','dn-edges','dn-out'].forEach(id=>{$(id).className='dep-node';});
+    return;
+  }
+  const c=cells[active];
+  const hasCode=c.code&&c.code.trim().length>0;
+  const hasFrames=c.frames.length>0;
+  const cellEdges=edges.filter(e=>e.from===active||e.to===active);
+  const hasEdges=cellEdges.length>0;
+  // Chain nodes
+  $('dn-code').className='dep-node'+(hasCode?' done':'');
+  $('dns-code').textContent=hasCode?(c.code.split('\n').length+' lines'):'Empty';
+  $('dn-frames').className='dep-node'+(hasFrames?' done':'');
+  $('dns-frames').textContent=hasFrames?(c.frames.length+' frames'):'None';
+  $('dn-edges').className='dep-node'+(hasEdges?' done':'');
+  $('dns-edges').textContent=cellEdges.length+' links';
+  $('dn-out').className='dep-node'+(hasFrames&&hasCode?' active':'');
+  $('dns-out').textContent=hasFrames?'Ready':'Pending';
+  // Facts
+  $('f-cell').textContent=c.name;
+  $('f-code').textContent=hasCode?(c.code.split('\n').length+' lines'):'No code';
+  $('f-frames').textContent=c.frames.length;
+  $('f-edges').textContent=cellEdges.length;
+}
+
+function addCell(){
+  const name=prompt('Cell name:','Cell-'+cells.length);if(!name)return;
+  const cx=cells.length?cells.reduce((s,c)=>s+c.seed.x,0)/cells.length:200;
+  const cy=cells.length?cells.reduce((s,c)=>s+c.seed.y,0)/cells.length:200;
+  cells.push({id:'c'+cells.length,name,desc:'',
+    seed:{x:cx+(Math.random()-.5)*100,y:cy+(Math.random()-.5)*100},
+    polygon:[],aabb:{x:0,y:0,w:100,h:100},
+    frames:[new Uint8Array(GR*GC)],curFrame:0,code:'',hue:Math.random()*360});
+  tessellate();const idx=cells.length-1;
+  cells[idx].code=genBEFLIX(cells[idx]);cells[idx].frames=parseBEFLIX(cells[idx].code);
+  selectCell(idx);$('s-cells').textContent=cells.length;toast('Cell added: '+name);
+}
+
+function deleteCell(idx){
+  if(!confirm('Delete "'+cells[idx].name+'"?'))return;
+  cells.splice(idx,1);
+  edges=edges.filter(e=>e.from!==idx&&e.to!==idx).map(e=>({...e,from:e.from>idx?e.from-1:e.from,to:e.to>idx?e.to-1:e.to}));
+  if(active===idx){active=-1;$('draw-tb').classList.remove('on');$('s-title').textContent='CINEOSIS MOSAIC';}
+  else if(active>idx)active--;
+  tessellate();render();renderTimeline();renderCellList();$('s-cells').textContent=cells.length;toast('Cell deleted');
+}
+
+function renameCell(idx){
+  const name=prompt('Rename:',cells[idx].name);if(!name)return;
+  cells[idx].name=name;if(active===idx)$('s-title').textContent=name.replace(/([A-Z])/g,' $1').trim();
+  render();renderCellList();
+}
+
+function cellAt(sx,sy){if(!delaunay)return-1;return delaunay.find((sx-panX)/zoom,(sy-panY)/zoom);}
+
+// ═══════════════════════════════════════
+// SHEET SYSTEM (c2 pattern)
+// ═══════════════════════════════════════
+function toggleSheet(id){
+  const sheet=$('sheet-'+id);
+  if(openSheet===id){closeSheets();return;}
+  closeSheets();
+  sheet.classList.add('on');$('backdrop').classList.add('on');openSheet=id;
+  $('draw-tb').classList.toggle('on',id==='c'&&active>=0);
+  // Nav highlight
+  document.querySelectorAll('.snav,.tab').forEach(b=>{b.className=b.className.replace(/\s*on-[a-d]/g,'');});
+  const sn=$('snav-'+id);if(sn)sn.classList.add('on-'+id);
+  const tb=$('tab-'+id);if(tb)tb.classList.add('on-'+id);
+}
+function closeSheets(){
+  document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));
+  $('backdrop').classList.remove('on');openSheet=null;
+  $('draw-tb').classList.remove('on');
+  document.querySelectorAll('.snav,.tab').forEach(b=>{b.className=b.className.replace(/\s*on-[a-d]/g,'');});
+}
+
+// Sheet sub-tabs
+document.querySelectorAll('.sh-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    const stab=t.dataset.stab;if(!stab)return;
+    const sheet=t.closest('.sheet');
+    sheet.querySelectorAll('.sh-tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+    sheet.querySelectorAll('.sh-body').forEach(b=>b.style.display='none');
+    const body=$(stab);if(body)body.style.display='';
+  });
+});
+
+// ═══════════════════════════════════════
+// CELL LIST (Sheet A)
+// ═══════════════════════════════════════
+function renderCellList(){
+  const cont=$('cell-list');if(!cont)return;cont.innerHTML='';
+  cells.forEach((c,i)=>{
+    const tc=document.createElement('div');tc.className='tc'+(i===active?' sel':'');
+    tc.innerHTML=`<div class="tc-hd"><span class="tc-n">${i+1}</span><span class="tc-name">${c.name}</span><span class="tc-frames">${c.frames.length}f</span></div>`;
+    // Mini frames
+    const body=document.createElement('div');body.className='tc-body';
+    const mini=document.createElement('div');mini.className='tc-mini';
+    c.frames.slice(0,5).forEach(frame=>{
+      const mc=document.createElement('canvas');mc.width=GC;mc.height=GR;
+      const mx=mc.getContext('2d');mx.fillStyle='#1a1a1a';mx.fillRect(0,0,GC,GR);
+      for(let gy=0;gy<GR;gy+=3)for(let gx=0;gx<GC;gx+=3){
+        const val=frame[gy*GC+gx];if(val>0){const b=50+(val/7)*205;mx.fillStyle=`rgb(${b},${b},${b})`;mx.fillRect(gx,gy,3,3);}
+      }
+      mini.appendChild(mc);
+    });
+    body.appendChild(mini);tc.appendChild(body);
+    // Actions
+    const acts=document.createElement('div');acts.className='tc-acts';
+    acts.innerHTML=`<button class="btn sm" onclick="event.stopPropagation();selectCell(${i});closeSheets()">SELECT</button>
+      <button class="btn sm" onclick="event.stopPropagation();openBfxModal(${i})">CODE</button>
+      <button class="btn sm c" onclick="event.stopPropagation();deleteCell(${i})">DEL</button>`;
+    tc.appendChild(acts);
+    tc.onclick=()=>{selectCell(i);closeSheets();};
+    cont.appendChild(tc);
+  });
+}
+
+// ═══════════════════════════════════════
+// OPS LIST (Sheet C)
+// ═══════════════════════════════════════
+function renderOps(){
+  const cont=$('c-ops');if(!cont)return;cont.innerHTML='';
+  Object.entries(OPS).forEach(([key,op])=>{
+    const btn=document.createElement('div');
+    btn.className='op-card'+(key===curOp?' on':'');
+    if(key===curOp)btn.style.cssText=`background:hsl(${op.hue},68%,45%);border-color:hsl(${op.hue},68%,35%);color:#fff`;
+    btn.innerHTML=`${op.lbl}<div class="op-verb">${op.verb}</div>`;
+    btn.onclick=()=>{curOp=key;renderOps();buildOpBar();toast(op.lbl+': shift+drag to fire');};
+    cont.appendChild(btn);
+  });
+  // Render edges list
+  const edCont=$('c-edges');
+  if(!edges.length){edCont.textContent='No edges yet.';return;}
+  edCont.innerHTML='';
+  edges.forEach((e,i)=>{
+    const from=cells[e.from],to=cells[e.to];
+    if(!from||!to)return;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #eee';
+    row.innerHTML=`<span style="color:hsl(${(OPS[e.op]||OPS.fork).hue},68%,45%);font-weight:900">${(OPS[e.op]||OPS.fork).lbl}</span>
+      <span>${from.name}</span><span style="color:#999">→</span><span>${to.name}</span>
+      <button onclick="edges.splice(${i},1);renderOps();render()" style="margin-left:auto;background:none;border:0;color:var(--c);font:900 10px/1 var(--font);cursor:pointer">×</button>`;
+    edCont.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════
+// OP BAR (floating on canvas)
+// ═══════════════════════════════════════
+function buildOpBar(){
+  const bar=$('opbar');bar.innerHTML='';
+  Object.entries(OPS).forEach(([key,op])=>{
+    const btn=document.createElement('button');btn.className='op-b'+(key===curOp?' on':'');
+    btn.textContent=op.lbl;btn.title=op.verb;
+    if(key===curOp)btn.style.color=opC(key,60);
+    btn.onclick=()=>{curOp=key;buildOpBar();toast(op.lbl+': shift+drag to fire');};
+    bar.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════
+// SWATCHES (draw toolbar + sheet B)
+// ═══════════════════════════════════════
+function buildSwatches(){
+  [$('dt-sw'),$('b-swatches')].forEach(cont=>{
+    if(!cont)return;cont.innerHTML='';const isGrid=cont.id==='b-swatches';
+    for(let v=0;v<=7;v++){
+      const sw=document.createElement('div');
+      sw.className=(isGrid?'ink-sw':'dt-swatch')+(v===ink?' on':'');
+      const b=v===0?244:Math.round(255-(v/7)*220);
+      sw.style.background=`rgb(${b},${b},${b})`;
+      sw.onclick=()=>{ink=v;buildSwatches();};
+      cont.appendChild(sw);
+    }
+  });
+}
+
+function syncToolBtns(){
+  // Sync floating toolbar
+  document.querySelectorAll('.dt-btn[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tool));
+  // Sync sheet C buttons
+  ['bt-pen','bt-rect','bt-line','bt-erase'].forEach(id=>{
+    const el=$(id);if(el)el.classList.toggle('on',id==='bt-'+tool);
+  });
+  buildSwatches();
+}
+
+// ═══════════════════════════════════════
+// BEFLIX MODAL — with live preview
+// ═══════════════════════════════════════
+function openBfxModal(idx){
+  if(idx===undefined)idx=active;
+  if(idx<0){toast('Select a cell',true);return;}
+  // Sync inline editor to cell first
+  if(active>=0 && $('b-code').value){cells[active].code=$('b-code').value;}
+  active=idx;const c=cells[idx];
+  $('bfx-title').textContent='BEFLIX — '+c.name;
+  $('bfx-editor').value=c.code;
+  $('bfx-lcount').textContent=c.code.split('\n').length+' LINES';
+  $('bfx-modal').classList.add('on');
+  bfxPreviewRun();
+}
+
+function bfxPreviewRun(){
+  if(active<0)return;
+  const code=$('bfx-editor').value;
+  bfxPreviewFrames=parseBEFLIX(code);
+  bfxPreviewCur=0;
+  $('bfx-fcount').textContent=bfxPreviewFrames.length+' FRAMES';
+  bfxPreviewRender();
+  bfxPreviewStrip();
+}
+
+function bfxPreviewRender(){
+  if(!bfxPreviewFrames.length)return;
+  bfxPreviewCur=clamp(bfxPreviewCur,0,bfxPreviewFrames.length-1);
+  const grid=bfxPreviewFrames[bfxPreviewCur];
+  const cvs=$('bfx-cvs'),ctx=cvs.getContext('2d');
+  cvs.width=GC*BS;cvs.height=GR*BS;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cvs.width,cvs.height);
+  // Subtle ruled lines
+  ctx.strokeStyle='rgba(0,0,0,.04)';ctx.lineWidth=0.5;
+  for(let gy=0;gy<GR;gy++){
+    const py=gy*BS+BS*.5;
+    ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(cvs.width,py);ctx.stroke();
+  }
+  // Dots
+  for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){
+    const val=grid[gy*GC+gx];
+    if(val>0){
+      const cx=gx*BS+BS/2,cy=gy*BS+BS/2;
+      const r=Math.max(.6,(BS*.42)*(val/7));
+      const b=Math.round(255-(val/7)*230);
+      ctx.fillStyle=`rgb(${b},${b},${b})`;
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+    }
+  }
+  $('bfx-prev-frame').textContent=`${bfxPreviewCur+1}/${bfxPreviewFrames.length}`;
+  // Highlight current in strip
+  document.querySelectorAll('.bfx-pf').forEach((el,i)=>el.classList.toggle('cur',i===bfxPreviewCur));
+}
+
+function bfxPreviewStrip(){
+  const strip=$('bfx-prev-strip');strip.innerHTML='';
+  bfxPreviewFrames.forEach((frame,i)=>{
+    const div=document.createElement('div');div.className='bfx-pf'+(i===bfxPreviewCur?' cur':'');
+    const mc=document.createElement('canvas');mc.width=GC;mc.height=GR;
+    const mx=mc.getContext('2d');mx.fillStyle='#1a1a1a';mx.fillRect(0,0,GC,GR);
+    for(let gy=0;gy<GR;gy+=2)for(let gx=0;gx<GC;gx+=2){
+      const val=frame[gy*GC+gx];if(val>0){const b=50+(val/7)*205;mx.fillStyle=`rgb(${b},${b},${b})`;mx.fillRect(gx,gy,2,2);}
+    }
+    div.appendChild(mc);
+    div.onclick=()=>{bfxPreviewCur=i;bfxPreviewRender();};
+    strip.appendChild(div);
+  });
+}
+
+function bfxPreviewTogglePlay(){
+  bfxPreviewPlaying=!bfxPreviewPlaying;
+  $('bfx-p-play').textContent=bfxPreviewPlaying?'■':'▶';
+  $('bfx-p-play').classList.toggle('on',bfxPreviewPlaying);
+  if(bfxPreviewPlaying){bfxPreviewLastT=performance.now();bfxPreviewRAF=requestAnimationFrame(bfxPreviewTick);}
+  else if(bfxPreviewRAF){cancelAnimationFrame(bfxPreviewRAF);bfxPreviewRAF=null;}
+}
+function bfxPreviewTick(t){
+  if(!bfxPreviewPlaying)return;
+  if(t-bfxPreviewLastT>=1000/fps){
+    bfxPreviewLastT=t-((t-bfxPreviewLastT)%(1000/fps));
+    bfxPreviewCur=(bfxPreviewCur+1)%bfxPreviewFrames.length;
+    bfxPreviewRender();
+  }
+  bfxPreviewRAF=requestAnimationFrame(bfxPreviewTick);
+}
+
+function soloView(idx){
+  if(idx===undefined)idx=active;
+  if(idx<0)return;
+  selectCell(idx);
+  smoothZoomToShow([idx]);
+}
+
+// ═══════════════════════════════════════
+// CONTEXT MENU
+// ═══════════════════════════════════════
+function showCtx(x,y,idx){
+  active=idx;const c=cells[idx];const menu=$('ctx');
+  $('ctx-name').textContent=c.name.replace(/([A-Z])/g,' $1').trim();
+  // Position within viewport
+  const vw=window.innerWidth,vh=window.innerHeight;
+  menu.style.left=Math.min(x,vw-220)+'px';
+  menu.style.top=Math.min(y,vh-300)+'px';
+  menu.classList.add('on');
+  render();renderTimeline();$('s-title').textContent=c.name.replace(/([A-Z])/g,' $1').trim();
+}
+function hideCtx(){$('ctx').classList.remove('on');}
+
+// ═══════════════════════════════════════
+// POINTER EVENTS
+// ═══════════════════════════════════════
+function getCanvasXY(e){
+  const r=$('cz').getBoundingClientRect();
+  return[e.clientX-r.left,e.clientY-r.top];
+}
+
+function onDown(e){
+  e.preventDefault();hideCtx();
+  const[mx,my]=getCanvasXY(e);
+
+  // Right-click → context menu
+  if(e.button===2){
+    const idx=cellAt(mx,my);
+    if(idx>=0&&idx<cells.length)showCtx(e.clientX,e.clientY,idx);
+    return;
+  }
+
+  const idx=cellAt(mx,my);
+
+  // Shift+click → aim to fire op
+  if(e.shiftKey&&idx>=0&&idx<cells.length){
+    selectCell(idx);
+    aiming={srcIdx:idx,sx:mx,sy:my,ex:mx,ey:my};
+    CVS.style.cursor='crosshair';
+    $('aim-msg').classList.add('on');
+    $('aim-msg').textContent=`${OPS[curOp].lbl}: ${OPS[curOp].verb} — DRAG TO CELL OR EMPTY SPACE`;
+    return;
+  }
+
+  // Drawing on active cell
+  if(active>=0&&idx===active&&!e.shiftKey){
+    const c=cells[active];
+    const[gx,gy]=screenToGrid(mx,my,c);
+    drawing=true;drawPrev=[gx,gy];
+    const fi=c.curFrame%c.frames.length;
+    plotDot(c.frames[fi],gx,gy,tool==='erase'?0:ink,brushSz);
+    render();return;
+  }
+
+  // Click on cell → select
+  if(idx>=0&&idx<cells.length){selectCell(idx);
+    dragNode=idx;dragOff={x:mx-cells[idx].seed.x*zoom-panX,y:my-cells[idx].seed.y*zoom-panY};return;}
+
+  // Empty → pan
+  panning=true;panS={x:mx,y:my,px:panX,py:panY};CVS.style.cursor='grabbing';
+}
+
+function onMove(e){
+  const[mx,my]=getCanvasXY(e);
+  if(aiming){aiming.ex=mx;aiming.ey=my;render();return;}
+  if(drawing&&active>=0){
+    const c=cells[active];const[gx,gy]=screenToGrid(mx,my,c);
+    const fi=c.curFrame%c.frames.length;
+    if(tool==='pen'||tool==='erase'){
+      plotLine(c.frames[fi],drawPrev[0],drawPrev[1],gx,gy,tool==='erase'?0:ink,brushSz);
+      drawPrev=[gx,gy];render();
+    }
+    return;
+  }
+  if(dragNode>=0&&e.buttons){
+    cells[dragNode].seed.x=(mx-dragOff.x-panX)/zoom;cells[dragNode].seed.y=(my-dragOff.y-panY)/zoom;
+    tessellate();render();return;
+  }
+  if(panning){panX=panS.px+(mx-panS.x);panY=panS.py+(my-panS.y);render();return;}
+  const idx=cellAt(mx,my);
+  CVS.style.cursor=idx>=0?(active===idx?'crosshair':'pointer'):'grab';
+}
+
+function onUp(e){
+  const[mx,my]=getCanvasXY(e);
+  if(aiming){
+    const tgtIdx=cellAt(mx,my);
+    // Compute drag angle for directional operations (SURFACE)
+    const dragAngle = Math.atan2(my - aiming.sy, mx - aiming.sx);
+    if(tgtIdx>=0&&tgtIdx<cells.length&&tgtIdx!==aiming.srcIdx){
+      // Fire to existing cell — execute op with target
+      executeOp(curOp, aiming.srcIdx, tgtIdx, null, dragAngle);
+    } else if(tgtIdx<0 || tgtIdx===aiming.srcIdx){
+      // Fire to empty space — create new cell at drop point
+      const worldX = (mx - panX) / zoom;
+      const worldY = (my - panY) / zoom;
+      executeOp(curOp, aiming.srcIdx, -1, {x: worldX, y: worldY}, dragAngle);
+    }
+    aiming=null;CVS.style.cursor='grab';$('aim-msg').classList.remove('on');return;
+  }
+  if(drawing){drawing=false;renderTimeline();return;}
+  dragNode=-1;if(panning){panning=false;CVS.style.cursor='grab';}
+}
+
+function onWheel(e){
+  e.preventDefault();const[mx,my]=getCanvasXY(e);
+  const[wx,wy]=[(mx-panX)/zoom,(my-panY)/zoom];
+  zoom=clamp(zoom*(e.deltaY<0?1.1:.9),.08,8);
+  panX=mx-wx*zoom;panY=my-wy*zoom;render();
+}
+
+function onDblClick(e){
+  const[mx,my]=getCanvasXY(e);const idx=cellAt(mx,my);
+  if(idx>=0&&idx<cells.length){selectCell(idx);openBfxModal(idx);}
+}
+
+// ═══════════════════════════════════════
+// PLAYBACK
+// ═══════════════════════════════════════
+function togglePlay(){
+  playing=!playing;$('play-lbl').textContent=playing?'STOP':'PLAY';
+  $('play-btn').classList.toggle('playing',playing);
+  if(playing){_lastT=performance.now();_raf=requestAnimationFrame(tick);}
+  else if(_raf){cancelAnimationFrame(_raf);_raf=null;}
+}
+function tick(t){
+  if(!playing)return;
+  if(t-_lastT>=1000/fps){_lastT=t-((t-_lastT)%(1000/fps));
+    playhead++;
+    if(active>=0){const c=cells[active];c.curFrame=playhead%c.frames.length;
+      $('s-frame').textContent=`${c.curFrame+1}/${c.frames.length}`;}
+    render();
+  }
+  _raf=requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════
+function dlText(text,fn,mime){
+  const b=new Blob([text],{type:mime}),u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);
+}
+function exportTwee(){
+  let t=':: StoryData\n{"ifid":"'+crypto.randomUUID()+'","format":"Harlowe","format-version":"3.3.7"}\n\n:: StoryTitle\nCINEOSIS MOSAIC\n\n';
+  cells.forEach((c,i)=>{
+    const room=c.zorcRoom;
+    t+=`:: ${c.name}\n${room?.desc||c.desc||''}\n\n`;
+    if(room?.objects?.length)t+=`Objects: ${room.objects.map(o=>o.name).join(', ')}\n\n`;
+    t+=`{BEFLIX}\n${c.code}\n{/BEFLIX}\n\n`;
+    edges.filter(e=>e.from===i).forEach(e=>{if(cells[e.to])t+=`[[${(OPS[e.op]||{}).lbl||e.label||'GO'}: ${cells[e.to].name}|${cells[e.to].name}]]\n`;});
+    t+='\n';
+  });
+  dlText(t,'cineosis-mosaic.twee','text/plain');toast('Exported Twee');
+}
+function exportZorcTwee(){
+  let t=':: StoryData\n{"ifid":"'+crypto.randomUUID()+'","format":"Harlowe","format-version":"3.3.7"}\n\n:: StoryTitle\nZORC: BEES ON A TRAIN\n\n';
+  t+=':: Start\nZORC compiles each Bees on a Train territory as a 128x96 BEFLIX code-room.\n\n';
+  if(cells[0])t+=`[[ENTER ${cells[0].name}|${cells[0].name}]]\n\n`;
+  cells.forEach((c,i)=>{
+    const room=c.zorcRoom;
+    t+=`:: ${c.name}\n`;
+    t+=`${room?.desc||c.desc||'Executable BEFLIX room.'}\n\n`;
+    t+=`Compiler prompt:\n${room?.c_prompt||extractPrompt(c.code)||'C ROOM'}\n\n`;
+    if(room?.objects?.length){
+      t+=`Objects:\n`;
+      room.objects.forEach(o=>{t+=`- ${o.name} (${o.kind}) verbs: ${(o.verbs||[]).join(' ')}\n`;});
+      t+='\n';
+    }
+    t+=`{BEFLIX}\n${c.code}\n{/BEFLIX}\n\n`;
+    const outs=edges.filter(e=>e.from===i);
+    if(outs.length)t+='Exits:\n';
+    outs.forEach((e,ei)=>{
+      if(cells[e.to]){
+        const cut=e.sourceFrame!=null?` @F${e.sourceFrame+1}`:'';
+        t+=`[[${ZORC_DIRECTIONS[ei%ZORC_DIRECTIONS.length]} ${((OPS[e.op]||{}).lbl||e.op||'GO')}${cut}|${cells[e.to].name}]]\n`;
+      }
+    });
+    t+='\n';
+  });
+  dlText(t,'zorc-bees-on-a-train.twee','text/plain');toast('Exported ZORC Twee');
+}
+function zorcSceneRecord(c,i){
+  const room=c.zorcRoom||{};
+  return {
+    index:i,id:c.id,name:c.name,description:room.desc||c.desc||'',
+    territory_kind:c.territoryKind||room.territoryKind||'room',
+    territory_source:c.territorySource||room.territorySource||'world',
+    parent_room_id:c.parentRoomId||room.parentRoomId||null,
+    parent_cell_index:c.parentCellIndex??room.parentCellIndex??null,
+    frame_count:c.frames?.length||0,current_frame:c.curFrame||0,
+    objects:(room.objects||c.objects||[]).map(o=>({id:o.id,name:o.name,kind:o.kind,source:o.source,bounds:o.bounds,verbs:o.verbs,portable:o.portable,prompt:o.c_prompt,target:o.target||null,value:o.value||null})),
+    c_prompt:room.c_prompt||extractPrompt(c.code)||'',
+    beflix_code:c.code
+  };
+}
+function zorcEdgeRecord(e,i){
+  const from=cells[e.from],to=cells[e.to];
+  return {
+    edit_index:i,
+    from:e.from,from_id:from?.id||null,from_name:from?.name||null,
+    to:e.to,to_id:to?.id||null,to_name:to?.name||null,
+    op:e.op,label:e.label||((OPS[e.op]||{}).lbl)||e.op,
+    command:e.command||e.label||e.op,
+    branch_type:e.branchType||'room',
+    territory:!!e.territory,
+    source_frame:e.sourceFrame??null,
+    source_frame_label:e.sourceFrameLabel||null,
+    created_by:e.created_by||'unknown'
+  };
+}
+function zorcMapScale(){
+  const xs=cells.map(c=>c.seed.x),ys=cells.map(c=>c.seed.y);
+  const minX=Math.min(...xs,0)-80,maxX=Math.max(...xs,1)+80;
+  const minY=Math.min(...ys,0)-80,maxY=Math.max(...ys,1)+80;
+  const w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+  return {
+    x:v=>clamp(Math.round(((v-minX)/w)*118+5),0,127),
+    y:v=>clamp(Math.round(((v-minY)/h)*86+5),0,95)
+  };
+}
+function generateTerritoryMapBFX(){
+  if(!cells.length)return'C ZORC TERRITORY MAP FILM\nCLR 0\nREC 12\n';
+  const sc=zorcMapScale();
+  const roots=cells.map((c,i)=>({c,i})).filter(x=>x.c.parentCellIndex==null);
+  const children=cells.map((c,i)=>({c,i})).filter(x=>x.c.parentCellIndex!=null);
+  const dot=(c,v,size=1)=>`PNT ${sc.x(c.seed.x)} ${sc.y(c.seed.y)} ${size} ${size} ${v}`;
+  const line=e=>{
+    const a=cells[e.from],b=cells[e.to];if(!a||!b)return null;
+    let v=2;
+    if(e.label==='NEXT')v=6;
+    else if(String(e.created_by||'').includes('relation'))v=5;
+    else if(String(e.created_by||'').includes('state'))v=4;
+    else if(e.label==='PARENT')v=1;
+    return`LIN ${sc.x(a.seed.x)} ${sc.y(a.seed.y)} ${sc.x(b.seed.x)} ${sc.y(b.seed.y)} ${v}`;
+  };
+  let code='C ZORC TERRITORY MAP FILM\n';
+  code+=`C Cells: ${cells.length} | Edges: ${edges.length}\n`;
+  code+='C Mode: full ontology map as portable BEFLIX\n\n';
+  code+=zorcFrame(1,`ROOT WORLDS - ${roots.length} parent rooms`,['CLR 0',...roots.map(x=>dot(x.c,6,2))],6);
+  code+=zorcFrame(2,'TERRITORIALIZATION - every internal element appears',['CLR 0',...roots.map(x=>dot(x.c,5,2)),...children.map(x=>dot(x.c,3,1))],6);
+  const hierarchy=edges.filter(e=>e.territory&&String(e.created_by||'').includes('territorialization')).map(line).filter(Boolean);
+  code+=zorcFrame(3,'HIERARCHY EDGES - parent rooms to child territories',['CLR 0',...roots.map(x=>dot(x.c,4,2)),...children.map(x=>dot(x.c,2,1)),...hierarchy],8);
+  const relations=edges.filter(e=>String(e.created_by||'').includes('relation')||String(e.created_by||'').includes('reference')||String(e.created_by||'').includes('state')||e.label==='NEXT').map(line).filter(Boolean);
+  code+=zorcFrame(4,'SEMANTIC EDGES - relations, states, references, source sequence',['CLR 0',...cells.map(c=>dot(c,2,1)),...relations],8);
+  const seq=zorc.cut_sequence.length?zorc.cut_sequence:[zorc.current].filter(i=>i!=null&&i>=0);
+  const pathLines=[];
+  for(let i=0;i<seq.length-1;i++){
+    const a=cells[seq[i]],b=cells[seq[i+1]];if(a&&b)pathLines.push(`LIN ${sc.x(a.seed.x)} ${sc.y(a.seed.y)} ${sc.x(b.seed.x)} ${sc.y(b.seed.y)} 7`);
+  }
+  const activeCell=cells[zorc.current]||cells[active]||cells[0];
+  code+=zorcFrame(5,'CURRENT CUT - active path and selected territory',['CLR 0',...cells.map(c=>dot(c,1,1)),...pathLines,dot(activeCell,7,3)],12);
+  return code;
+}
+function exportZorcEDL(){
+  const territoryMap=generateTerritoryMapBFX();
+  const d={
+    type:'ZORC_EDL',
+    version:1,
+    title:'ZORC: BEES ON A TRAIN',
+    grid:{width:GC,height:GR,max_frames:MAX_FRAMES},
+    current_room:zorc.current,
+    inventory:zorc.inventory,
+    command_history:zorc.history,
+    cut_sequence:zorc.cut_sequence,
+    territory_map_beflix:territoryMap,
+    edits:edges.map(zorcEdgeRecord),
+    scenes:cells.map(zorcSceneRecord)
+  };
+  dlText(JSON.stringify(d,null,2),'zorc-bees-on-a-train.edl.json','application/json');toast('Exported ZORC EDL');
+}
+function exportZorcTweel(){
+  const d={
+    type:'TWEEL_ZORC_BUNDLE',
+    version:1,
+    story:{title:'ZORC: BEES ON A TRAIN',format:'Twine/Twee with embedded BEFLIX'},
+    start:cells[0]?.name||'Start',
+    territory_map_beflix:generateTerritoryMapBFX(),
+    passages:cells.map((c,i)=>({
+      name:c.name,
+      tags:['zorc','beflix',c.territoryKind||'room',inferZorcMotif(c.zorcRoom||{})],
+      text:`${c.zorcRoom?.desc||c.desc||''}\n\n{BEFLIX}\n${c.code}\n{/BEFLIX}`,
+      scene:zorcSceneRecord(c,i),
+      links:edges.filter(e=>e.from===i&&cells[e.to]).map(e=>({text:e.label||e.op,target:cells[e.to].name,source_frame:e.sourceFrame??null,command:e.command||e.op}))
+    })),
+    edits:edges.map(zorcEdgeRecord)
+  };
+  dlText(JSON.stringify(d,null,2),'zorc-bees-on-a-train.tweel.json','application/json');toast('Exported TWEEL bundle');
+}
+function exportBFX(){
+  let c='';cells.forEach(cl=>{c+=`C ═══════════════════════\nC CELL: ${cl.name}\nC ═══════════════════════\n${cl.code}\n\n`;});
+  dlText(c,'cineosis-all.bfx','text/plain');toast('Exported BEFLIX');
+}
+function exportTerritoryMapBFX(){
+  dlText(generateTerritoryMapBFX(),'zorc-territory-map.bfx','text/plain');toast('Exported territory map film');
+}
+function exportPathBFX(){
+  const seq=zorc.cut_sequence.length?zorc.cut_sequence:[zorc.current];
+  let out='C ZORC PATH FILM\nC Commands: '+zorc.history.map(h=>h.cmd).join(' | ')+'\n\n';
+  seq.forEach((idx,i)=>{const c=cells[idx];if(c)out+=`C ===== PATH ROOM ${i+1}: ${c.name} =====\n${c.code}\n\n`;});
+  dlText(out,'zorc-path-film.bfx','text/plain');toast('Exported path film');
+}
+function exportPNG(){const l=document.createElement('a');l.download='cineosis-mosaic.png';l.href=CVS.toDataURL('image/png');l.click();toast('Exported PNG');}
+function exportJSON(){
+  const d={cells:cells.map(c=>({
+    id:c.id,name:c.name,desc:c.desc,seed:c.seed,hue:c.hue,code:c.code,curFrame:c.curFrame,
+    zorcRoom:c.zorcRoom,objects:c.objects,territoryKind:c.territoryKind,territorySource:c.territorySource,
+    parentRoomId:c.parentRoomId,parentCellIndex:c.parentCellIndex
+  })),edges,zorc};
+  dlText(JSON.stringify(d),'cineosis-mosaic.json','application/json');toast('Exported JSON');
+}
+function loadJSON(file){
+  const r=new FileReader();r.onload=e=>{
+    try{const d=JSON.parse(e.target.result);
+      cells=[];edges=d.edges||[];
+      (d.cells||[]).forEach(c=>{
+        cells.push({...c,polygon:[],aabb:{x:0,y:0,w:100,h:100},frames:[]});
+      });
+      tessellate();cells.forEach(c=>{if(!c.code)c.code=genBEFLIX(c);c.frames=parseBEFLIX(c.code);if(!c.curFrame)c.curFrame=0;});
+      if(d.zorc)zorc={...zorc,...d.zorc};
+      active=-1;$('s-cells').textContent=cells.length;
+      autoFit();render();renderTimeline();renderCellList();renderZorc();toast('Project loaded');
+    }catch(er){toast('Load error: '+er.message,true);}
+  };r.readAsText(file);
+}
+
+// ═══════════════════════════════════════
+// AUTO-FIT
+// ═══════════════════════════════════════
+function autoFit(){
+  if(!cells.length)return;
+  const xs=cells.map(c=>c.seed.x),ys=cells.map(c=>c.seed.y);
+  const tw=Math.max(...xs)-Math.min(...xs)+200,th=Math.max(...ys)-Math.min(...ys)+200;
+  zoom=Math.min(CW/tw,CH/th,2)*.85;
+  panX=(CW-tw*zoom)/2-Math.min(...xs)*zoom+100*zoom;
+  panY=(CH-th*zoom)/2-Math.min(...ys)*zoom+100*zoom;
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  CVS=$('cvs');CTX=CVS.getContext('2d');
+  buildSwatches();buildOpBar();resize();ingest();autoFit();
+  render();renderTimeline();renderCellList();renderOps();
+  setupZorcConsole();
+  setupOpenAICompiler();
+  if(cells.length){selectCell(0);smoothZoomToShow([0]);}
+  renderZorc();
+
+  // Canvas events
+  CVS.addEventListener('pointerdown',onDown);
+  CVS.addEventListener('pointermove',onMove);
+  CVS.addEventListener('pointerup',onUp);
+  CVS.addEventListener('pointercancel',onUp);
+  CVS.addEventListener('wheel',onWheel,{passive:false});
+  CVS.addEventListener('dblclick',onDblClick);
+  CVS.addEventListener('contextmenu',e=>e.preventDefault());
+
+  // Close ctx on click
+  document.addEventListener('click',e=>{if(!$('ctx').contains(e.target))hideCtx();});
+  window.addEventListener('resize',resize);
+
+  // Play / FPS
+  $('play-btn').addEventListener('click',togglePlay);
+  $('fps-dn').addEventListener('click',()=>{fps=Math.max(1,fps-1);$('s-fps').textContent=fps;});
+  $('fps-up').addEventListener('click',()=>{fps=Math.min(30,fps+1);$('s-fps').textContent=fps;});
+
+  // Draw tools (floating bar)
+  document.querySelectorAll('.dt-btn[data-t]').forEach(btn=>{
+    btn.addEventListener('click',()=>{tool=btn.dataset.t;
+      document.querySelectorAll('.dt-btn[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tool));});
+  });
+  $('brush-sz').addEventListener('input',e=>{brushSz=parseInt(e.target.value);});
+
+  // Sheet A — SHOTS actions
+  $('btn-open-code').addEventListener('click',()=>openBfxModal());
+  $('btn-load-bfx').addEventListener('click',()=>$('bfx-file-in').click());
+  $('bfx-file-in').addEventListener('change',e=>{
+    const file=e.target.files[0];if(!file||active<0)return;
+    const r=new FileReader();r.onload=ev=>{
+      const code=ev.target.result;cells[active].code=code;
+      cells[active].frames=parseBEFLIX(code);cells[active].curFrame=0;
+      $('b-code').value=code;updateBStats();updateCausalChain();
+      render();renderTimeline();toast(cells[active].frames.length+' frames loaded');
+    };r.readAsText(file);e.target.value='';
+  });
+  $('btn-paste-code').addEventListener('click',async()=>{
+    if(active<0){toast('Select a cell',true);return;}
+    try{
+      const code=await navigator.clipboard.readText();
+      if(code){cells[active].code=code;cells[active].frames=parseBEFLIX(code);cells[active].curFrame=0;
+        $('b-code').value=code;updateBStats();updateCausalChain();
+        render();renderTimeline();toast(cells[active].frames.length+' frames pasted');}
+    }catch(e){const code=prompt('Paste BEFLIX code:');if(code){cells[active].code=code;cells[active].frames=parseBEFLIX(code);cells[active].curFrame=0;
+      $('b-code').value=code;updateBStats();updateCausalChain();
+      render();renderTimeline();toast(cells[active].frames.length+' frames pasted');}}
+  });
+  $('a-add-blk').addEventListener('click',()=>{if(active<0)return;const c=cells[active];if(c.frames.length>=MAX_FRAMES){toast('Max',true);return;}c.frames.splice(c.curFrame+1,0,new Uint8Array(GR*GC));c.curFrame++;renderTimeline();updateCausalChain();toast('Blank added');});
+  $('a-dup-frame').addEventListener('click',()=>{if(active<0)return;const c=cells[active];if(c.frames.length>=MAX_FRAMES){toast('Max',true);return;}c.frames.splice(c.curFrame+1,0,new Uint8Array(c.frames[c.curFrame]));c.curFrame++;renderTimeline();updateCausalChain();toast('Duplicated');});
+  $('a-del-frame').addEventListener('click',()=>{if(active<0)return;const c=cells[active];if(c.frames.length<=1){toast('Last frame',true);return;}c.frames.splice(c.curFrame,1);c.curFrame=Math.min(c.curFrame,c.frames.length-1);renderTimeline();render();updateCausalChain();toast('Deleted');});
+  $('a-run').addEventListener('click',()=>{
+    if(active<0)return;const c=cells[active];c.code=$('b-code').value;
+    c.frames=parseBEFLIX(c.code);c.curFrame=0;render();renderTimeline();updateBStats();updateCausalChain();toast(c.frames.length+' frames');
+  });
+  $('a-regen').addEventListener('click',()=>{
+    if(active<0)return;const c=cells[active];c.code=genBEFLIX(c);c.frames=parseBEFLIX(c.code);c.curFrame=0;
+    $('b-code').value=c.code;render();renderTimeline();updateBStats();updateCausalChain();toast('Regenerated');
+  });
+
+  // Sheet B — BUILD inline code editor
+  $('b-code').addEventListener('input',()=>{
+    if(active<0)return;cells[active].code=$('b-code').value;updateBStats();
+  });
+  $('b-run').addEventListener('click',()=>{
+    if(active<0){toast('Select a cell',true);return;}
+    const c=cells[active];c.code=$('b-code').value;
+    c.frames=parseBEFLIX(c.code);c.curFrame=0;render();renderTimeline();updateBStats();updateCausalChain();
+    toast(c.frames.length+' frames rendered');
+  });
+  $('b-expand').addEventListener('click',()=>openBfxModal());
+  $('b-regen').addEventListener('click',()=>{
+    if(active<0)return;const c=cells[active];c.code=genBEFLIX(c);c.frames=parseBEFLIX(c.code);c.curFrame=0;
+    $('b-code').value=c.code;render();renderTimeline();updateBStats();updateCausalChain();toast('Regenerated');
+  });
+
+  // Sheet C — COLOR / DRAW tools
+  $('bt-pen').addEventListener('click',()=>{tool='pen';syncToolBtns();});
+  $('bt-rect').addEventListener('click',()=>{tool='rect';syncToolBtns();});
+  $('bt-line').addEventListener('click',()=>{tool='line';syncToolBtns();});
+  $('bt-erase').addEventListener('click',()=>{tool='erase';syncToolBtns();});
+  $('brush-sz2').addEventListener('input',e=>{brushSz=parseInt(e.target.value);});
+  $('btn-wipe2').addEventListener('click',()=>{
+    if(active<0)return;cells[active].frames[cells[active].curFrame].fill(0);render();renderTimeline();toast('Frame wiped');
+  });
+
+  // Context menu
+  $('ctx-select').addEventListener('click',()=>{hideCtx();if(active>=0)selectCell(active);});
+  $('ctx-edit').addEventListener('click',()=>{hideCtx();openBfxModal();});
+  $('ctx-regen').addEventListener('click',()=>{hideCtx();if(active<0)return;const c=cells[active];c.code=genBEFLIX(c);c.frames=parseBEFLIX(c.code);c.curFrame=0;render();renderTimeline();toast('Regenerated');});
+  $('ctx-addframe').addEventListener('click',()=>{hideCtx();if(active<0)return;const c=cells[active];if(c.frames.length>=MAX_FRAMES){toast('Max',true);return;}c.frames.splice(c.curFrame+1,0,new Uint8Array(GR*GC));c.curFrame++;renderTimeline();toast('Frame added');});
+  $('ctx-dupframe').addEventListener('click',()=>{hideCtx();if(active<0)return;const c=cells[active];if(c.frames.length>=MAX_FRAMES){toast('Max',true);return;}c.frames.splice(c.curFrame+1,0,new Uint8Array(c.frames[c.curFrame]));c.curFrame++;renderTimeline();toast('Frame duplicated');});
+  $('ctx-wipe').addEventListener('click',()=>{hideCtx();if(active<0)return;cells[active].frames[cells[active].curFrame].fill(0);render();renderTimeline();toast('Wiped');});
+  $('ctx-paste').addEventListener('click',()=>{hideCtx();if(active<0)return;const code=prompt('Paste BEFLIX code:');if(code){cells[active].code=code;cells[active].frames=parseBEFLIX(code);cells[active].curFrame=0;render();renderTimeline();toast(cells[active].frames.length+' frames parsed');}});
+  $('ctx-clone').addEventListener('click',()=>{hideCtx();if(active>=0)cloneCell(active);});
+  $('ctx-spread4').addEventListener('click',()=>{hideCtx();if(active>=0)spreadCells(active,4);});
+  $('ctx-spread9').addEventListener('click',()=>{hideCtx();if(active>=0)spreadCells(active,9);});
+  $('ctx-solo').addEventListener('click',()=>{hideCtx();if(active>=0)soloView(active);});
+  $('ctx-rename').addEventListener('click',()=>{hideCtx();if(active>=0)renameCell(active);});
+  $('ctx-delete').addEventListener('click',()=>{hideCtx();if(active>=0)deleteCell(active);});
+
+  // Layout toggle
+  $('layout-btn').addEventListener('click', toggleLayout);
+
+  // Cell management
+  $('btn-add-cell').addEventListener('click',addCell);
+  $('btn-save').addEventListener('click',()=>{exportJSON();});
+  $('btn-clear').addEventListener('click',()=>{if(!confirm('Clear all cells?'))return;cells=[];edges=[];active=-1;tessellate();render();renderTimeline();renderCellList();$('s-cells').textContent=0;toast('Cleared');});
+
+  // Timeline
+  $('tl-prev').addEventListener('click',()=>{if(active<0)return;const c=cells[active];c.curFrame=(c.curFrame-1+c.frames.length)%c.frames.length;renderTimeline();render();});
+  $('tl-next').addEventListener('click',()=>{if(active<0)return;const c=cells[active];c.curFrame=(c.curFrame+1)%c.frames.length;renderTimeline();render();});
+  $('tl-blk').addEventListener('click',()=>{if(active<0)return;const c=cells[active];if(c.frames.length>=MAX_FRAMES){toast('Max',true);return;}c.frames.splice(c.curFrame+1,0,new Uint8Array(GR*GC));c.curFrame++;renderTimeline();toast('Blank added');});
+  $('tl-dup').addEventListener('click',()=>{if(active<0)return;const c=cells[active];if(c.frames.length>=MAX_FRAMES){toast('Max',true);return;}c.frames.splice(c.curFrame+1,0,new Uint8Array(c.frames[c.curFrame]));c.curFrame++;renderTimeline();toast('Duplicated');});
+  $('tl-del').addEventListener('click',()=>{if(active<0)return;const c=cells[active];if(c.frames.length<=1){toast('Last frame',true);return;}c.frames.splice(c.curFrame,1);c.curFrame=Math.min(c.curFrame,c.frames.length-1);renderTimeline();render();toast('Deleted');});
+  $('tl-wipe').addEventListener('click',()=>{if(active<0)return;cells[active].frames[cells[active].curFrame].fill(0);render();renderTimeline();toast('Wiped');});
+  $('tl-branch').addEventListener('click',()=>{const n=branchAtFrame(curOp);if(n>=0){zorc.current=n;smoothZoomToShow([n]);}});
+
+  // Sheet nav
+  ['a','b','c','d'].forEach(id=>{
+    $('snav-'+id)?.addEventListener('click',()=>toggleSheet(id));
+    $('tab-'+id)?.addEventListener('click',()=>toggleSheet(id));
+    $('sh-'+id+'-x')?.addEventListener('click',closeSheets);
+  });
+  $('backdrop').addEventListener('click',closeSheets);
+
+  // Export
+  $('exp-cell-bfx').addEventListener('click',()=>{if(active<0){toast('Select a cell',true);return;}const c=cells[active];dlText(c.code,c.name+'.bfx','text/plain');toast('Exported '+c.name+' code');});
+  $('exp-cell-png').addEventListener('click',()=>{
+    if(active<0){toast('Select a cell',true);return;}
+    const c=cells[active],f=c.frames[c.curFrame];
+    const tc=document.createElement('canvas');tc.width=GC*BS;tc.height=GR*BS;
+    const tx=tc.getContext('2d');tx.fillStyle='#fff';tx.fillRect(0,0,tc.width,tc.height);
+    for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){
+      const val=f[gy*GC+gx];if(val>0){
+        const cx=gx*BS+BS/2,cy=gy*BS+BS/2,r=Math.max(.6,(BS*.42)*(val/7));
+        const b=Math.round(255-(val/7)*230);
+        tx.fillStyle=`rgb(${b},${b},${b})`;tx.beginPath();tx.arc(cx,cy,r,0,Math.PI*2);tx.fill();
+      }
+    }
+    const l=document.createElement('a');l.download=c.name+'-frame.png';l.href=tc.toDataURL('image/png');l.click();toast('Exported frame PNG');
+  });
+  $('exp-twee').addEventListener('click',exportTwee);
+  $('exp-zorc-twee').addEventListener('click',exportZorcTwee);
+  $('exp-zorc-edl').addEventListener('click',exportZorcEDL);
+  $('exp-zorc-tweel').addEventListener('click',exportZorcTweel);
+  $('exp-bfx').addEventListener('click',exportBFX);
+  $('exp-map-bfx').addEventListener('click',exportTerritoryMapBFX);
+  $('exp-path-bfx').addEventListener('click',exportPathBFX);
+  $('exp-png').addEventListener('click',exportPNG);
+  $('exp-json').addEventListener('click',exportJSON);
+  $('exp-load').addEventListener('click',()=>$('load-in').click());
+  $('load-in').addEventListener('change',e=>{if(e.target.files[0])loadJSON(e.target.files[0]);});
+
+  // BEFLIX modal
+  $('bfx-run').addEventListener('click',()=>{
+    if(active<0)return;const c=cells[active];c.code=$('bfx-editor').value;
+    c.frames=parseBEFLIX(c.code);c.curFrame=0;renderTimeline();render();
+    $('bfx-lcount').textContent=c.code.split('\n').length+' LINES';
+    $('b-code').value=c.code;updateBStats();updateCausalChain();
+    bfxPreviewRun();
+    toast(c.frames.length+' frames rendered');
+  });
+  $('bfx-close').addEventListener('click',()=>{
+    // Save code back to cell and sync to inline editor
+    if(active>=0){
+      const c=cells[active];c.code=$('bfx-editor').value;
+      $('b-code').value=c.code;updateBStats();updateCausalChain();
+    }
+    if(bfxPreviewPlaying)bfxPreviewTogglePlay();
+    $('bfx-modal').classList.remove('on');
+  });
+  $('bfx-ref-btn').addEventListener('click',()=>$('bfx-ref').classList.toggle('on'));
+  $('bfx-editor').addEventListener('input',()=>{$('bfx-lcount').textContent=$('bfx-editor').value.split('\n').length+' LINES';});
+  // Preview controls
+  $('bfx-p-prev').addEventListener('click',()=>{if(!bfxPreviewFrames.length)return;bfxPreviewCur=(bfxPreviewCur-1+bfxPreviewFrames.length)%bfxPreviewFrames.length;bfxPreviewRender();});
+  $('bfx-p-next').addEventListener('click',()=>{if(!bfxPreviewFrames.length)return;bfxPreviewCur=(bfxPreviewCur+1)%bfxPreviewFrames.length;bfxPreviewRender();});
+  $('bfx-p-play').addEventListener('click',bfxPreviewTogglePlay);
+
+  // Keyboard
+  document.addEventListener('keydown',e=>{
+    if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT')return;
+    if(e.key==='Escape'){hideCtx();$('bfx-modal').classList.remove('on');closeSheets();return;}
+    if(e.key===' '){e.preventDefault();if($('bfx-modal').classList.contains('on')){bfxPreviewTogglePlay();}else{togglePlay();}}
+    if(e.key==='Enter'&&active>=0&&!$('bfx-modal').classList.contains('on'))openBfxModal();
+    if(e.key==='s'&&active>=0&&!$('bfx-modal').classList.contains('on'))soloView(active);
+    if(e.key==='r'&&active>=0){const c=cells[active];c.code=genBEFLIX(c);c.frames=parseBEFLIX(c.code);c.curFrame=0;render();renderTimeline();toast('Regenerated');}
+    if(e.key==='Delete'&&active>=0)deleteCell(active);
+    if(e.key==='ArrowRight'){
+      if($('bfx-modal').classList.contains('on')&&bfxPreviewFrames.length){e.preventDefault();bfxPreviewCur=(bfxPreviewCur+1)%bfxPreviewFrames.length;bfxPreviewRender();}
+      else if(active>=0){const c=cells[active];c.curFrame=(c.curFrame+1)%c.frames.length;renderTimeline();render();}
+    }
+    if(e.key==='ArrowLeft'){
+      if($('bfx-modal').classList.contains('on')&&bfxPreviewFrames.length){e.preventDefault();bfxPreviewCur=(bfxPreviewCur-1+bfxPreviewFrames.length)%bfxPreviewFrames.length;bfxPreviewRender();}
+      else if(active>=0){const c=cells[active];c.curFrame=(c.curFrame-1+c.frames.length)%c.frames.length;renderTimeline();render();}
+    }
+    if(e.key==='+'||e.key==='='){zoom=clamp(zoom*1.2,.08,8);render();}
+    if(e.key==='-'){zoom=clamp(zoom*.8,.08,8);render();}
+    if(e.key==='0'){autoFit();render();}
+    if(e.key==='1')tool='pen';if(e.key==='2')tool='rect';if(e.key==='3')tool='line';if(e.key==='4')tool='erase';
+  });
+
+  // Auto play
+  togglePlay();
+});
+</script>
+</body>
+</html>
