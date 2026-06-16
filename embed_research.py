@@ -96,7 +96,7 @@ def embed():
     json_payload = json.dumps(data, ensure_ascii=False, indent=2)
     data_script = f'<script id="preloaded-research-data" type="application/json">\n{json_payload}\n</script>'
 
-    for index_path in ["index.html", "c3.html"]:
+    for index_path in ["index.html", "c3.html", "c3b.html", "c-twine-engine-b.html"]:
         if not os.path.exists(index_path):
             continue
         with open(index_path, "r", encoding="utf-8") as file:
