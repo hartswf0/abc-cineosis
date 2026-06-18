@@ -84,6 +84,7 @@ a{color:inherit}
       <option value="twine">Twine</option>
       <option value="hybrid">Hybrid</option>
       <option value="core">Core ABC</option>
+      <option value="external">External Pages</option>
       <option value="level">Levels 3-45</option>
     </select>
     <div id="stats"></div>
@@ -121,6 +122,7 @@ a{color:inherit}
 const baseExperiments=[
   {id:'mosaic-index',type:'hybrid',title:'Mosaic Experiment Index',path:'mosaic-index.html',status:'new',lineage:'index',tags:['launcher','inventory','fusion'],desc:'Searchable launcher for the full mosaic and ZORC experiment family.',why:'This page prevents experiments from becoming invisible and gives each new fusion a stable entry point.'},
   {id:'d-mosaic',type:'zorc',title:'D-Mosaic OpenAI ZORC Compiler',path:'d-mosaic.html',status:'new',lineage:'c-mosaic plus OpenAI',tags:['openai','responses-api','zorc','beflix'],desc:'C-Mosaic territorial ZORC engine fused with browser-side OpenAI Responses API compiler passes.',why:'This is the new generative pass: select a territory, ask OpenAI for a BEFLIX rewrite, validate it, and commit it as a linked code room.'},
+  {id:'icaro-flip',type:'external',title:'Icaro Flip',path:'https://hartswf0.github.io/abc-flix/icaro-flip.html',status:'live',lineage:'abc-flix',tags:['abc-flix','flipbook','cards','external'],desc:'Live ABC FLIX flipbook/card engine hosted from the abc-flix Pages site.',why:'Icaro Flip lives outside this repo, so the mosaic index needs a direct external entry instead of hiding it behind memory or a separate URL.'},
   {id:'c-mosaic',type:'zorc',title:'C-Mosaic ZORC Territorial Compiler',path:'c-mosaic.html',status:'active',lineage:'Bees on a Train',tags:['zorc','territories','edl','twine'],desc:'Current 1,758 territory Bees on a Train ZORC graph with frame branching and BEFLIX exports.',why:'This is the stabilized base: every ontology element becomes an executable BEFLIX territory.'},
   {id:'d-mos',type:'mosaic',title:'D-MOS Mosaic ZORK',path:'d-mos.html',status:'legacy',lineage:'Voronoi Zork',tags:['voronoi','zork','operations'],desc:'Earlier Voronoi territory animation tool with operation rail and spatial fire mode.',why:'Kept as a source lineage for the newer C and D mosaic compilers.'},
   {id:'c-twine-b',type:'twine',title:'C Twine Engine B',path:'c-twine-engine-b.html',status:'active',lineage:'Twine plus BEFLIX',tags:['twine','delaunay','beflix'],desc:'Merged Twine narrative and BEFLIX draw engine with territorial child graph behavior.',why:'This file proved that ontology records need to explode into locations, entities, relations, and states.'},

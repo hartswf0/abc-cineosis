@@ -1575,6 +1575,17 @@
                 </div>
                 <div class="card-chevron" style="color: #1a6b3a;">&gt;</div>
               </div>
+              <div class="module-card" onclick="launchModule('https://hartswf0.github.io/abc-flix/icaro-flip.html')" style="border-color: #e60000; box-shadow: 2px 2px 0 #e60000;">
+                <div class="card-prefix-box" style="background: #e60000;">IF</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id" style="color: #e60000;">icaro-flip</span>
+                  </div>
+                  <div class="card-desc">ABC FLIX Flipbook Engine</div>
+                  <div class="card-meta">External / Live Pages</div>
+                </div>
+                <div class="card-chevron" style="color: #e60000;">&gt;</div>
+              </div>
               <div class="module-card" onclick="launchModule('c-mosaic.html')" style="border-color: #0033cc; box-shadow: 2px 2px 0 #0033cc;">
                 <div class="card-prefix-box" style="background: #0033cc;">Z</div>
                 <div class="card-content">
@@ -2821,6 +2832,22 @@
         ]
       },
       {
+        id: "icaro-flip",
+        name: "icaro-flip.html (ABC FLIX Flipbook Engine)",
+        path: "https://hartswf0.github.io/abc-flix/icaro-flip.html",
+        description: "External live ABC FLIX flipbook/card engine hosted from the abc-flix GitHub Pages site.",
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "FLIPBOOK SURFACE", target: "experiment-preview" },
+            { name: "CARD CONTROLS", target: "external-page" }
+          ]}
+        ],
+        script: [
+          { id: "experiment-preview", action: "Loads the live Icaro Flip page in an iframe from abc-flix Pages" },
+          { id: "external-page", action: "Provides the external flipbook/card production environment as a reachable experiment" }
+        ]
+      },
+      {
         id: "cd-mos-02",
         name: "cd-mos-02.html (Semiotics + Mosaic)",
         path: "cd-mos-02.html",
@@ -2959,6 +2986,7 @@
       'save-panel': '#sheet-d, #d-save',
       'bridge-copy': '.copy',
       'bridge-launches': '.grid, .card',
+      'external-page': 'body, canvas, button',
       
       // Exact element IDs mapping fallback
       'key-btn': '#key-btn',
