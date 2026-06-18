@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ABC CINEOSIS · Wireframe Gallery</title>
+<meta name="description" content="Complete wireframe gallery for the ABC Cineosis narrative engine — UI designs, system diagrams, and architectural blueprints.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0c;
+  --surface: #111116;
+  --surface-2: #1a1a22;
+  --surface-3: #22222e;
+  --border: #2a2a38;
+  --border-bright: #3a3a4f;
+  --text: #e8e6f0;
+  --text-muted: #8888a0;
+  --text-dim: #55556a;
+  --accent: #c8a800;
+  --accent-glow: #c8a80044;
+  --red: #ff3355;
+  --green: #22cc77;
+  --blue: #4488ff;
+  --purple: #9966ff;
+  --cyan: #00cccc;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+#header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+#header-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+#logo {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+#logo h1 {
+  font: 900 22px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background: linear-gradient(135deg, var(--accent), #ffdd44);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#logo .badge {
+  font: 700 9px/1 var(--mono);
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--accent);
+  padding: 3px 7px;
+  letter-spacing: .1em;
+}
+
+#nav-back {
+  font: 700 10px/1 var(--mono);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  transition: all .2s;
+  letter-spacing: .06em;
+}
+#nav-back:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.spacer { flex: 1; }
+
+#stats-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.stat-chip {
+  font: 800 10px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+}
+.stat-chip b {
+  color: var(--accent);
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+/* ── CONTROLS ── */
+#controls {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 16px 28px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+#search {
+  flex: 1;
+  min-width: 200px;
+  height: 40px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  padding: 0 14px;
+  font: 600 12px/1 var(--mono);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+#search::placeholder { color: var(--text-dim); }
+#search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.filter-btn {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  font: 700 10px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: all .2s;
+}
+.filter-btn:hover {
+  border-color: var(--border-bright);
+  color: var(--text);
+}
+.filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+#view-toggle {
+  height: 40px;
+  width: 40px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+}
+#view-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── GALLERY ── */
+#gallery {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px 28px 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  transition: all .3s;
+}
+
+#gallery.list-view {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-glow), transparent);
+  opacity: 0;
+  transition: opacity .3s;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 24px var(--accent-glow);
+}
+.card:hover::before { opacity: 1; }
+
+.card-img-wrap {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  aspect-ratio: 16/10;
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .5s cubic-bezier(.4,0,.2,1);
+  display: block;
+}
+.card:hover .card-img { transform: scale(1.05); }
+
+.card-category {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font: 800 8px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  padding: 4px 8px;
+  z-index: 2;
+}
+
+.cat-ui { background: var(--blue); color: #fff; }
+.cat-system { background: var(--purple); color: #fff; }
+.cat-export { background: var(--green); color: var(--bg); }
+.cat-wireframe { background: var(--accent); color: var(--bg); }
+.cat-concept { background: var(--red); color: #fff; }
+.cat-rcc { background: var(--cyan); color: var(--bg); }
+
+.card-number {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font: 800 28px/1 var(--mono);
+  color: rgba(255,255,255,.15);
+  z-index: 2;
+}
+
+.card-body {
+  padding: 14px 16px 18px;
+  position: relative;
+  z-index: 2;
+}
+
+.card-title {
+  font: 800 13px/1.3 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.card-desc {
+  font: 400 11px/1.5 var(--mono);
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta-tag {
+  font: 700 7px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: var(--surface-2);
+}
+
+/* ── LIST VIEW CARDS ── */
+#gallery.list-view .card {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+}
+#gallery.list-view .card-img-wrap {
+  aspect-ratio: auto;
+  height: 100%;
+}
+#gallery.list-view .card-number { display: none; }
+
+/* ── LIGHTBOX ── */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.92);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  cursor: zoom-out;
+  animation: fadeIn .2s ease;
+}
+#lightbox.open { display: flex; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: none;
+  border: 2px solid rgba(255,255,255,.3);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+  font: 700 20px/1 var(--mono);
+  cursor: pointer;
+  transition: all .2s;
+  z-index: 1001;
+}
+#lightbox-close:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+#lightbox-img {
+  max-width: 90vw;
+  max-height: 75vh;
+  object-fit: contain;
+  border: 2px solid var(--border);
+  box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  cursor: default;
+  animation: scaleIn .3s cubic-bezier(.4,0,.2,1);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+#lightbox-caption {
+  margin-top: 20px;
+  text-align: center;
+  max-width: 700px;
+}
+
+#lightbox-title {
+  font: 800 16px/1.2 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+#lightbox-desc {
+  font: 400 12px/1.6 var(--mono);
+  color: var(--text-muted);
+}
+
+#lightbox-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.lb-nav-btn {
+  height: 36px;
+  padding: 0 20px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  font: 700 10px/1 var(--mono);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .2s;
+}
+.lb-nav-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── EMPTY STATE ── */
+#empty {
+  display: none;
+  text-align: center;
+  padding: 80px 20px;
+  grid-column: 1 / -1;
+}
+#empty.show { display: block; }
+#empty h2 {
+  font: 800 18px/1 var(--mono);
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+#empty p {
+  font: 400 12px/1.6 var(--mono);
+  color: var(--text-dim);
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px) {
+  #header-inner { padding: 14px 16px; gap: 12px; }
+  #logo h1 { font-size: 16px; }
+  #controls { padding: 12px 16px; }
+  #gallery { padding: 12px 16px 60px; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-body { padding: 10px 12px 14px; }
+  .card-title { font-size: 11px; }
+  #lightbox { padding: 20px; }
+  #lightbox-img { max-width: 95vw; max-height: 70vh; }
+}
+@media(max-width:480px) {
+  #gallery { grid-template-columns: 1fr; }
+  #gallery.list-view .card { grid-template-columns: 1fr; }
+  #gallery.list-view .card-img-wrap { aspect-ratio: 16/10; }
+}
+
+/* ── SCROLL ANIMATIONS ── */
+.card {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.card.visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .4s ease, transform .4s cubic-bezier(.4,0,.2,1), border-color .25s, box-shadow .25s;
+}
+</style>
+</head>
+<body>
+
+<header id="header">
+  <div id="header-inner">
+    <div id="logo">
+      <h1>Wireframes</h1>
+      <span class="badge">ABC Cineosis</span>
+    </div>
+    <a href="mosaic-index.html" id="nav-back">← Mosaic Index</a>
+    <div class="spacer"></div>
+    <div id="stats-bar"></div>
+  </div>
+</header>
+
+<section id="controls">
+  <input type="text" id="search" placeholder="Search wireframes…" autocomplete="off">
+  <button class="filter-btn active" data-cat="all">All</button>
+  <button class="filter-btn" data-cat="ui">UI Design</button>
+  <button class="filter-btn" data-cat="system">System</button>
+  <button class="filter-btn" data-cat="wireframe">Wireframe</button>
+  <button class="filter-btn" data-cat="export">Export</button>
+  <button class="filter-btn" data-cat="rcc">RCC-MOS</button>
+  <button class="filter-btn" data-cat="concept">Concept</button>
+  <button id="view-toggle" title="Toggle grid/list view">☷</button>
+</section>
+
+<main id="gallery"></main>
+
+<div id="lightbox">
+  <button id="lightbox-close">✕</button>
+  <img id="lightbox-img" alt="Wireframe detail">
+  <div id="lightbox-caption">
+    <div id="lightbox-title"></div>
+    <div id="lightbox-desc"></div>
+  </div>
+  <div id="lightbox-nav">
+    <button class="lb-nav-btn" id="lb-prev">← Prev</button>
+    <button class="lb-nav-btn" id="lb-next">Next →</button>
+  </div>
+</div>
+
+<script>
+const wireframes = [
+  {
+    file: 'WIREFRAMES/Amber_pulsing_territory_boundary_202606172222.jpeg',
+    title: 'Amber Pulsing Territory Boundary',
+    desc: 'Territory boundary animation with amber pulse effect showing active region delineation in the ZORC map engine.',
+    category: 'concept',
+    tags: ['territory', 'animation', 'boundary', 'amber']
+  },
+  {
+    file: 'WIREFRAMES/CINEOSIS_UI_wireframes_Voronoi_map_202606172221.jpeg',
+    title: 'Cineosis UI — Voronoi Map (A)',
+    desc: 'Full Cineosis UI layout with Voronoi territory map as the primary navigation surface. Variant A.',
+    category: 'ui',
+    tags: ['voronoi', 'map', 'ui', 'navigation']
+  },
+  {
+    file: 'WIREFRAMES/CINEOSIS_UI_wireframes_Voronoi_map_202606172222.jpeg',
+    title: 'Cineosis UI — Voronoi Map (B)',
+    desc: 'Full Cineosis UI layout with Voronoi territory map as the primary navigation surface. Variant B.',
+    category: 'ui',
+    tags: ['voronoi', 'map', 'ui', 'navigation']
+  },
+  {
+    file: 'WIREFRAMES/CineTerritory_object_technical_s\u2026_202606172217.jpeg',
+    title: 'CineTerritory Object Technical Schema',
+    desc: 'Technical specification schema for the CineTerritory object model — fields, relations, and inheritance.',
+    category: 'system',
+    tags: ['schema', 'object', 'technical', 'territory']
+  },
+  {
+    file: 'WIREFRAMES/Cineosis_Engine_Spine_diagram_202606172225.jpeg',
+    title: 'Cineosis Engine Spine Diagram',
+    desc: 'Core engine architecture spine showing data flow from worldtext through compiler passes to rendered territories.',
+    category: 'system',
+    tags: ['architecture', 'spine', 'engine', 'data-flow']
+  },
+  {
+    file: 'WIREFRAMES/Export_Modules_OUT_VIEW_schemati\u2026_202606172225.jpeg',
+    title: 'Export Modules — OUT VIEW Schematic',
+    desc: 'Schematic view of export module architecture showing output pathways for EDL, Tweel, and BEFLIX bundles.',
+    category: 'export',
+    tags: ['export', 'modules', 'schematic', 'output']
+  },
+  {
+    file: 'WIREFRAMES/Export_bundle_view_showing_targets_202606172218.jpeg',
+    title: 'Export Bundle View — Targets',
+    desc: 'Export bundle configuration showing available targets: EDL timeline, Tweel narrative, and BEFLIX frame packages.',
+    category: 'export',
+    tags: ['export', 'bundle', 'targets', 'edl']
+  },
+  {
+    file: 'WIREFRAMES/Horse_trotting_in_open_field_202606172217.jpeg',
+    title: 'Horse Trotting in Open Field',
+    desc: 'Muybridge-inspired reference frame — horse locomotion study for the Happy Horse animation pipeline.',
+    category: 'concept',
+    tags: ['horse', 'muybridge', 'animation', 'locomotion']
+  },
+  {
+    file: 'WIREFRAMES/Movement_Grammar_Palette_sidebar_202606172231.jpeg',
+    title: 'Movement Grammar Palette — Sidebar',
+    desc: 'Sidebar palette for movement grammar tokens: walk, trot, gallop, and compositional action sequences.',
+    category: 'ui',
+    tags: ['movement', 'grammar', 'palette', 'sidebar']
+  },
+  {
+    file: 'WIREFRAMES/RCC-MOS_UI_wireframes_brutalist_\u2026_202606172217 (1).jpeg',
+    title: 'RCC-MOS UI Brutalist Wireframe (B)',
+    desc: 'Brutalist-style UI wireframe variant B for the Research Control Composite mosaic shell.',
+    category: 'rcc',
+    tags: ['rcc-mos', 'brutalist', 'ui', 'shell']
+  },
+  {
+    file: 'WIREFRAMES/RCC-MOS_UI_wireframes_brutalist_\u2026_202606172217.jpeg',
+    title: 'RCC-MOS UI Brutalist Wireframe (A)',
+    desc: 'Brutalist-style UI wireframe variant A for the Research Control Composite mosaic shell.',
+    category: 'rcc',
+    tags: ['rcc-mos', 'brutalist', 'ui', 'shell']
+  },
+  {
+    file: 'WIREFRAMES/RCC-MOS_UI_wireframes_technical_\u2026_202606172217.jpeg',
+    title: 'RCC-MOS UI Technical Wireframe',
+    desc: 'Technical-style UI wireframe for RCC-MOS showing panel layout, data rails, and control surfaces.',
+    category: 'rcc',
+    tags: ['rcc-mos', 'technical', 'panels', 'layout']
+  },
+  {
+    file: 'WIREFRAMES/RCC-MOS_UNIFIED_SHELL_UI_202606172218.jpeg',
+    title: 'RCC-MOS Unified Shell UI',
+    desc: 'Unified shell interface for RCC-MOS integrating research view, mosaic compiler, and territory navigator.',
+    category: 'rcc',
+    tags: ['rcc-mos', 'unified', 'shell', 'integration']
+  },
+  {
+    file: 'WIREFRAMES/RCC-MOS_wireframes_make_horse_happy_202606172216.jpeg',
+    title: 'RCC-MOS — Make Horse Happy',
+    desc: 'RCC-MOS wireframe combining the Happy Horse animation system with the mosaic territory compiler.',
+    category: 'rcc',
+    tags: ['rcc-mos', 'horse', 'happy-horse', 'animation']
+  },
+  {
+    file: 'WIREFRAMES/UI_wireframes_for_CINEOSIS_202606172231.jpeg',
+    title: 'Cineosis UI Wireframes (A)',
+    desc: 'Complete UI wireframe set for the Cineosis narrative engine — layout, panels, and interaction flows.',
+    category: 'ui',
+    tags: ['cineosis', 'ui', 'wireframe', 'layout']
+  },
+  {
+    file: 'WIREFRAMES/UI_wireframes_for_CINEOSIS_202606172232.jpeg',
+    title: 'Cineosis UI Wireframes (B)',
+    desc: 'Alternate UI wireframe set for Cineosis showing revised panel arrangement and navigation hierarchy.',
+    category: 'ui',
+    tags: ['cineosis', 'ui', 'wireframe', 'alternate']
+  },
+  {
+    file: 'WIREFRAMES/UI_wireframes_for_cinematic_worl\u2026_202606172220.jpeg',
+    title: 'Cinematic Worldbuilding UI',
+    desc: 'UI wireframes for the cinematic worldbuilding interface — storyworld assembly and territory composition.',
+    category: 'ui',
+    tags: ['cinematic', 'worldbuilding', 'storyworld', 'composition']
+  },
+  {
+    file: 'WIREFRAMES/UI_wireframes_for_narrative_engine_202606172216.jpeg',
+    title: 'Narrative Engine UI',
+    desc: 'UI wireframes for the core narrative engine — branching dialogue, territory links, and state machines.',
+    category: 'ui',
+    tags: ['narrative', 'engine', 'branching', 'dialogue']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_2_STORYWORLD_STORYMAP_202606172223.jpeg',
+    title: 'Wireframe 2 — Storyworld / Storymap',
+    desc: 'Storyworld and storymap view showing territory clusters, narrative arcs, and spatial relationships.',
+    category: 'wireframe',
+    tags: ['storyworld', 'storymap', 'territories', 'arcs']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_4_CUT_VIEW_FILM_202606172219.jpeg',
+    title: 'Wireframe 4 — Cut View / Film',
+    desc: 'Film cut view wireframe showing shot timeline, edit points, and BEFLIX frame composition.',
+    category: 'wireframe',
+    tags: ['cut', 'film', 'timeline', 'editing']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_5__Path_View_Committed\u2026_202606172217.jpeg',
+    title: 'Wireframe 5 — Path View / Committed',
+    desc: 'Committed path view showing player-chosen narrative routes through the territory graph.',
+    category: 'wireframe',
+    tags: ['path', 'committed', 'narrative', 'graph']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_6_Proposed_BEFLIX_Modi\u2026_202606172222.jpeg',
+    title: 'Wireframe 6 — Proposed BEFLIX Modifications',
+    desc: 'Proposed modifications to the BEFLIX rendering pipeline — new draw modes and territory overlays.',
+    category: 'wireframe',
+    tags: ['beflix', 'modifications', 'rendering', 'pipeline']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_7_BRANCH_VIEW_CHOICE_202606172219.jpeg',
+    title: 'Wireframe 7 — Branch View / Choice',
+    desc: 'Branch view showing decision nodes, choice cascades, and resulting territory state changes.',
+    category: 'wireframe',
+    tags: ['branch', 'choice', 'decision', 'cascade']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_7__User_committed_narr\u2026_202606172230.jpeg',
+    title: 'Wireframe 7B — User Committed Narrative',
+    desc: 'User-committed narrative path showing locked choices and their downstream territory effects.',
+    category: 'wireframe',
+    tags: ['committed', 'narrative', 'user', 'locked']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_8_Export_Film_Edit_202606172223.jpeg',
+    title: 'Wireframe 8 — Export / Film Edit',
+    desc: 'Export and film edit wireframe showing the transition from narrative graph to rendered output.',
+    category: 'export',
+    tags: ['export', 'film', 'edit', 'output']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_9_Export_Outputs_202606172227.jpeg',
+    title: 'Wireframe 9 — Export Outputs',
+    desc: 'Final export outputs view — EDL, Tweel, BEFLIX bundles, and metadata package configurations.',
+    category: 'export',
+    tags: ['export', 'outputs', 'edl', 'tweel']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_Map_view_highlighted_path_202606172221.jpeg',
+    title: 'Map View — Highlighted Path',
+    desc: 'Territory map with highlighted narrative path showing the active route through Voronoi cells.',
+    category: 'wireframe',
+    tags: ['map', 'path', 'highlighted', 'voronoi']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_RECOMPILE_STATE_pulsin\u2026_202606172221.jpeg',
+    title: 'Recompile State — Pulsing',
+    desc: 'Recompile state visualization with pulsing territory indicators showing active compilation passes.',
+    category: 'wireframe',
+    tags: ['recompile', 'state', 'pulsing', 'compilation']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_cell_pixel_art_animation_202606172221.jpeg',
+    title: 'Cell Pixel Art Animation',
+    desc: 'Pixel art cell animation wireframe for BEFLIX territory rendering at 128×96 resolution.',
+    category: 'wireframe',
+    tags: ['pixel-art', 'cell', 'animation', 'beflix']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_export_narrative_bundle_202606172219.jpeg',
+    title: 'Export Narrative Bundle',
+    desc: 'Narrative bundle export wireframe showing packaged story graph with territory metadata and state.',
+    category: 'export',
+    tags: ['export', 'narrative', 'bundle', 'packaging']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_for_narrative_engine_202606172232.jpeg',
+    title: 'Narrative Engine Wireframe',
+    desc: 'Core narrative engine wireframe showing the ZORC interpreter, territory graph, and state machine.',
+    category: 'wireframe',
+    tags: ['narrative', 'engine', 'zorc', 'interpreter']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_player_decision_cut_202606172223.jpeg',
+    title: 'Player Decision Cut',
+    desc: 'Player decision cut point wireframe — where narrative branches resolve into committed film edits.',
+    category: 'wireframe',
+    tags: ['player', 'decision', 'cut', 'branch']
+  },
+  {
+    file: 'WIREFRAMES/Wireframe_showing_Voronoi_mosaic_202606172222.jpeg',
+    title: 'Voronoi Mosaic View',
+    desc: 'Voronoi mosaic territory visualization showing the spatial decomposition of the narrative storyworld.',
+    category: 'wireframe',
+    tags: ['voronoi', 'mosaic', 'territory', 'spatial']
+  }
+];
+
+const categories = {
+  all: { label: 'All', color: '#fff' },
+  ui: { label: 'UI Design', color: 'var(--blue)' },
+  system: { label: 'System', color: 'var(--purple)' },
+  wireframe: { label: 'Wireframe', color: 'var(--accent)' },
+  export: { label: 'Export', color: 'var(--green)' },
+  rcc: { label: 'RCC-MOS', color: 'var(--cyan)' },
+  concept: { label: 'Concept', color: 'var(--red)' }
+};
+
+let currentFilter = 'all';
+let currentSearch = '';
+let isListView = false;
+let lightboxIndex = -1;
+let filteredItems = [];
+
+const gallery = document.getElementById('gallery');
+const searchInput = document.getElementById('search');
+const statsBar = document.getElementById('stats-bar');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+const lightboxTitle = document.getElementById('lightbox-title');
+const lightboxDesc = document.getElementById('lightbox-desc');
+
+// ── FILTER & SEARCH ──
+function getFiltered() {
+  return wireframes.filter(w => {
+    const matchCat = currentFilter === 'all' || w.category === currentFilter;
+    const matchSearch = !currentSearch ||
+      [w.title, w.desc, ...w.tags].join(' ').toLowerCase().includes(currentSearch);
+    return matchCat && matchSearch;
+  });
+}
+
+function updateStats(items) {
+  const catCounts = {};
+  wireframes.forEach(w => { catCounts[w.category] = (catCounts[w.category] || 0) + 1; });
+  statsBar.innerHTML = `
+    <span class="stat-chip"><b>${items.length}</b> shown</span>
+    <span class="stat-chip"><b>${wireframes.length}</b> total</span>
+  `;
+}
+
+function render() {
+  filteredItems = getFiltered();
+  updateStats(filteredItems);
+
+  if (filteredItems.length === 0) {
+    gallery.innerHTML = `<div id="empty" class="show">
+      <h2>No Wireframes Found</h2>
+      <p>Try adjusting your search or filter criteria.</p>
+    </div>`;
+    return;
+  }
+
+  gallery.innerHTML = filteredItems.map((w, i) => `
+    <article class="card" data-idx="${i}">
+      <div class="card-img-wrap">
+        <img class="card-img" src="${w.file}" alt="${w.title}" loading="lazy">
+        <span class="card-category cat-${w.category}">${categories[w.category]?.label || w.category}</span>
+        <span class="card-number">${String(i + 1).padStart(2, '0')}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${w.title}</div>
+        <div class="card-desc">${w.desc}</div>
+        <div class="card-meta">
+          ${w.tags.map(t => `<span class="meta-tag">${t}</span>`).join('')}
+        </div>
+      </div>
+    </article>
+  `).join('');
+
+  // Attach click handlers
+  gallery.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+      openLightbox(parseInt(card.dataset.idx));
+    });
+  });
+
+  // Scroll animation
+  requestAnimationFrame(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '50px' });
+
+    gallery.querySelectorAll('.card').forEach((card, i) => {
+      card.style.transitionDelay = `${Math.min(i * 40, 300)}ms`;
+      observer.observe(card);
+    });
+  });
+}
+
+// ── LIGHTBOX ──
+function openLightbox(idx) {
+  lightboxIndex = idx;
+  const w = filteredItems[idx];
+  if (!w) return;
+  lightboxImg.src = w.file;
+  lightboxImg.alt = w.title;
+  lightboxTitle.textContent = w.title;
+  lightboxDesc.textContent = w.desc;
+  lightbox.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  document.body.style.overflow = '';
+  lightboxIndex = -1;
+}
+
+function navLightbox(dir) {
+  if (filteredItems.length === 0) return;
+  lightboxIndex = (lightboxIndex + dir + filteredItems.length) % filteredItems.length;
+  const w = filteredItems[lightboxIndex];
+  lightboxImg.src = w.file;
+  lightboxImg.alt = w.title;
+  lightboxTitle.textContent = w.title;
+  lightboxDesc.textContent = w.desc;
+}
+
+document.getElementById('lightbox-close').addEventListener('click', e => { e.stopPropagation(); closeLightbox(); });
+lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+lightboxImg.addEventListener('click', e => e.stopPropagation());
+document.getElementById('lightbox-caption').addEventListener('click', e => e.stopPropagation());
+document.getElementById('lightbox-nav').addEventListener('click', e => e.stopPropagation());
+document.getElementById('lb-prev').addEventListener('click', () => navLightbox(-1));
+document.getElementById('lb-next').addEventListener('click', () => navLightbox(1));
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (!lightbox.classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') navLightbox(-1);
+  if (e.key === 'ArrowRight') navLightbox(1);
+});
+
+// ── FILTER BUTTONS ──
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.cat;
+    render();
+  });
+});
+
+// ── SEARCH ──
+searchInput.addEventListener('input', () => {
+  currentSearch = searchInput.value.trim().toLowerCase();
+  render();
+});
+
+// ── VIEW TOGGLE ──
+document.getElementById('view-toggle').addEventListener('click', () => {
+  isListView = !isListView;
+  gallery.classList.toggle('list-view', isListView);
+});
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>
