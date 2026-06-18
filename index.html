@@ -497,7 +497,7 @@
     /* ── GRID VIEW (POML schematics) ── */
     #view-grid-view {
       display: none;
-      grid-template-columns: 320px 1.5fr 1.2fr;
+      grid-template-columns: minmax(360px, 0.95fr) minmax(420px, 1.35fr) minmax(320px, 0.9fr);
       gap: 15px;
       height: calc(100vh - 120px);
       min-height: 0;
@@ -532,13 +532,16 @@
     .stack-wrapper {
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+      justify-content: flex-start;
       height: 100%;
+      min-height: 0;
     }
     .file-stack {
-      display: flex;
-      flex-direction: column-reverse;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
       gap: 10px;
+      overflow-y: auto;
+      padding-right: 3px;
     }
     .ground-line {
       height: 8px;
@@ -553,6 +556,10 @@
       padding: 10px;
       cursor: pointer;
       transition: background-color 0.05s, color 0.05s;
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .file-card:hover, .file-card.active {
       background-color: var(--ink);
@@ -567,6 +574,147 @@
       font-size: 9px;
       margin-top: 4px;
       line-height: 1.3;
+    }
+    .file-card .file-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+      font: 900 7px/1 var(--font-mono);
+      text-transform: uppercase;
+    }
+    .file-card .file-meta span {
+      border: 1px solid currentColor;
+      padding: 3px 4px;
+    }
+    .workspace-toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .workspace-toolbar .inp,
+    .workspace-toolbar .group-dropdown {
+      height: 34px;
+      font-size: 10px;
+    }
+    .grid-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .mini-stat {
+      border: var(--bw) solid var(--ink);
+      padding: 7px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      background: var(--soft);
+    }
+    .mini-stat b {
+      display: block;
+      font: 900 15px/1 var(--font-display);
+    }
+    .mini-stat span {
+      font-size: 7px;
+      color: var(--gray-dark);
+    }
+    .module-command-row,
+    .project-bus-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .module-command-row .launch-btn,
+    .project-bus-row .launch-btn {
+      width: auto;
+      flex: 1;
+      min-width: 120px;
+      padding: 8px;
+      font-size: 9px;
+    }
+    .module-dossier {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .module-dossier .dossier-cell {
+      border: var(--bw) solid var(--ink);
+      padding: 8px;
+      font: 800 9px/1.35 var(--font-mono);
+      text-transform: uppercase;
+      background: var(--soft);
+    }
+    .module-dossier .dossier-cell b {
+      display: block;
+      font-size: 7px;
+      color: var(--gray-medium);
+      margin-bottom: 4px;
+    }
+    .bus-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .bus-card {
+      border: var(--bw2) solid var(--ink);
+      padding: 12px;
+      background: var(--paper);
+      box-shadow: 2px 2px 0 var(--ink);
+      font: 800 10px/1.4 var(--font-mono);
+      text-transform: uppercase;
+    }
+    .bus-card b {
+      display: block;
+      font: 900 13px/1.1 var(--font-sans);
+      margin-bottom: 7px;
+    }
+    .project-list {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .project-slot {
+      border: var(--bw) solid var(--ink);
+      padding: 10px;
+      cursor: pointer;
+      background: var(--paper);
+      font: 800 10px/1.3 var(--font-mono);
+      text-transform: uppercase;
+    }
+    .project-slot.active,
+    .project-slot:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .help-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .help-card {
+      border: var(--bw2) solid var(--ink);
+      padding: 14px;
+      background: var(--paper);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .help-card h3 {
+      font: 900 13px/1.1 var(--font-sans);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .help-card p,
+    .help-card li {
+      font: 700 10px/1.45 var(--font-mono);
+      text-transform: uppercase;
+      color: var(--gray-dark);
+    }
+    .help-card ul {
+      padding-left: 16px;
+      display: grid;
+      gap: 6px;
     }
     .viewport-container {
       display: flex;
@@ -1224,6 +1372,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="3" rx="2" ry="2"/><path d="M10 8l6 4-6 4V8z"/></svg>
           ABC-Flix
         </li>
+        <li class="menu-item" id="menu-help" onclick="showTab('help')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 17h.01"/></svg>
+          Help
+        </li>
+        <li class="menu-item" id="menu-legal" onclick="showTab('legal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M6 7h12"/><path d="m6 7-4 7h8L6 7Z"/><path d="m18 7-4 7h8l-4-7Z"/></svg>
+          Privacy &amp; Terms
+        </li>
       </ul>
       
       <div class="sidebar-footer">
@@ -1237,7 +1393,7 @@
           Licensed under CC BY 4.0 International.<br>
           Dissertation Instrumentation Framework.<br>
           Operative Description Protocol.<br>
-          <a href="#" onclick="showToast('Privacy & Terms: Local workspace isolation. No metrics collected.')" style="color: var(--ink); text-decoration: underline;">Privacy &amp; Terms</a>
+          <a href="#" onclick="showTab('legal'); return false;" style="color: var(--ink); text-decoration: underline;">Privacy &amp; Terms</a>
         </div>
       </div>
     </div>
@@ -1249,7 +1405,7 @@
       <div class="top-control-bar">
         <div class="control-left">System Main Control</div>
         <div class="control-right">
-          <div class="control-action" onclick="showToast('Workspace search indexing offline.')">
+          <div class="control-action" onclick="showTab('grid-view'); setTimeout(() => get('module-search')?.focus(), 0);">
             Search
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </div>
@@ -1260,7 +1416,7 @@
             v
           </div>
           <div class="control-divider">|</div>
-          <div class="control-action" onclick="showToast('Active license does not support cloud hosting.')">
+          <div class="control-action" onclick="createNewProject()">
             New Project +
           </div>
         </div>
@@ -1598,6 +1754,44 @@
                 <div class="card-chevron" style="color: #0033cc;">&gt;</div>
               </div>
             </div>
+
+            <!-- Row 10 (Filled Level Range) -->
+            <div class="matrix-row">
+              <div class="matrix-row-num">10</div>
+              <div class="module-card" onclick="showLevelGrid()" style="border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink);">
+                <div class="card-prefix-box">LV</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">levels-03-45</span>
+                  </div>
+                  <div class="card-desc">All Filled Runnable Level Files</div>
+                  <div class="card-meta">43 Files / Searchable Grid</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <div class="module-card" onclick="launchModule('level-03.html')" style="border-color: var(--gray-dark);">
+                <div class="card-prefix-box">03</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">level-03</span>
+                  </div>
+                  <div class="card-desc">First Filled Level Bridge</div>
+                  <div class="card-meta">Actual File</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+              <div class="module-card" onclick="launchModule('level-45.html')" style="border-color: var(--gray-dark);">
+                <div class="card-prefix-box">45</div>
+                <div class="card-content">
+                  <div class="card-title-line">
+                    <span class="card-id">level-45</span>
+                  </div>
+                  <div class="card-desc">Last Filled Level Bridge</div>
+                  <div class="card-meta">Actual File</div>
+                </div>
+                <div class="card-chevron">&gt;</div>
+              </div>
+            </div>
           </div>
           
           <!-- Alert Banner -->
@@ -1620,14 +1814,25 @@
 
         <!-- GRID VIEW (POML SCHEMATIC) -->
         <div class="tab-view" id="view-grid-view">
-          <!-- FILE LIST PANEL (SPATIAL STACK) -->
+          <!-- FILE LIST PANEL (REAL EXPERIMENT GRID) -->
           <div class="pane">
-            <div class="pane-title">Workspace Stack (Ground Anchored)</div>
+            <div class="pane-title">Experiment Grid (All Files)</div>
             <div class="pane-content">
+              <div class="workspace-toolbar">
+                <input class="inp" id="module-search" type="search" placeholder="Search modules, levels, ZORC, Twine, OpenAI...">
+                <select class="group-dropdown" id="module-type-filter" style="min-width: 132px;">
+                  <option value="all">All</option>
+                  <option value="core">Core</option>
+                  <option value="level">Levels</option>
+                  <option value="zorc">ZORC</option>
+                  <option value="twine">Twine</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="external">External</option>
+                </select>
+              </div>
+              <div class="grid-stats" id="module-grid-stats"></div>
               <div class="stack-wrapper">
-                <div class="file-stack" id="file-stack">
-                  <!-- Populated dynamically -->
-                </div>
+                <div class="file-stack" id="file-stack"></div>
                 <div class="ground-line"></div>
               </div>
             </div>
@@ -1642,12 +1847,18 @@
             <div class="pane-content" style="padding: 0; flex: 1; overflow: hidden; display: flex;">
               <iframe id="grid-viewport-iframe" src="about:blank" style="width: 100%; height: 100%; border: none; background: var(--paper);"></iframe>
             </div>
+            <div class="module-command-row" style="padding: 10px; border-top: var(--bw2) solid var(--ink);">
+              <button class="launch-btn" onclick="launchActiveModule()">Open Full</button>
+              <button class="launch-btn" onclick="sendModuleToPreview()">Send To Preview</button>
+              <button class="launch-btn" onclick="attachModuleToProject()">Attach To Project</button>
+            </div>
           </div>
 
           <!-- CODE VIEW PANELS -->
           <div class="pane">
-            <div class="pane-title">POML XML Logic (Click Line)</div>
+            <div class="pane-title">Module Script / Execution Map</div>
             <div class="pane-content" style="padding: 0;">
+              <div id="module-dossier" style="padding: 12px; border-bottom: var(--bw2) solid var(--ink);"></div>
               <div class="xml-container" id="xml-editor">
                 <!-- Rendered dynamically -->
               </div>
@@ -1658,13 +1869,14 @@
         <!-- PROJECTS VIEW (Fully Functional JSON Manager) -->
         <div class="tab-view" id="view-projects">
           <div class="dashboard-panel">
-            <h2 class="panel-header">Workspace Project Manager</h2>
-            <p class="placeholder-text">Verify, backup, restore, or wipe your active workspace state. Story metrics are synced locally across all sheet prototypes.</p>
+            <h2 class="panel-header">Workspace Bus / Project Manager</h2>
+            <p class="placeholder-text">Create, switch, import, export, and route projects into the selected demo. This page is the handoff bus between scripts, modules, previews, and portable project files.</p>
             
-            <div style="border: 1px solid var(--gray-light); padding: 15px; background: var(--soft); display: flex; flex-direction: column; gap: 8px;">
-              <div><strong style="font-size: 10px;">PROJECT TITLE:</strong> <span id="proj-card-title" style="font-family: var(--font-mono); font-size: 11px;">none</span></div>
-              <div><strong style="font-size: 10px;">PREMISE:</strong> <span id="proj-card-premise" style="font-size: 11px;">none</span></div>
-              <div><strong style="font-size: 10px;">SHOTS IN TIMELINE:</strong> <span id="proj-card-shots" style="font-family: var(--font-mono); font-size: 11px;">0</span></div>
+            <div class="bus-grid">
+              <div class="bus-card"><b id="proj-card-title">Untitled Film</b><span id="proj-card-premise">No premise yet.</span></div>
+              <div class="bus-card"><b id="proj-card-shots">0</b><span>Shots in timeline</span></div>
+              <div class="bus-card"><b id="project-active-module">None</b><span>Selected module routed through the bus</span></div>
+              <div class="bus-card"><b id="project-storage-status">Local</b><span>Saved in browser localStorage</span></div>
             </div>
             
             <div style="margin-top: 10px;">
@@ -1682,20 +1894,36 @@
               <button class="launch-btn" onclick="saveProjectMeta()" style="margin-bottom: 15px;">Update Metadata</button>
             </div>
 
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-              <button class="launch-btn" onclick="exportProjectData()" style="flex: 1; min-width: 150px;">Export Project (.JSON) ↗</button>
-              <button class="launch-btn" onclick="triggerImportSelection()" style="flex: 1; min-width: 150px;">Import Project (.JSON)</button>
-              <button class="launch-btn" onclick="clearProjectState()" style="flex: 1; min-width: 150px; background: var(--soft); color: var(--ink);">Wipe Project State</button>
+            <div class="project-bus-row">
+              <button class="launch-btn" onclick="createNewProject()">New Project</button>
+              <button class="launch-btn" onclick="saveProjectSlot()">Save Slot</button>
+              <button class="launch-btn" onclick="sendModuleToPreview()">Send Module To Preview</button>
+              <button class="launch-btn" onclick="launchActiveModule()">Open Selected Demo</button>
+              <button class="launch-btn" onclick="exportProjectData()">Export JSON</button>
+              <button class="launch-btn" onclick="triggerImportSelection()">Import JSON</button>
+              <button class="launch-btn" onclick="clearProjectState()" style="background: var(--soft); color: var(--ink);">Wipe Active</button>
             </div>
             <input type="file" id="project-file-input" style="display: none;" onchange="importProjectData(event)">
+
+            <div style="display: grid; grid-template-columns: minmax(220px, .8fr) 1.2fr; gap: 15px; margin-top: 8px;">
+              <div>
+                <div class="lbl">Saved Local Projects</div>
+                <div class="project-list" id="project-list"></div>
+              </div>
+              <div>
+                <div class="lbl">Project Bus Manifest</div>
+                <textarea class="ta" id="project-bus-manifest" rows="10" readonly></textarea>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- SCRIPT VIEW (Functional Area Desk) -->
         <div class="tab-view" id="view-script">
           <div class="dashboard-panel">
-            <h2 class="panel-header">Screenplay Script Editor</h2>
-            <p class="placeholder-text">Edit the primary screenplay text in real-time. Any modifications will instantly update the build targets in modules.</p>
+            <h2 class="panel-header">Script / Selected Demo Contract</h2>
+            <p class="placeholder-text">Script is the project text that can be split into shots and routed into the selected demo. The module map below explains what the current demo does with that text.</p>
+            <div class="module-dossier" id="script-module-dossier"></div>
             
             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
               <div class="lbl">Screenplay Dialogue and Narrative Actions</div>
@@ -1704,15 +1932,32 @@
             
             <textarea class="ta" id="script-editor-area" rows="16" placeholder="No script active. Begin writing your screenplay outline here..."></textarea>
             
-            <button class="launch-btn" onclick="saveScriptText()">Save Screenplay Changes</button>
+            <div class="project-bus-row">
+              <button class="launch-btn" onclick="saveScriptText()">Save Script</button>
+              <button class="launch-btn" onclick="compileScriptToShots()">Compile Lines To Shots</button>
+              <button class="launch-btn" onclick="sendModuleToPreview()">Send Selected Demo To Preview</button>
+            </div>
+            <div>
+              <div class="lbl">Selected Demo Execution Steps</div>
+              <div id="module-script-breakdown" class="project-list"></div>
+            </div>
           </div>
         </div>
 
         <!-- PREVIEW VIEW (Storyboard Browser) -->
         <div class="tab-view" id="view-preview">
           <div class="dashboard-panel">
-            <h2 class="panel-header">Cineosis Storyboard Browser</h2>
-            <p class="placeholder-text">Review the active compiled sequences and timeline slots. Generative frames compile using BEFLIX execution logic.</p>
+            <h2 class="panel-header">Preview / Live Demo Router</h2>
+            <p class="placeholder-text">Preview keeps the selected demo visible while showing the active project shot list. Use it to check a module, then open it full screen or attach it back to the project bus.</p>
+            <div class="module-dossier" id="preview-module-dossier"></div>
+            <div style="border: var(--bw2) solid var(--ink); height: 340px; background: var(--soft); overflow: hidden;">
+              <iframe id="preview-module-frame" src="about:blank" style="width: 100%; height: 100%; border: 0; background: var(--paper);"></iframe>
+            </div>
+            <div class="project-bus-row">
+              <button class="launch-btn" onclick="launchActiveModule()">Open Full</button>
+              <button class="launch-btn" onclick="attachModuleToProject()">Attach To Project</button>
+              <button class="launch-btn" onclick="compileScriptToShots()">Compile Script To Shots</button>
+            </div>
             
             <div id="storyboard-preview-container" style="display: flex; flex-direction: column; gap: 10px;">
               <!-- Storyboard elements will render here -->
@@ -2057,6 +2302,32 @@
                 <button class="launch-btn" id="btn-save-settings" onclick="saveGlobalSettings()" style="width: 100%;">Save Configurations</button>
               </div>
             </div>
+            <div style="border-top: var(--bw2) solid var(--ink); padding-top: 16px;">
+              <h3 class="lbl" style="font-size: 10px;">Index Behavior</h3>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px;">
+                <label class="bus-card">
+                  <b>Startup View</b>
+                  <select class="group-dropdown" id="setting-startup-view" style="width: 100%; margin-top: 8px;">
+                    <option value="home">Home</option>
+                    <option value="grid-view">Grid View</option>
+                    <option value="projects">Projects</option>
+                    <option value="preview">Preview</option>
+                  </select>
+                </label>
+                <label class="bus-card">
+                  <b>Default Module</b>
+                  <select class="group-dropdown" id="setting-default-module" style="width: 100%; margin-top: 8px;"></select>
+                </label>
+                <label class="bus-card">
+                  <b>Privacy Mode</b>
+                  <select class="group-dropdown" id="setting-privacy-mode" style="width: 100%; margin-top: 8px;">
+                    <option value="local">Local Only</option>
+                    <option value="external-preview">Allow External Preview</option>
+                  </select>
+                </label>
+              </div>
+              <p class="placeholder-text">Keys and project data remain in this browser. External previews only load when a selected module points to a remote URL.</p>
+            </div>
           </div>
         </div>
 
@@ -2094,7 +2365,7 @@
                 Launch the Icaro Flipbook rendering engine to transition through multiple stipple frames sequentially.
               </p>
               <div style="border: 3px solid var(--ink); background: var(--soft); aspect-ratio: 16/9; width: 100%; overflow: hidden; box-shadow: 2px 2px 0 var(--ink);">
-                <iframe src="https://hartswf0.github.io/abc-flip/icaro-flip.html" style="width: 100%; height: 100%; border: none;" allow="clipboard-write"></iframe>
+                <iframe src="https://hartswf0.github.io/abc-flix/icaro-flip.html" style="width: 100%; height: 100%; border: none;" allow="clipboard-write"></iframe>
               </div>
             </div>
 
@@ -2112,6 +2383,72 @@
               </div>
             </div>
 
+          </div>
+        </div>
+
+        <!-- HELP VIEW -->
+        <div class="tab-view" id="view-help" style="display: none; flex-direction: column;">
+          <h1 class="page-title">Help</h1>
+          <div class="page-subtitle">How to use the main index without falling into dead ends.</div>
+          <div class="horizontal-rule"></div>
+          <div class="help-grid">
+            <div class="help-card">
+              <h3>Find Files</h3>
+              <ul>
+                <li>Use Grid View for every module and every level file.</li>
+                <li>Search by filename, lineage, type, or purpose.</li>
+                <li>Use Open Full when the iframe is too small.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h3>Projects</h3>
+              <ul>
+                <li>New Project creates a local workspace record.</li>
+                <li>Save Slot stores the current project in the project list.</li>
+                <li>Import and Export move project JSON between browsers or machines.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h3>Script</h3>
+              <ul>
+                <li>Script is the active project text, not a random note pad.</li>
+                <li>Compile Lines To Shots turns non-empty lines into timeline records.</li>
+                <li>The selected demo's execution map shows what that module does.</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h3>Preview</h3>
+              <ul>
+                <li>Preview keeps the selected demo visible beside project shots.</li>
+                <li>Attach To Project records which module the project is using.</li>
+                <li>External demos can be opened full screen if iframe space is tight.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRIVACY AND TERMS VIEW -->
+        <div class="tab-view" id="view-legal" style="display: none; flex-direction: column;">
+          <h1 class="page-title">Privacy &amp; Terms</h1>
+          <div class="page-subtitle">Plain operating statement for the local ABC CINEOSIS index.</div>
+          <div class="horizontal-rule"></div>
+          <div class="help-grid">
+            <div class="help-card">
+              <h3>Privacy</h3>
+              <p>This index stores project data, selected module state, and optional API keys in browser localStorage. It does not include analytics, metrics collection, tracking pixels, or a server-side account system.</p>
+            </div>
+            <div class="help-card">
+              <h3>External Pages</h3>
+              <p>Some demos load from GitHub Pages, including ABC-FLIX. Opening or previewing those pages requests files from that public host. Use Open Full when an external page needs more space or browser permissions.</p>
+            </div>
+            <div class="help-card">
+              <h3>API Keys</h3>
+              <p>Keys saved in Settings stay in this browser unless a demo intentionally reads them to call a model API. Do not save shared or production keys in a public or borrowed browser profile.</p>
+            </div>
+            <div class="help-card">
+              <h3>Terms</h3>
+              <p>The materials are provided as research instrumentation and creative prototypes under the stated project license. You are responsible for exported files, uploaded project JSON, external API usage, and third-party hosting behavior.</p>
+            </div>
           </div>
         </div>
 
@@ -2889,7 +3226,63 @@
       }
     ];
 
-    let currentModuleId = "c3";
+    const LEVEL_TARGETS = ['a1.html','b1.html','c1.html','b2.html','c2.html','c3.html','c-twine-engine-b.html','d-mos.html','c-mosaic.html','d-mosaic.html','mosaic-index.html','twine-bridge-b.html','cd-mos-02.html','cd-mos-03.html','cd-mos-04.html','rcc-mos.html'];
+    modules.push(...Array.from({ length: 43 }, (_, i) => {
+      const n = i + 3;
+      const nn = String(n).padStart(2, '0');
+      const target = LEVEL_TARGETS[i % LEVEL_TARGETS.length];
+      return {
+        id: `level-${nn}`,
+        name: `level-${nn}.html (Runnable Level ${nn})`,
+        path: `level-${nn}.html`,
+        description: `Runnable bridge file for level ${nn}, routing into ${target} while keeping the 3-45 level range directly accessible from the main index.`,
+        viewport: [
+          { type: "cols", boxes: [
+            { name: "LEVEL CARD", target: "bridge-copy" },
+            { name: "ROUTED TARGETS", target: "bridge-launches" }
+          ]}
+        ],
+        script: [
+          { id: "bridge-copy", action: `Explains why level ${nn} exists as an actual runnable file` },
+          { id: "bridge-launches", action: `Routes level ${nn} into ${target} and related experiment context` }
+        ]
+      };
+    }));
+
+    const INDEX_SETTINGS_KEY = 'abc-cineosis-index-settings-v1';
+    const PROJECT_LIBRARY_KEY = 'abc-cineosis-project-library-v1';
+
+    function moduleType(mod) {
+      if (!mod) return 'core';
+      if (mod.id.startsWith('level-')) return 'level';
+      if (/^https?:\/\//.test(mod.path)) return 'external';
+      if (/mosaic|zorc|d-mos|c-mos/.test(`${mod.id} ${mod.name}`.toLowerCase())) return 'zorc';
+      if (/twine|twee|bees/.test(`${mod.id} ${mod.name} ${mod.path}`.toLowerCase())) return 'twine';
+      if (/cd-|rcc|hybrid|merged/.test(`${mod.id} ${mod.name}`.toLowerCase())) return 'hybrid';
+      return 'core';
+    }
+
+    function moduleSearchText(mod) {
+      return [mod.id, mod.name, mod.path, mod.description, moduleType(mod), ...(mod.script || []).map(s => `${s.id} ${s.action}`)].join(' ').toLowerCase();
+    }
+
+    function moduleById(id) {
+      return modules.find(m => m.id === id) || modules.find(m => m.path === id) || modules[0];
+    }
+
+    function loadIndexSettings() {
+      try {
+        return Object.assign({ startupView: 'home', defaultModule: 'mosaic-index', privacyMode: 'local' }, JSON.parse(localStorage.getItem(INDEX_SETTINGS_KEY) || '{}'));
+      } catch(e) {
+        return { startupView: 'home', defaultModule: 'mosaic-index', privacyMode: 'local' };
+      }
+    }
+
+    function saveIndexSettings(settings) {
+      localStorage.setItem(INDEX_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    let currentModuleId = loadIndexSettings().defaultModule || "mosaic-index";
     let activeStory = { title: "", premise: "", script: "", shots: [] };
 
     // DOM Getter helper
@@ -2912,11 +3305,13 @@
       }
 
       // Hook view loading refreshes
+      if (tabId === 'grid-view') loadGridTab();
       if (tabId === 'projects') loadProjectsTab();
       if (tabId === 'script') loadScriptTab();
       if (tabId === 'preview') loadPreviewTab();
       if (tabId === 'settings') loadSettingsTab();
       if (tabId === 'research') initResearchTab();
+      if (tabId === 'help' || tabId === 'legal') loadProjectFromStorage();
     }
 
     // ── IFRAME VIEWER OVERLAY LOGIC ──
@@ -2948,6 +3343,15 @@
       if (mod) {
         launchModule(mod.path);
       }
+    }
+
+    function showLevelGrid() {
+      showTab('grid-view');
+      const typeFilter = get('module-type-filter');
+      const search = get('module-search');
+      if (typeFilter) typeFilter.value = 'level';
+      if (search) search.value = '';
+      renderModuleGrid();
     }
 
     // ── POML SCHEMATIC LOGIC ──
@@ -2999,13 +3403,99 @@
       'btn-realign-semiotics': '#btn-realign-semiotics'
     };
 
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    function selectedModule() {
+      return moduleById(currentModuleId);
+    }
+
+    function renderModuleDossier(containerId, mod = selectedModule()) {
+      const container = get(containerId);
+      if (!container || !mod) return;
+      container.innerHTML = `
+        <div class="dossier-cell"><b>File</b>${escapeHtml(mod.path)}</div>
+        <div class="dossier-cell"><b>Type</b>${escapeHtml(moduleType(mod))}</div>
+        <div class="dossier-cell"><b>Module</b>${escapeHtml(mod.name)}</div>
+        <div class="dossier-cell"><b>Steps</b>${(mod.script || []).length}</div>
+      `;
+    }
+
+    function renderModuleScriptBreakdown(mod = selectedModule()) {
+      const target = get('module-script-breakdown');
+      if (!target || !mod) return;
+      target.innerHTML = (mod.script || []).map((step, index) => `
+        <div class="project-slot" onclick="showTab('grid-view'); highlightIframeElement('${escapeHtml(step.id)}')">
+          ${String(index + 1).padStart(2, '0')} / ${escapeHtml(step.id)}<br>
+          <span style="font-weight: 500;">${escapeHtml(step.action)}</span>
+        </div>
+      `).join('') || '<div class="project-slot">No execution steps registered for this module.</div>';
+    }
+
+    function renderModuleGrid() {
+      const stack = get('file-stack');
+      if (!stack) return;
+      const q = (get('module-search')?.value || '').trim().toLowerCase();
+      const filter = get('module-type-filter')?.value || 'all';
+      const filtered = modules.filter(m => {
+        const type = moduleType(m);
+        return (filter === 'all' || type === filter) && (!q || moduleSearchText(m).includes(q));
+      });
+      stack.innerHTML = filtered.map(m => {
+        const type = moduleType(m);
+        return `
+          <div class="file-card ${m.id === currentModuleId ? 'active' : ''}" id="card-${escapeHtml(m.id)}" onclick="selectModule('${escapeHtml(m.id)}')">
+            <div>
+              <h2>${escapeHtml(m.id)}</h2>
+              <p>${escapeHtml(m.name)}</p>
+              <p>${escapeHtml(m.description)}</p>
+            </div>
+            <div class="file-meta"><span>${escapeHtml(type)}</span><span>${escapeHtml(m.path)}</span></div>
+          </div>
+        `;
+      }).join('') || '<div class="file-card"><h2>No matches</h2><p>Clear search or change type filter.</p></div>';
+
+      const stats = get('module-grid-stats');
+      if (stats) {
+        const typeCounts = modules.reduce((acc, m) => {
+          const type = moduleType(m);
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {});
+        stats.innerHTML = [
+          ['Shown', filtered.length],
+          ['All', modules.length],
+          ['Levels', typeCounts.level || 0],
+          ['External', typeCounts.external || 0]
+        ].map(([label, value]) => `<div class="mini-stat"><b>${value}</b><span>${label}</span></div>`).join('');
+      }
+    }
+
+    function loadGridTab() {
+      const search = get('module-search');
+      const typeFilter = get('module-type-filter');
+      if (search && !search.dataset.bound) {
+        search.dataset.bound = '1';
+        search.addEventListener('input', renderModuleGrid);
+      }
+      if (typeFilter && !typeFilter.dataset.bound) {
+        typeFilter.dataset.bound = '1';
+        typeFilter.addEventListener('change', renderModuleGrid);
+      }
+      renderModuleGrid();
+      selectModule(currentModuleId);
+    }
+
     function selectModule(id) {
       currentModuleId = id;
+      const settings = loadIndexSettings();
+      saveIndexSettings({ ...settings, defaultModule: currentModuleId });
       document.querySelectorAll('.file-card').forEach(card => card.classList.remove('active'));
       const activeCard = get(`card-${id}`);
       if (activeCard) activeCard.classList.add('active');
 
-      const mod = modules.find(m => m.id === id);
+      const mod = selectedModule();
       if (!mod) return;
 
       const iframe = get('grid-viewport-iframe');
@@ -3019,6 +3509,19 @@
       const paneTitle = get('viewport-pane-title');
       if (paneTitle) {
         paneTitle.textContent = `Viewport Module: ${mod.name} (Live)`;
+      }
+
+      renderModuleDossier('module-dossier', mod);
+      renderModuleDossier('script-module-dossier', mod);
+      renderModuleDossier('preview-module-dossier', mod);
+      renderModuleScriptBreakdown(mod);
+
+      const projectActiveModule = get('project-active-module');
+      if (projectActiveModule) projectActiveModule.textContent = mod.id;
+
+      const previewFrame = get('preview-module-frame');
+      if (previewFrame && previewFrame.src !== mod.path) {
+        previewFrame.src = mod.path;
       }
 
       const xml = get('xml-editor');
@@ -3088,28 +3591,41 @@
     }
 
     function renderStack() {
-      const stack = get('file-stack');
-      if (stack) {
-        stack.innerHTML = modules.map(m => `
-          <div class="file-card" id="card-${m.id}" onclick="selectModule('${m.id}')">
-            <h2>${m.name}</h2>
-            <p>${m.description}</p>
-          </div>
-        `).join('');
-      }
+      renderModuleGrid();
     }
 
     // ── WORKSPACE STATE STORAGE MANAGER ──
+    function defaultProject() {
+      return {
+        id: `project-${Date.now()}`,
+        title: "Untitled Film",
+        premise: "A says. B computes. C appears.",
+        script: "",
+        shots: [],
+        selectedModuleId: currentModuleId,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    function normalizeProject(project) {
+      return Object.assign(defaultProject(), project || {}, {
+        shots: Array.isArray(project?.shots) ? project.shots : []
+      });
+    }
+
     function loadProjectFromStorage() {
       try {
         const stored = localStorage.getItem(SK);
         if (stored) {
-          activeStory = JSON.parse(stored);
+          activeStory = normalizeProject(JSON.parse(stored));
         } else {
-          activeStory = { title: "Untitled Film", premise: "A says. B computes. C appears.", script: "", shots: [] };
+          activeStory = defaultProject();
         }
       } catch(e) {
-        activeStory = { title: "Untitled Film", premise: "A says. B computes. C appears.", script: "", shots: [] };
+        activeStory = defaultProject();
+      }
+      if (activeStory.selectedModuleId && moduleById(activeStory.selectedModuleId)) {
+        currentModuleId = activeStory.selectedModuleId;
       }
       
       // Update label indicators
@@ -3121,8 +3637,85 @@
     }
 
     function saveProjectToStorage() {
+      activeStory.updatedAt = new Date().toISOString();
+      activeStory.selectedModuleId = currentModuleId;
       localStorage.setItem(SK, JSON.stringify(activeStory));
       loadProjectFromStorage();
+    }
+
+    function loadProjectLibrary() {
+      try {
+        return JSON.parse(localStorage.getItem(PROJECT_LIBRARY_KEY) || '[]');
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function saveProjectLibrary(projects) {
+      localStorage.setItem(PROJECT_LIBRARY_KEY, JSON.stringify(projects));
+    }
+
+    function createNewProject() {
+      activeStory = defaultProject();
+      activeStory.title = `Cineosis Project ${new Date().toLocaleDateString()}`;
+      saveProjectToStorage();
+      showTab('projects');
+      loadProjectsTab();
+      showToast("New local project created.");
+    }
+
+    function saveProjectSlot() {
+      loadProjectFromStorage();
+      const library = loadProjectLibrary().filter(p => p.id !== activeStory.id);
+      library.unshift(normalizeProject(activeStory));
+      saveProjectLibrary(library.slice(0, 24));
+      loadProjectsTab();
+      showToast("Project saved to local slot.");
+    }
+
+    function loadProjectSlot(id) {
+      const project = loadProjectLibrary().find(p => p.id === id);
+      if (!project) return;
+      activeStory = normalizeProject(project);
+      saveProjectToStorage();
+      loadProjectsTab();
+      loadScriptTab();
+      loadPreviewTab();
+      showToast("Project slot loaded.");
+    }
+
+    function attachModuleToProject() {
+      const mod = selectedModule();
+      if (!mod) return;
+      loadProjectFromStorage();
+      activeStory.selectedModuleId = mod.id;
+      currentModuleId = mod.id;
+      saveProjectToStorage();
+      loadProjectsTab();
+      showToast(`${mod.id} attached to active project.`);
+    }
+
+    function sendModuleToPreview() {
+      selectModule(currentModuleId);
+      showTab('preview');
+    }
+
+    function compileScriptToShots() {
+      const ta = get('script-editor-area');
+      if (ta) activeStory.script = ta.value;
+      const lines = (activeStory.script || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
+      const mod = selectedModule();
+      activeStory.shots = lines.map((line, index) => ({
+        type: moduleType(mod).toUpperCase(),
+        title: `Beat ${String(index + 1).padStart(2, '0')}`,
+        desc: line,
+        bfxHint: `${mod.id} / ${mod.path}`,
+        rendered: false,
+        beflix: `C ${mod.id.toUpperCase()} SCRIPT BEAT ${index + 1}\nCLR 0\nPNT ${8 + (index % 8) * 12} ${12 + (index % 5) * 10} 18 10 ${2 + (index % 5)}\nREC 6`
+      }));
+      saveProjectToStorage();
+      loadPreviewTab();
+      showToast(`Compiled ${activeStory.shots.length} script beats to preview shots.`);
     }
 
     // PROJECTS tab
@@ -3136,10 +3729,37 @@
       const lblCardTitle = get('proj-card-title');
       const lblCardPremise = get('proj-card-premise');
       const lblCardShots = get('proj-card-shots');
+      const activeModule = get('project-active-module');
+      const storageStatus = get('project-storage-status');
 
       if (lblCardTitle) lblCardTitle.textContent = activeStory.title || "Untitled Film";
       if (lblCardPremise) lblCardPremise.textContent = activeStory.premise || "none";
       if (lblCardShots) lblCardShots.textContent = (activeStory.shots || []).length;
+      if (activeModule) activeModule.textContent = selectedModule()?.id || "none";
+      if (storageStatus) storageStatus.textContent = `${loadProjectLibrary().length} saved`;
+
+      const projectList = get('project-list');
+      if (projectList) {
+        const library = loadProjectLibrary();
+        projectList.innerHTML = library.length ? library.map(p => `
+          <div class="project-slot ${p.id === activeStory.id ? 'active' : ''}" onclick="loadProjectSlot('${escapeHtml(p.id)}')">
+            ${escapeHtml(p.title || 'Untitled Film')}<br>
+            <span style="font-weight: 500;">${escapeHtml((p.premise || 'No premise').slice(0, 90))}</span>
+          </div>
+        `).join('') : '<div class="project-slot">No saved local projects yet. Use Save Slot.</div>';
+      }
+
+      const manifest = get('project-bus-manifest');
+      if (manifest) {
+        manifest.value = JSON.stringify({
+          activeProject: activeStory.title,
+          selectedModule: selectedModule()?.id,
+          modulePath: selectedModule()?.path,
+          shots: (activeStory.shots || []).length,
+          savedProjects: loadProjectLibrary().length,
+          updatedAt: activeStory.updatedAt
+        }, null, 2);
+      }
     }
 
     function saveProjectMeta() {
@@ -3188,7 +3808,7 @@
         try {
           const parsed = JSON.parse(e.target.result);
           if (parsed && typeof parsed === 'object') {
-            activeStory = parsed;
+            activeStory = normalizeProject(parsed);
             saveProjectToStorage();
             loadProjectsTab();
             showToast("Workspace imported successfully.");
@@ -3206,11 +3826,14 @@
     // SCRIPT tab
     function loadScriptTab() {
       loadProjectFromStorage();
+      selectModule(currentModuleId);
       const ta = get('script-editor-area');
       if (ta) {
         ta.value = activeStory.script || "";
         updateScriptWordCount(ta.value);
       }
+      renderModuleDossier('script-module-dossier');
+      renderModuleScriptBreakdown();
     }
 
     function saveScriptText() {
@@ -3232,8 +3855,14 @@
     // PREVIEW tab
     function loadPreviewTab() {
       loadProjectFromStorage();
+      selectModule(currentModuleId);
       const container = get('storyboard-preview-container');
       if (!container) return;
+
+      renderModuleDossier('preview-module-dossier');
+      const frame = get('preview-module-frame');
+      const mod = selectedModule();
+      if (frame && mod) frame.src = mod.path;
 
       const shots = activeStory.shots || [];
       if (!shots.length) {
@@ -4865,16 +5494,26 @@
       const geminiKey = localStorage.getItem('cau_gemini_key') || '';
       const claudeKey = localStorage.getItem('cau_claude_key') || '';
       const openaiKey = localStorage.getItem('cau_openai_key') || '';
+      const indexSettings = loadIndexSettings();
 
       const selModel = get('global-model-select');
       const inGemini = get('global-api-gemini');
       const inClaude = get('global-api-claude');
       const inOpenai = get('global-api-openai');
+      const startup = get('setting-startup-view');
+      const defaultModule = get('setting-default-module');
+      const privacyMode = get('setting-privacy-mode');
 
       if (selModel) selModel.value = activeModel;
       if (inGemini) inGemini.value = geminiKey;
       if (inClaude) inClaude.value = claudeKey;
       if (inOpenai) inOpenai.value = openaiKey;
+      if (startup) startup.value = indexSettings.startupView || 'home';
+      if (defaultModule) {
+        defaultModule.innerHTML = modules.map(m => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.id)} / ${escapeHtml(m.name)}</option>`).join('');
+        defaultModule.value = indexSettings.defaultModule || currentModuleId;
+      }
+      if (privacyMode) privacyMode.value = indexSettings.privacyMode || 'local';
 
       updateGlobalModelCard();
       updateGlobalKeyStatus();
@@ -4950,6 +5589,9 @@
       const inGemini = get('global-api-gemini');
       const inClaude = get('global-api-claude');
       const inOpenai = get('global-api-openai');
+      const startup = get('setting-startup-view');
+      const defaultModule = get('setting-default-module');
+      const privacyMode = get('setting-privacy-mode');
 
       if (selModel && inGemini && inClaude && inOpenai) {
         const m = selModel.value;
@@ -4961,9 +5603,15 @@
         localStorage.setItem('cau_gemini_key', g);
         localStorage.setItem('cau_claude_key', c);
         localStorage.setItem('cau_openai_key', o);
+        saveIndexSettings({
+          startupView: startup?.value || 'home',
+          defaultModule: defaultModule?.value || currentModuleId,
+          privacyMode: privacyMode?.value || 'local'
+        });
+        currentModuleId = defaultModule?.value || currentModuleId;
 
         updateGlobalKeyStatus();
-        showToast("API system configurations updated globally.");
+        showToast("Index and API configurations updated.");
       }
     }
 
@@ -5017,8 +5665,10 @@
       }
 
       loadProjectFromStorage();
+      const indexSettings = loadIndexSettings();
+      currentModuleId = activeStory.selectedModuleId || indexSettings.defaultModule || currentModuleId;
       renderStack();
-      selectModule("c2");
+      selectModule(currentModuleId);
 
       const ta = get('script-editor-area');
       if (ta) {
@@ -5032,12 +5682,23 @@
         globalModel.addEventListener('change', updateGlobalModelCard);
       }
 
+      ['module-search', 'module-type-filter'].forEach(id => {
+        const el = get(id);
+        if (el && !el.dataset.bound) {
+          el.dataset.bound = '1';
+          el.addEventListener(id === 'module-search' ? 'input' : 'change', renderModuleGrid);
+        }
+      });
+
       ['gemini', 'claude', 'openai'].forEach(p => {
         const inp = get('global-api-' + p);
         if (inp) {
           inp.addEventListener('input', updateGlobalKeyStatus);
         }
       });
+
+      loadSettingsTab();
+      showTab(indexSettings.startupView || 'home');
     });
   </script>
 </body>
