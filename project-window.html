@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ABC Cineosis Project Window</title>
+  <style>
+    :root {
+      --ink: #000;
+      --paper: #fff;
+      --soft: #f3f3ef;
+      --line: #d7d7d2;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    header {
+      border-bottom: 3px solid var(--ink);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      padding: 14px 18px;
+      background: var(--paper);
+    }
+    h1 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+    p {
+      margin: 0;
+      max-width: 900px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    a,
+    button {
+      border: 2px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      padding: 8px 10px;
+      font: 900 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a:hover,
+    button:hover {
+      background: var(--paper);
+      color: var(--ink);
+    }
+    main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+    }
+    aside {
+      border-right: 3px solid var(--ink);
+      background: var(--soft);
+      padding: 14px;
+      overflow: auto;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border: 0;
+      background: var(--paper);
+    }
+    .meta {
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      padding: 10px;
+      margin-bottom: 10px;
+      font: 800 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow-wrap: anywhere;
+    }
+    .meta b {
+      display: block;
+      font-size: 9px;
+      color: #555;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .pill {
+      display: inline-block;
+      border: 2px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      padding: 4px 7px;
+      font: 900 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow: auto;
+      max-height: 260px;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      padding: 10px;
+      font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    @media (max-width: 860px) {
+      body {
+        height: auto;
+      }
+      header,
+      main {
+        grid-template-columns: 1fr;
+      }
+      nav {
+        justify-content: flex-start;
+      }
+      aside {
+        border-right: 0;
+        border-bottom: 3px solid var(--ink);
+      }
+      iframe {
+        min-height: 72vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="project-title">ABC Cineosis Project</h1>
+      <p id="project-premise">A says. B computes. C appears.</p>
+    </div>
+    <nav>
+      <a id="index-link" href="index.html">Index</a>
+      <a id="direct-link" href="#" target="_blank" rel="noopener noreferrer">Open Demo Direct</a>
+      <a id="public-window-link" href="#" target="_blank" rel="noopener noreferrer">Public Window</a>
+      <button type="button" id="download-json-btn">Download JSON</button>
+    </nav>
+  </header>
+  <main>
+    <aside>
+      <div class="pill" id="source-pill">Local Window</div>
+      <div class="meta"><b>Selected Module</b><span id="module-id">none</span></div>
+      <div class="meta"><b>Module Path</b><span id="module-path">none</span></div>
+      <div class="meta"><b>Resolved URL</b><span id="module-url">none</span></div>
+      <div class="meta"><b>Shots</b><span id="shot-count">0</span></div>
+      <div class="meta"><b>Updated</b><span id="updated-at">not saved</span></div>
+      <pre id="project-json"></pre>
+    </aside>
+    <iframe id="project-frame" title="ABC Cineosis selected module"></iframe>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'causality-v8';
+    const PUBLISHED_BASE_URL = 'https://hartswf0.github.io/abc-cineosis/';
+    const params = new URLSearchParams(window.location.search);
+
+    function readProject() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch (err) {
+        return {};
+      }
+    }
+
+    function resolveModuleUrl(path, source) {
+      if (/^https?:\/\//i.test(path)) return path;
+      const base = source === 'published' ? PUBLISHED_BASE_URL : window.location.href;
+      return new URL(path || 'mosaic-index.html', base).href;
+    }
+
+    function downloadJson(payload) {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = String(payload.title || 'abc-cineosis-project')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    const storedProject = readProject();
+    const source = params.get('source') || 'local';
+    const moduleId = params.get('module') || storedProject.selectedModuleId || 'mosaic-index';
+    const modulePath = params.get('path') || storedProject.modulePath || 'mosaic-index.html';
+    const title = params.get('title') || storedProject.title || 'ABC Cineosis Project';
+    const premise = params.get('premise') || storedProject.premise || 'A says. B computes. C appears.';
+    const moduleUrl = resolveModuleUrl(modulePath, source);
+    const publishedWindowUrl = new URL('project-window.html', PUBLISHED_BASE_URL);
+    publishedWindowUrl.searchParams.set('source', 'published');
+    publishedWindowUrl.searchParams.set('module', moduleId);
+    publishedWindowUrl.searchParams.set('path', modulePath);
+    publishedWindowUrl.searchParams.set('title', title);
+    publishedWindowUrl.searchParams.set('premise', premise);
+
+    const payload = {
+      ...storedProject,
+      title,
+      premise,
+      selectedModuleId: moduleId,
+      modulePath,
+      source,
+      moduleUrl,
+      publishedWindowUrl: publishedWindowUrl.href
+    };
+
+    document.title = `${title} - ABC Cineosis`;
+    document.getElementById('project-title').textContent = title;
+    document.getElementById('project-premise').textContent = premise;
+    document.getElementById('source-pill').textContent = `${source} project window`;
+    document.getElementById('module-id').textContent = moduleId;
+    document.getElementById('module-path').textContent = modulePath;
+    document.getElementById('module-url').textContent = moduleUrl;
+    document.getElementById('shot-count').textContent = Array.isArray(payload.shots) ? payload.shots.length : 0;
+    document.getElementById('updated-at').textContent = payload.updatedAt || 'not saved';
+    document.getElementById('project-json').textContent = JSON.stringify(payload, null, 2);
+    document.getElementById('direct-link').href = moduleUrl;
+    document.getElementById('public-window-link').href = publishedWindowUrl.href;
+    document.getElementById('project-frame').src = moduleUrl;
+    document.getElementById('download-json-btn').addEventListener('click', () => downloadJson(payload));
+  </script>
+</body>
+</html>
