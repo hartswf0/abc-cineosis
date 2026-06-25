@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CH·BOX</title>
+    <style>
+        :root {
+            --w: #ffffff;
+            --k: #000000;
+            --safe-b: env(safe-area-inset-bottom, 0px);
+            --safe-t: env(safe-area-inset-top, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--k);
+        }
+
+        body {
+            font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+            color: var(--w);
+            position: fixed;
+            inset: 0;
+            overscroll-behavior: none;
+            touch-action: none;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            padding-top: var(--safe-t);
+        }
+
+        /* ===== MASTHEAD: the name of the box ===== */
+        #head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 16px 10px;
+            border-bottom: 3px solid var(--w);
+            background: var(--k);
+        }
+
+        #head .brand {
+            font-size: clamp(18px, 5.4vw, 26px);
+            font-weight: 700;
+            letter-spacing: .22em;
+        }
+
+        #head .brand b {
+            display: inline-block;
+            padding: 0 6px;
+            background: var(--w);
+            color: var(--k);
+        }
+
+        #head .clock {
+            font-size: 11px;
+            letter-spacing: .18em;
+            opacity: .7;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ===== MIDDLE: guide rail (left) + tv screen (right) ===== */
+        #body {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(118px, 34vw) 1fr;
+            min-height: 0;
+        }
+
+        /* --- the live TV GUIDE rail --- */
+        #guide {
+            border-right: 3px solid var(--w);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: var(--k);
+        }
+
+        #guideHd {
+            padding: 10px 12px 8px;
+            border-bottom: 2px solid var(--w);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #guideHd .lbl {
+            font-size: 10px;
+            letter-spacing: .24em;
+            font-weight: 700;
+        }
+
+        #guideHd .cnt {
+            font-size: 10px;
+            letter-spacing: .1em;
+            opacity: .55;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #list {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        #list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .ch {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .16);
+            cursor: pointer;
+        }
+
+        .ch .n {
+            font-size: 15px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            min-width: 24px;
+        }
+
+        .ch .t {
+            font-size: 11px;
+            letter-spacing: .03em;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            opacity: .82;
+            text-transform: uppercase;
+        }
+
+        .ch:active {
+            background: rgba(255, 255, 255, .14);
+        }
+
+        .ch.on {
+            background: var(--w);
+            color: var(--k);
+        }
+
+        .ch.on .t {
+            opacity: 1;
+        }
+
+        .ch.on .n::after {
+            content: " \25C0";
+            font-size: 9px;
+        }
+
+        /* ◀ now-watching marker */
+
+        /* --- the TV SCREEN --- */
+        #tv {
+            position: relative;
+            background: var(--k);
+            overflow: hidden;
+        }
+
+        #players {
+            position: absolute;
+            inset: 0;
+        }
+
+        video,
+        iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            object-fit: contain;
+            background: var(--k);
+        }
+
+        .layer {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .layer.live {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #fx {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 30;
+            display: none;
+        }
+
+        #fx.zap {
+            display: block;
+        }
+
+        #fx canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #scan {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 20;
+            mix-blend-mode: overlay;
+            background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .05) 0 1px, rgba(0, 0, 0, 0) 1px 3px);
+        }
+
+        /* on-screen channel bug, top-right of the TV */
+        #bug {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 25;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--k);
+            border: 2px solid var(--w);
+            font-weight: 700;
+            transform: translateY(-6px);
+            opacity: 0;
+            transition: opacity .25s, transform .25s;
+        }
+
+        #bug.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #bug .num {
+            font-size: clamp(22px, 6vw, 32px);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #bug .nm {
+            font-size: 9px;
+            letter-spacing: .16em;
+            opacity: .7;
+            text-transform: uppercase;
+        }
+
+        #load {
+            position: absolute;
+            bottom: 12px;
+            right: 14px;
+            z-index: 24;
+            font-size: 9px;
+            letter-spacing: .3em;
+            opacity: 0;
+            transition: opacity .2s;
+            text-transform: uppercase;
+        }
+
+        #load.on {
+            opacity: .7;
+        }
+
+        /* invisible swipe/tap layer over the screen */
+        #zones {
+            position: absolute;
+            inset: 0;
+            z-index: 15;
+            display: flex;
+        }
+
+        #zones>div {
+            flex: 1;
+            position: relative;
+        }
+
+        #zUp::after,
+        #zDn::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-style: solid;
+            opacity: 0;
+            transition: opacity .12s;
+        }
+
+        #zUp:active::after {
+            opacity: .8;
+            top: 16px;
+            border-width: 0 13px 18px 13px;
+            border-color: transparent transparent var(--w) transparent;
+        }
+
+        #zDn:active::after {
+            opacity: .8;
+            bottom: 16px;
+            border-width: 18px 13px 0 13px;
+            border-color: var(--w) transparent transparent transparent;
+        }
+
+        /* power / start veil */
+        #veil {
+            position: absolute;
+            inset: 0;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: var(--k);
+            text-align: center;
+            padding: 24px;
+            transition: opacity .4s;
+        }
+
+        #veil.gone {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #veil h1 {
+            font-size: clamp(20px, 6vw, 30px);
+            font-weight: 700;
+            letter-spacing: .16em;
+        }
+
+        #veil h1 b {
+            background: var(--w);
+            color: var(--k);
+            padding: 0 6px;
+        }
+
+        #veil p {
+            font-size: 11px;
+            opacity: .6;
+            letter-spacing: .04em;
+            line-height: 1.7;
+            max-width: 26ch;
+        }
+
+        #veil .pwr {
+            width: 70px;
+            height: 70px;
+            border: 2px solid var(--w);
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            margin-top: 2px;
+        }
+
+        #veil .pwr svg {
+            width: 30px;
+            height: 30px;
+            stroke: var(--w);
+            stroke-width: 2.6;
+            fill: none;
+            stroke-linecap: round;
+        }
+
+        /* ===== BOTTOM: the channel DIAL ===== */
+        #dial {
+            background: var(--w);
+            color: var(--k);
+            border-top: 3px solid var(--k);
+            padding: 12px 16px calc(12px + var(--safe-b));
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: stretch;
+            gap: 12px;
+            user-select: none;
+        }
+
+        /* big CH- / CH+ rocker ends */
+        .rock {
+            min-width: 64px;
+            border: 3px solid var(--k);
+            background: var(--w);
+            color: var(--k);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+        }
+
+        .rock:active {
+            background: var(--k);
+            color: var(--w);
+        }
+
+        .rock svg {
+            width: 30px;
+            height: 30px;
+            fill: currentColor;
+        }
+
+        .rock .cap {
+            position: absolute;
+        }
+
+        .rockWrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .rockWrap .cc {
+            font-size: 9px;
+            letter-spacing: .18em;
+            font-weight: 700;
+        }
+
+        /* center: current channel + tap-to-key */
+        #center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            border: 3px solid var(--k);
+            cursor: pointer;
+            padding: 6px 4px;
+            min-width: 0;
+        }
+
+        #center:active {
+            background: var(--k);
+            color: var(--w);
+        }
+
+        #center .big {
+            font-size: clamp(26px, 8vw, 40px);
+            font-weight: 700;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: .02em;
+        }
+
+        #center .row {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            max-width: 100%;
+        }
+
+        #center .of {
+            font-size: 10px;
+            opacity: .5;
+            letter-spacing: .08em;
+        }
+
+        #center .nm {
+            font-size: 10px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            opacity: .75;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 40vw;
+        }
+
+        #center .hint {
+            font-size: 8px;
+            letter-spacing: .16em;
+            opacity: .4;
+            text-transform: uppercase;
+        }
+
+        /* ===== number pad sheet ===== */
+        #pad {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 60;
+            background: var(--k);
+            color: var(--w);
+            transform: translateY(120%);
+            transition: transform .28s cubic-bezier(.2, .8, .2, 1);
+            padding: 14px 14px calc(14px + var(--safe-b));
+            border-top: 3px solid var(--w);
+        }
+
+        #pad.up {
+            transform: translateY(0);
+        }
+
+        #padEcho {
+            text-align: center;
+            font-size: clamp(34px, 11vw, 52px);
+            font-weight: 700;
+            letter-spacing: .1em;
+            min-height: 1.1em;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #padGrid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .key {
+            aspect-ratio: 1.8/1;
+            display: grid;
+            place-items: center;
+            background: var(--k);
+            color: var(--w);
+            border: 2px solid var(--w);
+            font-size: clamp(20px, 6vw, 26px);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .key:active {
+            background: var(--w);
+            color: var(--k);
+        }
+
+        .key.go {
+            background: var(--w);
+            color: var(--k);
+        }
+
+        .key.go:active {
+            background: var(--k);
+            color: var(--w);
+        }
+
+        @media (prefers-reduced-motion:reduce) {
+            #fx.zap {
+                animation-duration: .01s;
+            }
+
+            * {
+                transition-duration: .05s !important;
+            }
+        }
+
+        @media (max-width:360px) {
+            #body {
+                grid-template-columns: minmax(104px, 38vw) 1fr;
+            }
+
+            .ch .t {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="head">
+        <div class="brand">CH<b>BOX</b></div>
+        <div class="clock" id="clock">--:--</div>
+    </div>
+
+    <div id="body">
+        <!-- GUIDE rail -->
+        <aside id="guide">
+            <div id="guideHd"><span class="lbl">GUIDE</span><span class="cnt" id="guideCnt">24 CH</span></div>
+            <div id="list"></div>
+        </aside>
+
+        <!-- TV screen -->
+        <main id="tv">
+            <div id="players"></div>
+            <div id="scan"></div>
+            <div id="fx"></div>
+            <div id="bug"><span class="num">01</span><span class="nm">Original</span></div>
+            <div id="load">tuning</div>
+            <div id="zones">
+                <div id="zUp"></div>
+                <div id="zMid"></div>
+                <div id="zDn"></div>
+            </div>
+
+            <div id="veil">
+                <h1>CH<b>BOX</b></h1>
+                <div class="pwr"><svg viewBox="0 0 24 24">
+                        <line x1="12" y1="3" x2="12" y2="12" />
+                        <path d="M6.3 6.3a8 8 0 1 0 11.4 0" />
+                    </svg></div>
+                <p>Press power to turn on. Pick a channel from the guide, tap the dial, or swipe the screen.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- DIAL -->
+    <div id="dial">
+        <div class="rockWrap">
+            <button class="rock" id="chDn" aria-label="Channel down"><svg viewBox="0 0 24 24">
+                    <polygon points="12,19 4,8 20,8" />
+                </svg></button>
+            <span class="cc">CH&minus;</span>
+        </div>
+
+        <div id="center" role="button" aria-label="Enter channel number">
+            <span class="big" id="cNow">01</span>
+            <div class="row"><span class="nm" id="cName">Original</span></div>
+            <span class="hint">TAP TO ENTER &middot; PWR HOLD</span>
+        </div>
+
+        <div class="rockWrap">
+            <button class="rock" id="chUp" aria-label="Channel up"><svg viewBox="0 0 24 24">
+                    <polygon points="12,5 20,16 4,16" />
+                </svg></button>
+            <span class="cc">CH+</span>
+        </div>
+    </div>
+
+    <!-- number pad -->
+    <div id="pad">
+        <div id="padEcho"></div>
+        <div id="padGrid">
+            <div class="key" data-d="1">1</div>
+            <div class="key" data-d="2">2</div>
+            <div class="key" data-d="3">3</div>
+            <div class="key" data-d="4">4</div>
+            <div class="key" data-d="5">5</div>
+            <div class="key" data-d="6">6</div>
+            <div class="key" data-d="7">7</div>
+            <div class="key" data-d="8">8</div>
+            <div class="key" data-d="9">9</div>
+            <div class="key" id="padDel">&#9003;</div>
+            <div class="key" data-d="0">0</div>
+            <div class="key go" id="padGo">GO</div>
+        </div>
+    </div>
+
+    <script>
+        const CHANNELS = [
+          { n:1,  title:"Original",         type:"file", src:"ORIGINAL_FRUSTRATED_OPERATOR_202606250441.mp4" },
+          { n:2,  title:"Claymation",       type:"file", src:"3D_SIMULATED_CLAYMATION_style__stop-motion_202606250434.mp4" },
+          { n:3,  title:"Cartoon Network",  type:"file", src:"Cartoon_Network_2D_animated_style_202606250435.mp4" },
+          { n:4,  title:"Cel-Shaded 3D",    type:"file", src:"Cel-shaded_NPR_3D_style_202606250434.mp4" },
+          { n:5,  title:"Demon Slayer",     type:"file", src:"Demon_Slayer_anime_style._202606250437.mp4" },
+          { n:6,  title:"Frustrated Op v1", type:"file", src:"FRUSTRATED_OPERATOR_202606242345.mp4" },
+          { n:7,  title:"Frustrated Op v2", type:"file", src:"FRUSTRATED_OPERATOR_202606242348.mp4" },
+          { n:8,  title:"Glitch Art",       type:"file", src:"Glitch_art_datamoshing_visual_ae\u2026_202606250434.mp4" },
+          { n:9,  title:"Historical Doc",   type:"file", src:"Historical_documentary_ancient_c\u2026_202606250435.mp4" },
+          { n:10, title:"MTV Music Video",  type:"file", src:"MTV_music_video_youth_culture_202606250435.mp4" },
+          { n:11, title:"NPR Painterly",    type:"file", src:"NPR_PAINTERLY_style_offset_linework_202606250434.mp4" },
+          { n:12, title:"Naruto",           type:"file", src:"Naruto_anime_style_bitrate_starv\u2026_202606250438.mp4" },
+          { n:13, title:"One Piece",        type:"file", src:"One_Piece_anime_style._202606250437.mp4" },
+          { n:14, title:"Pixar CGI",        type:"file", src:"Pixar_CGI_house_style_202606250433.mp4" },
+          { n:15, title:"Kids Show",        type:"file", src:"Playful_children's_entertainment\u2026_202606250434.mp4" },
+          { n:16, title:"Pok\u00e9mon",          type:"file", src:"Pok\u00e9mon_total_system_collapse_202606250437.mp4" },
+          { n:17, title:"Psychedelic",      type:"file", src:"Psychedelic_trails_corrupted_dat\u2026_202606250437.mp4" },
+          { n:18, title:"Rotoscope",        type:"file", src:"Rotoscope_hyper-realistic_motion\u2026_202606250433.mp4" },
+          { n:19, title:"South Park",       type:"file", src:"South_Park_cut-out_style_movement_202606250433.mp4" },
+          { n:20, title:"Spider-Verse",     type:"file", src:"Spider-Verse_style_2D_3D_mashup_202606250433.mp4" },
+          { n:21, title:"TCM Classic",      type:"file", src:"TCM_classic_cinema_aesthetic_202606250435.mp4" },
+          { n:22, title:"Infomercial",      type:"file", src:"Teleshopping_infomercial_theatre\u2026_202606250435.mp4" },
+          { n:23, title:"True Crime Doc",   type:"file", src:"True_crime_documentary_aesthetic_202606250435.mp4" },
+          { n:24, title:"Planet Earth",     type:"file", src:"Video_in_Planet_Earth_caves_202606250436.mp4" },
+        ];
+
+        let cur = 0, started = false, padBuf = "";
+        const layers = [];
+        const $ = s => document.querySelector(s);
+        const players = $("#players"), fx = $("#fx"), bug = $("#bug");
+
+        /* ── Haptic feedback ── */
+        function haptic(p) { if (navigator.vibrate) navigator.vibrate(p); }
+        function hapticClick()  { haptic(12); }
+        function hapticSwitch() { haptic([15, 25, 35]); }
+        function hapticPower()  { haptic([25, 40, 25, 40, 50]); }
+
+        /* ── Canvas static + white noise ── */
+        let staticCvs = null, staticCtx = null, staticAnim = null;
+        let audioCtx = null, noiseNode = null, noiseGain = null;
+
+        function initStaticCanvas() {
+            if (staticCvs) return;
+            staticCvs = document.createElement('canvas');
+            staticCvs.width = Math.min(window.innerWidth, 480);
+            staticCvs.height = Math.min(window.innerHeight, 360);
+            staticCtx = staticCvs.getContext('2d');
+            fx.appendChild(staticCvs);
+        }
+        function drawNoise() {
+            const w = staticCvs.width, h = staticCvs.height;
+            const img = staticCtx.createImageData(w, h);
+            const d = img.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const v = Math.random() * 255 | 0;
+                d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
+            }
+            staticCtx.putImageData(img, 0, 0);
+            staticAnim = requestAnimationFrame(drawNoise);
+        }
+        function startStatic() {
+            initStaticCanvas();
+            fx.classList.add('zap');
+            drawNoise();
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                noiseNode = audioCtx.createScriptProcessor(4096, 1, 1);
+                noiseGain = audioCtx.createGain();
+                noiseGain.gain.value = 0.06;
+                noiseNode.onaudioprocess = (e) => {
+                    const out = e.outputBuffer.getChannelData(0);
+                    for (let j = 0; j < out.length; j++) out[j] = Math.random() * 2 - 1;
+                };
+                noiseNode.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+            } catch(e) {}
+        }
+        function stopStatic() {
+            fx.classList.remove('zap');
+            if (staticAnim) { cancelAnimationFrame(staticAnim); staticAnim = null; }
+            try { if (noiseNode) { noiseNode.disconnect(); noiseNode = null; } } catch(e) {}
+            try { if (noiseGain) { noiseGain.disconnect(); noiseGain = null; } } catch(e) {}
+        }
+
+        function ensureLayer(i) {
+            if (layers[i]) return layers[i];
+            const ch = CHANNELS[i];
+            const div = document.createElement("div"); div.className = "layer";
+            if (ch.type === "yt") {
+                const f = document.createElement("iframe");
+                f.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+                f.referrerPolicy = "strict-origin-when-cross-origin"; f.setAttribute("allowfullscreen", "");
+                f.dataset.id = ch.id; div.appendChild(f); div._kind = "yt"; div._frame = f;
+            } else {
+                const v = document.createElement("video");
+                v.src = ch.src; v.loop = true; v.muted = true; v.playsInline = true;
+                v.setAttribute("webkit-playsinline", ""); v.preload = "auto";
+                v.addEventListener("waiting", () => i === cur && setLoad(true));
+                v.addEventListener("playing", () => i === cur && setLoad(false));
+                div.appendChild(v); div._kind = "video"; div._video = v;
+            }
+            players.appendChild(div); layers[i] = div; return div;
+        }
+        function warm(i) { [i, (i + 1) % 24, (i + 23) % 24].forEach(j => { const L = ensureLayer(j); if (L._kind === "video") L._video.preload = "auto"; }); }
+        function setLoad(on) { $("#load").classList.toggle("on", on); }
+
+        function tune(i) {
+            const N = CHANNELS.length;
+            i = (i % N + N) % N; const prev = cur; cur = i;
+            hapticSwitch();
+            if (layers[prev] && prev !== i) {
+                const old = layers[prev]; old.classList.remove("live");
+                if (old._kind === "video") old._video.pause();
+                if (old._kind === "yt") old._frame.src = "";
+            }
+            // Static burst
+            startStatic();
+            setTimeout(() => {
+                stopStatic();
+                const L = ensureLayer(i); L.classList.add("live");
+                if (L._kind === "video") { const v = L._video; v.muted = true; v.currentTime = 0; const p = v.play(); if (p && p.catch) p.catch(() => { }); }
+                else { const b = "https://www.youtube.com/embed/" + L._frame.dataset.id; L._frame.src = b + "?autoplay=1&playsinline=1&rel=0&modestbranding=1&mute=1"; }
+                warm(i); paint();
+            }, 280 + Math.random() * 120);
+        }
+        function paint() {
+            const ch = CHANNELS[cur], nn = String(ch.n).padStart(2, "0");
+            bug.querySelector(".num").textContent = nn; bug.querySelector(".nm").textContent = ch.title; bug.classList.add("show");
+            clearTimeout(paint._t); paint._t = setTimeout(() => bug.classList.remove("show"), 2000);
+            $("#cNow").textContent = nn; $("#cName").textContent = ch.title;
+            const rows = document.querySelectorAll("#list .ch");
+            rows.forEach((r, idx) => r.classList.toggle("on", idx === cur));
+            const active = rows[cur]; if (active) active.scrollIntoView({ block: "nearest" });
+        }
+
+        function curEl() { const L = layers[cur]; return L && L._kind === "video" ? L._video : null; }
+        function togglePlay() { const v = curEl(); if (v) { v.paused ? v.play() : v.pause(); } }
+
+        function powerOn() { if (started) return; started = true; hapticPower(); $("#veil").classList.add("gone"); tune(0); startClock(); }
+        function powerOff() {
+            if (!started) return; started = false; hapticPower(); stopStatic();
+            layers.forEach(L => { if (!L) return; L.classList.remove("live"); if (L._kind === "video") L._video.pause(); if (L._kind === "yt") L._frame.src = ""; });
+            $("#veil").classList.remove("gone");
+        }
+
+        /* clock in the masthead */
+        function startClock() {
+            const c = $("#clock");
+            const tick = () => {
+                const d = new Date(); let h = d.getHours(), m = d.getMinutes();
+                const ap = h < 12 ? "AM" : "PM"; h = h % 12 || 12;
+                c.textContent = h + ":" + String(m).padStart(2, "0") + " " + ap;
+            };
+            tick(); clearInterval(startClock._t); startClock._t = setInterval(tick, 15000);
+        }
+
+        /* swipe / tap over the screen */
+        const zones = $("#zones"); let tx = 0, ty = 0, tt = 0, moved = false;
+        function pStart(e) { const p = e.touches ? e.touches[0] : e; tx = p.clientX; ty = p.clientY; tt = Date.now(); moved = false; }
+        function pMove(e) { const p = e.touches ? e.touches[0] : e; if (Math.abs(p.clientX - tx) > 10 || Math.abs(p.clientY - ty) > 10) moved = true; }
+        function pEnd(e) {
+            if (!started) { powerOn(); return; }
+            const p = e.changedTouches ? e.changedTouches[0] : e;
+            const dx = p.clientX - tx, dy = p.clientY - ty, dt = Date.now() - tt, ax = Math.abs(dx), ay = Math.abs(dy);
+            if (ay > 40 && ay > ax) { dy < 0 ? tune(cur + 1) : tune(cur - 1); return; }     /* swipe up = ch+, down = ch- */
+            if (ax > 48 && ax > ay) { dx < 0 ? tune(cur + 1) : tune(cur - 1); return; }
+            if (!moved && dt < 350) {
+                const h = $("#tv").clientHeight, y = p.clientY - $("#tv").getBoundingClientRect().top;
+                if (y < h * 0.30) tune(cur + 1); else if (y > h * 0.70) tune(cur - 1); else togglePlay();
+            }
+        }
+        zones.addEventListener("touchstart", pStart, { passive: true });
+        zones.addEventListener("touchmove", pMove, { passive: true });
+        zones.addEventListener("touchend", pEnd);
+        zones.addEventListener("mousedown", pStart);
+        zones.addEventListener("mousemove", pMove);
+        zones.addEventListener("mouseup", pEnd);
+
+        /* dial rockers */
+        $("#chUp").addEventListener("click", () => { hapticClick(); started ? tune(cur + 1) : powerOn(); });
+        $("#chDn").addEventListener("click", () => { hapticClick(); started ? tune(cur - 1) : powerOn(); });
+
+        /* center: tap = pad, long-press = power toggle */
+        const center = $("#center"); let lpT = null, lpFired = false;
+        function centerDown() { lpFired = false; lpT = setTimeout(() => { lpFired = true; started ? powerOff() : powerOn(); }, 550); }
+        function centerUp() { clearTimeout(lpT); if (!lpFired) { started ? openPad() : powerOn(); } }
+        center.addEventListener("touchstart", e => { centerDown(); }, { passive: true });
+        center.addEventListener("touchend", centerUp);
+        center.addEventListener("mousedown", centerDown);
+        center.addEventListener("mouseup", centerUp);
+        center.addEventListener("mouseleave", () => clearTimeout(lpT));
+
+        /* keyboard */
+        addEventListener("keydown", e => {
+            if (!started && (e.key === " " || e.key === "Enter")) { powerOn(); return; }
+            if (e.key === "ArrowUp" || e.key === "ArrowRight") { tune(cur + 1); e.preventDefault(); }
+            if (e.key === "ArrowDown" || e.key === "ArrowLeft") { tune(cur - 1); e.preventDefault(); }
+            if (e.key === " ") { togglePlay(); e.preventDefault(); }
+            if (e.key === "p" || e.key === "P") { started ? powerOff() : powerOn(); }
+            if (/^[0-9]$/.test(e.key)) { openPad(); padPush(e.key); }
+        });
+
+        /* number pad */
+        const pad = $("#pad"), padEcho = $("#padEcho");
+        function openPad() { if (!started) powerOn(); padBuf = ""; padEcho.textContent = ""; pad.classList.add("up"); }
+        function closePad() { pad.classList.remove("up"); }
+        function padPush(d) { if (padBuf.length >= 2) padBuf = ""; padBuf += d; padEcho.textContent = padBuf; }
+        function padCommit() { let n = parseInt(padBuf, 10); if (!isNaN(n)) { n = Math.min(24, Math.max(1, n)); tune(n - 1); } closePad(); }
+        $("#padGrid").addEventListener("click", e => {
+            const k = e.target.closest(".key"); if (!k) return;
+            if (k.id === "padDel") { padBuf = padBuf.slice(0, -1); padEcho.textContent = padBuf; }
+            else if (k.id === "padGo") { padCommit(); }
+            else padPush(k.dataset.d);
+        });
+        document.addEventListener("click", e => { if (pad.classList.contains("up") && !pad.contains(e.target) && !center.contains(e.target)) closePad(); });
+
+        /* build GUIDE rail */
+        const list = $("#list");
+        CHANNELS.forEach((ch, idx) => {
+            const row = document.createElement("div"); row.className = "ch";
+            row.innerHTML = '<span class="n">' + String(ch.n).padStart(2, "0") + '</span><span class="t">' + ch.title + '</span>';
+            row.addEventListener("click", () => { if (!started) { powerOn(); return; } tune(idx); });
+            list.appendChild(row);
+        });
+        $("#guideCnt").textContent = CHANNELS.length + " CH";
+
+        $("#veil").addEventListener("click", powerOn);
+        document.addEventListener("gesturestart", e => e.preventDefault());
+        document.addEventListener("contextmenu", e => { if (e.target.closest("#tv,#zones,#dial")) e.preventDefault(); });
+    </script>
+</body>
+
+</html>

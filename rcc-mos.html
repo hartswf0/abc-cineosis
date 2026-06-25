@@ -645,21 +645,33 @@ button { cursor:pointer; touch-action:manipulation; }
     </div>
     <button class="btn d" id="mk-gen">✦ GENERATE LINKED CELL</button>
 
-    <div class="sep-lbl">EXPORT</div>
-    <button class="btn" id="ex-player">★ PLAYABLE STORY (.HTML)</button>
+    <div class="sep-lbl">FILM</div>
+    <div class="btn-row">
+      <button class="btn" id="ex-edl">⭳ CMX3600 EDL</button>
+      <button class="btn" id="ex-otio">⭳ OTIO</button>
+    </div>
+    <div class="sep-lbl">STORY</div>
     <div class="btn-row">
       <button class="btn" id="ex-twee">TWINE (.TWEE)</button>
+      <button class="btn" id="ex-zorc-tweel">⭳ TWEEL JSON</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="ex-zorc-edl">⭳ ZORC EDL</button>
       <button class="btn" id="ex-beflix">BEFLIX (.TXT)</button>
     </div>
+    <div class="sep-lbl">WORLD</div>
+    <div class="btn-row">
+      <button class="btn" id="ex-player">★ PLAYABLE STORY (.HTML)</button>
+      <button class="btn" id="ex-mosaic">★ MOSAIC STORYBOARD</button>
+    </div>
+    <div class="sep-lbl">MEDIA</div>
     <div class="btn-row">
       <button class="btn" id="ex-png">PNG — VIEW</button>
       <button class="btn" id="ex-video">VIDEO — CELL</button>
     </div>
     <div class="btn-row">
-      <button class="btn" id="ex-zorc-edl">⭳ EDL</button>
-      <button class="btn" id="ex-zorc-tweel">⭳ TWEEL</button>
-      <button class="btn" id="ex-zorc-map">⭳ MAP</button>
-      <button class="btn" id="ex-zorc-path">⭳ PATH</button>
+      <button class="btn" id="ex-zorc-map">⭳ TERRITORY MAP</button>
+      <button class="btn" id="ex-zorc-path">⭳ PATH FILM</button>
     </div>
   </div>
 </div>
@@ -838,6 +850,527 @@ let fireMode = false;
 
 // ZORC engine state
 let zorc = { current:0, inventory:[], global_flags:{}, history:[], cut_sequence:[], compiler_log:[], log:[] };
+
+// ═══════════════════════════════════════
+// CINETERRITORY CLASS — THE ENGINE'S CORE UNIT
+// A CineTerritory is simultaneously:
+//   SHOT (time) — frame sequence, duration, timecodes
+//   ROOM (space) — BEFLIX pixel grid, objects, description
+//   PASSAGE (choice) — edges to other territories, branching
+// ═══════════════════════════════════════
+class CineTerritory {
+  constructor(cell, index, allEdges, allCells) {
+    this._cell = cell;
+    this._index = index;
+    this._edges = allEdges || [];
+    this._cells = allCells || [];
+  }
+  // Identity
+  get id()   { return this._cell.id; }
+  get name() { return this._cell.name || 'UNTITLED'; }
+  get desc() { return this._cell.zorcRoom?.desc || this._cell.desc || ''; }
+  get hue()  { return this._cell.hue || 0; }
+  get seed() { return this._cell.seed || {x:0,y:0}; }
+  get code() { return this._cell.code || 'CLR 0\nREC 1'; }
+  get frameCount() { return this._cell.frames?.length || 1; }
+  get curFrame()   { return this._cell.curFrame || 0; }
+  get physics()    { return this._cell.physics || {}; }
+  get phase()      { return this._cell.phase || 'latent'; }
+  get objects()    { return this._cell.zorcRoom?.objects || this._cell.objects || []; }
+  get zorcRoom()   { return this._cell.zorcRoom || {}; }
+
+  // ─── PROJECTION: SHOT (Time) ───
+  asShot(fps = 12) {
+    const fc = this.frameCount;
+    return {
+      reel: this.name,
+      frame_count: fc,
+      duration_sec: fc / fps,
+      timecode_in: CineTerritory.timecode(0, fps),
+      timecode_out: CineTerritory.timecode(fc, fps)
+    };
+  }
+
+  // ─── PROJECTION: ROOM (Space) ───
+  asRoom() {
+    const room = this.zorcRoom;
+    return {
+      id: room.id || this.id,
+      name: room.name || this.name,
+      desc: room.desc || this.desc,
+      objects: this.objects.map(o => ({
+        id: o.id, name: o.name, kind: o.kind,
+        verbs: o.verbs, portable: o.portable
+      })),
+      prompt: room.c_prompt || extractPrompt(this.code) || '',
+      motif: typeof inferZorcMotif === 'function' ? inferZorcMotif(room) : 'territory'
+    };
+  }
+
+  // ─── PROJECTION: PASSAGE (Choice) ───
+  asPassage() {
+    const exits = this._edges
+      .filter(e => e.from === this._index && this._cells[e.to])
+      .map((e, i) => ({
+        direction: (typeof ZORC_DIRECTIONS !== 'undefined' ? ZORC_DIRECTIONS : [])[i % 9] || 'NEXT',
+        target_name: this._cells[e.to].name,
+        target_index: e.to,
+        op: e.op,
+        label: e.label || ((typeof OPS !== 'undefined' && OPS[e.op]) ? OPS[e.op].lbl : e.op) || e.op,
+        command: e.command || e.op,
+        branch_type: e.branchType || 'room',
+        source_frame: e.sourceFrame ?? null
+      }));
+    return { exits, has_choices: exits.length > 1 };
+  }
+
+  // ─── STATE VECTOR [v1...vn] per wireframe ───
+  stateVector() {
+    const p = this.physics;
+    return [
+      p.integrity ?? 1.0,
+      p.energy ?? 0.0,
+      p.entropy ?? 0.1,
+      p.coherence ?? 1.0,
+      this.frameCount,
+      this.objects.length,
+      this.asPassage().exits.length
+    ];
+  }
+
+  // ─── SERIALIZERS ───
+  toEDLEvent(eventNum, recordOffset, fps = 24) {
+    const shot = this.asShot(fps);
+    return {
+      event: String(eventNum).padStart(3, '0'),
+      reel: shot.reel.replace(/[^A-Z0-9_-]/gi, '_').slice(0, 32),
+      track: 'V',
+      transition: eventNum === 1 ? 'C' : 'C',
+      source_in: shot.timecode_in,
+      source_out: shot.timecode_out,
+      record_in: CineTerritory.timecode(recordOffset, fps),
+      record_out: CineTerritory.timecode(recordOffset + shot.frame_count, fps)
+    };
+  }
+
+  toEDLLine(eventNum, recordOffset, fps = 24) {
+    const e = this.toEDLEvent(eventNum, recordOffset, fps);
+    return `${e.event}  ${e.reel.padEnd(32)}  ${e.track}     ${e.transition}        ${e.source_in} ${e.source_out} ${e.record_in} ${e.record_out}`;
+  }
+
+  toTweePassage() {
+    const room = this.asRoom();
+    const passage = this.asPassage();
+    let body = `${room.desc || 'Executable BEFLIX room.'}\n\n`;
+    body += `{BEFLIX}\n${this.code}\n{/BEFLIX}\n\n`;
+    if (passage.exits.length) {
+      body += 'Exits:\n';
+      passage.exits.forEach(ex => {
+        const cut = ex.source_frame != null ? ` @F${ex.source_frame + 1}` : '';
+        body += `[[${ex.direction} ${ex.label}${cut}|${ex.target_name}]]\n`;
+      });
+    }
+    return { name: this.name, tags: ['zorc', 'beflix', room.motif], body };
+  }
+
+  toTweelRecord() {
+    const room = this.asRoom();
+    const passage = this.asPassage();
+    const shot = this.asShot();
+    return {
+      index: this._index, id: this.id, name: this.name,
+      description: room.desc,
+      territory_kind: this._cell.territoryKind || 'room',
+      motif: room.motif,
+      frame_count: shot.frame_count, current_frame: this.curFrame,
+      objects: room.objects,
+      c_prompt: room.prompt,
+      beflix_code: this.code,
+      state_vector: this.stateVector(),
+      links: passage.exits.map(ex => ({
+        text: ex.label, target: ex.target_name,
+        source_frame: ex.source_frame, command: ex.command
+      }))
+    };
+  }
+
+  toBEFLIX(includeHeader = true) {
+    let out = '';
+    if (includeHeader) {
+      out += `C ====\nC CELL ${this._index + 1}: ${this.name}  (${this.frameCount} frames)\nC ====\n`;
+    }
+    out += this.code;
+    return out;
+  }
+
+  toJSON() {
+    return {
+      id: this.id, name: this.name, desc: this.desc,
+      seed: this.seed, hue: this.hue, code: this.code,
+      curFrame: this.curFrame, zorcRoom: this._cell.zorcRoom,
+      objects: this._cell.objects,
+      physics: this.physics, phase: this.phase
+    };
+  }
+
+  toOTIOClip(fps = 24) {
+    const shot = this.asShot(fps);
+    return {
+      OTIO_SCHEMA: 'Clip.2',
+      name: this.name,
+      source_range: {
+        OTIO_SCHEMA: 'TimeRange.1',
+        start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 0 },
+        duration: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: shot.frame_count }
+      },
+      media_reference: {
+        OTIO_SCHEMA: 'MissingReference.1',
+        name: this.name + '.beflix',
+        available_range: {
+          OTIO_SCHEMA: 'TimeRange.1',
+          start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 0 },
+          duration: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: shot.frame_count }
+        }
+      },
+      metadata: {
+        cineosis: {
+          beflix_code: this.code,
+          territory_id: this.id,
+          motif: this.asRoom().motif,
+          state_vector: this.stateVector()
+        }
+      }
+    };
+  }
+
+  // ─── STATIC HELPERS ───
+  static timecode(frame, fps = 24) {
+    const totalFrames = Math.max(0, Math.round(frame));
+    const f = totalFrames % fps;
+    const totalSec = Math.floor(totalFrames / fps);
+    const s = totalSec % 60;
+    const totalMin = Math.floor(totalSec / 60);
+    const m = totalMin % 60;
+    const h = Math.floor(totalMin / 60);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}:${String(f).padStart(2,'0')}`;
+  }
+
+  static fromCell(cell, index, edges, cells) {
+    return new CineTerritory(cell, index, edges, cells);
+  }
+
+  static wrapAll(cellsArr, edgesArr) {
+    return cellsArr.map((c, i) => CineTerritory.fromCell(c, i, edgesArr, cellsArr));
+  }
+}
+
+// ═══════════════════════════════════════
+// EXPORT ENGINE — UNIFIED SERIALIZATION
+// Projects the CineTerritory triple into format-specific files
+// ═══════════════════════════════════════
+const ExportEngine = {
+
+  // ─── GRAPH TRAVERSAL ───
+  walkLinear(cellsArr, edgesArr, zorcState) {
+    // Follow the committed path (cut_sequence), or topological walk
+    const seq = zorcState.cut_sequence?.length
+      ? [...zorcState.cut_sequence]
+      : [];
+    if (!seq.length) {
+      // Topological walk: start from cell 0, follow edges
+      const visited = new Set();
+      const stack = [0];
+      while (stack.length) {
+        const idx = stack.pop();
+        if (idx < 0 || idx >= cellsArr.length || visited.has(idx)) continue;
+        visited.add(idx);
+        seq.push(idx);
+        edgesArr.filter(e => e.from === idx).forEach(e => stack.push(e.to));
+      }
+    }
+    return seq.filter(i => i >= 0 && i < cellsArr.length);
+  },
+
+  walkAll(cellsArr) {
+    return cellsArr.map((_, i) => i);
+  },
+
+  // ─── FILM EXPORT: CMX3600 EDL ───
+  exportEDL(cellsArr, edgesArr, zorcState, fpsVal = 24) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const seq = this.walkLinear(cellsArr, edgesArr, zorcState);
+    let offset = 0;
+    const lines = [
+      'TITLE: CINEOSIS',
+      `FCM: NON-DROP FRAME`,
+      ''
+    ];
+    seq.forEach((idx, i) => {
+      const t = territories[idx];
+      lines.push(t.toEDLLine(i + 1, offset, fpsVal));
+      lines.push(`* FROM CLIP NAME: ${t.name}`);
+      lines.push(`* BEFLIX CODE: ${t.code.split('\n').length} LINES`);
+      const room = t.asRoom();
+      if (room.desc) lines.push(`* COMMENT: ${room.desc.slice(0, 80)}`);
+      lines.push('');
+      offset += t.frameCount;
+    });
+    downloadText(lines.join('\n'), 'cineosis-' + stamp() + '.edl', 'text/plain');
+    toast('Exported CMX3600 EDL');
+  },
+
+  // ─── FILM EXPORT: OPENTIMELINEIO ───
+  exportOTIO(cellsArr, edgesArr, zorcState, fpsVal = 24) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const seq = this.walkLinear(cellsArr, edgesArr, zorcState);
+    const clips = seq.map(idx => territories[idx].toOTIOClip(fpsVal));
+    const otio = {
+      OTIO_SCHEMA: 'Timeline.1',
+      name: 'CINEOSIS',
+      global_start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fpsVal, value: 0 },
+      tracks: {
+        OTIO_SCHEMA: 'Stack.1',
+        name: 'tracks',
+        children: [{
+          OTIO_SCHEMA: 'Track.1',
+          name: 'V1',
+          kind: 'Video',
+          children: clips
+        }]
+      },
+      metadata: {
+        cineosis: {
+          version: 1,
+          grid: { width: GC, height: GR },
+          fps: fpsVal,
+          territory_count: cellsArr.length,
+          edge_count: edgesArr.length,
+          committed_path: seq,
+          timestamp: stamp()
+        }
+      }
+    };
+    downloadText(JSON.stringify(otio, null, 2), 'cineosis-' + stamp() + '.otio', 'application/json');
+    toast('Exported OpenTimelineIO');
+  },
+
+  // ─── STORY EXPORT: TWEE ───
+  exportTwee(cellsArr, edgesArr) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const ifid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : ('CINEOSIS-' + Date.now());
+    let t = `:: StoryData\n${JSON.stringify({ ifid, format: 'Harlowe', 'format-version': '3.3.7', start: territories[0].name }, null, 2)}\n\n`;
+    t += `:: StoryTitle\nCINEOSIS\n\n`;
+    t += `:: Start\nCINEOSIS compiles each territory as a 128×96 BEFLIX code-room.\n\n`;
+    t += `[[ENTER ${territories[0].name}|${territories[0].name}]]\n\n`;
+    territories.forEach(terr => {
+      const p = terr.toTweePassage();
+      t += `:: ${p.name} [${p.tags.join(' ')}]\n${p.body}\n`;
+    });
+    downloadText(t, 'cineosis-' + stamp() + '.twee', 'text/plain');
+    toast('Exported Twee');
+  },
+
+  // ─── STORY EXPORT: TWEEL JSON ───
+  exportTweel(cellsArr, edgesArr, zorcState) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const d = {
+      type: 'TWEEL_ZORC_BUNDLE', version: 2,
+      story: { title: 'CINEOSIS', format: 'Twine/Twee with embedded BEFLIX' },
+      start: territories[0].name,
+      grid: { width: GC, height: GR, max_frames: MAX_FRAMES },
+      territory_map_beflix: generateTerritoryMapBFX(),
+      passages: territories.map(t => t.toTweelRecord()),
+      edges: edgesArr.map((e, i) => this._edgeRecord(e, i, cellsArr)),
+      zorc_state: {
+        current_room: zorcState.current,
+        inventory: zorcState.inventory,
+        command_history: zorcState.history,
+        cut_sequence: zorcState.cut_sequence
+      },
+      timestamp: stamp()
+    };
+    downloadText(JSON.stringify(d, null, 2), 'cineosis-' + stamp() + '.tweel.json', 'application/json');
+    toast('Exported Tweel bundle');
+  },
+
+  // ─── STORY EXPORT: ZORC EDL (legacy JSON format) ───
+  exportZorcEDL(cellsArr, edgesArr, zorcState) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const d = {
+      type: 'ZORC_EDL', version: 2,
+      title: 'CINEOSIS',
+      grid: { width: GC, height: GR, max_frames: MAX_FRAMES },
+      current_room: zorcState.current,
+      inventory: zorcState.inventory,
+      command_history: zorcState.history,
+      cut_sequence: zorcState.cut_sequence,
+      territory_map_beflix: generateTerritoryMapBFX(),
+      edits: edgesArr.map((e, i) => this._edgeRecord(e, i, cellsArr)),
+      scenes: territories.map(t => t.toTweelRecord()),
+      timestamp: stamp()
+    };
+    downloadText(JSON.stringify(d, null, 2), 'cineosis-zorc-' + stamp() + '.edl.json', 'application/json');
+    toast('Exported ZORC EDL');
+  },
+
+  // ─── SOURCE EXPORT: BEFLIX TEXT ───
+  exportBEFLIX(cellsArr, edgesArr) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const header = `C CINEOSIS — BEFLIX export\nC ${cellsArr.length} territories · ${stamp()}\n\n`;
+    const body = territories.map(t => t.toBEFLIX(true)).join('\n\n');
+    downloadText(header + body, 'cineosis-beflix-' + stamp() + '.txt');
+    toast('Exported BEFLIX');
+  },
+
+  // ─── SOURCE EXPORT: TERRITORY MAP BFX ───
+  exportTerritoryMapBFX() {
+    downloadText(generateTerritoryMapBFX(), 'cineosis-territory-map-' + stamp() + '.bfx', 'text/plain');
+    toast('Exported territory map');
+  },
+
+  // ─── SOURCE EXPORT: PATH FILM BFX ───
+  exportPathBFX(cellsArr, edgesArr, zorcState) {
+    const seq = this.walkLinear(cellsArr, edgesArr, zorcState);
+    if (!seq.length) { toast('No path to export', true); return; }
+    let out = 'C ZORC PATH FILM\nC Commands: ' + (zorcState.history || []).map(h => h.cmd).join(' | ') + '\n\n';
+    seq.forEach((idx, i) => {
+      const c = cellsArr[idx];
+      if (c) out += `C ===== PATH ROOM ${i + 1}: ${c.name} =====\n${c.code}\n\n`;
+    });
+    downloadText(out, 'cineosis-path-film-' + stamp() + '.bfx', 'text/plain');
+    toast('Exported path film');
+  },
+
+  // ─── WORLD EXPORT: STANDALONE HTML PLAYER ───
+  exportPlayer(cellsArr, edgesArr, fpsVal = 12) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const data = {
+      title: 'CINEOSIS', GC, GR, fps: fpsVal,
+      cells: cellsArr.map(c => ({ name: c.name, code: c.code, hue: c.hue })),
+      edges: edgesArr.map(e => ({ from: e.from, to: e.to, op: e.op }))
+    };
+    const json = JSON.stringify(data).replace(/<\/script>/gi, '<\\/script>');
+    const html = PLAYER_TPL.replace('/*__DATA__*/', json);
+    downloadText(html, 'cineosis-player-' + stamp() + '.html', 'text/html');
+    toast('Exported player');
+  },
+
+  // ─── WORLD EXPORT: HTML MOSAIC STORYBOARD (NEW) ───
+  exportMosaicHTML(cellsArr, edgesArr, fpsVal = 12) {
+    if (!cellsArr.length) { toast('No territories to export', true); return; }
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const tData = territories.map(t => {
+      const room = t.asRoom();
+      const shot = t.asShot(fpsVal);
+      const passage = t.asPassage();
+      return {
+        name: t.name, code: t.code, hue: t.hue,
+        desc: room.desc, motif: room.motif,
+        objects: room.objects.map(o => o.name),
+        frames: shot.frame_count, duration: shot.duration_sec.toFixed(1),
+        exits: passage.exits.map(ex => ({ label: ex.label, target: ex.target_name })),
+        stateVector: t.stateVector()
+      };
+    });
+    const edgeData = edgesArr.map(e => ({ from: e.from, to: e.to, op: e.op }));
+    const json = JSON.stringify({ territories: tData, edges: edgeData, GC, GR, fps: fpsVal })
+      .replace(/<\/script>/gi, '<\\/script>');
+    const html = MOSAIC_TPL.replace('/*__DATA__*/', json);
+    downloadText(html, 'cineosis-mosaic-' + stamp() + '.html', 'text/html');
+    toast('Exported HTML Mosaic');
+  },
+
+  // ─── PROJECT EXPORT: JSON ───
+  exportJSON(cellsArr, edgesArr, zorcState) {
+    const territories = CineTerritory.wrapAll(cellsArr, edgesArr);
+    const d = {
+      version: 2,
+      cells: territories.map(t => t.toJSON()),
+      edges: edgesArr,
+      zorc: zorcState,
+      metadata: { timestamp: stamp(), territory_count: cellsArr.length }
+    };
+    downloadText(JSON.stringify(d), 'cineosis-project-' + stamp() + '.json', 'application/json');
+    toast('Saved project');
+  },
+
+  // ─── MEDIA EXPORT: PNG ───
+  exportPNG(canvas) {
+    try {
+      render();
+      downloadURL(canvas.toDataURL('image/png'), 'cineosis-mosaic-' + stamp() + '.png');
+      toast('Saved PNG');
+    } catch (e) { toast('Save failed: ' + e.message, true); }
+  },
+
+  // ─── MEDIA EXPORT: VIDEO ───
+  async exportVideo(cellsArr, activeIdx, canvas, fpsVal = 12) {
+    if (_recording) return;
+    if (activeIdx < 0) {
+      if (cellsArr.length) selectCell(0); else { toast('No cell', true); return; }
+      activeIdx = 0;
+    }
+    if (typeof MediaRecorder === 'undefined' || !canvas.captureStream) {
+      toast('Video not supported', true); return;
+    }
+    const c = cellsArr[activeIdx];
+    const tryTypes = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+    let mime = ''; for (const t of tryTypes) if (MediaRecorder.isTypeSupported(t)) { mime = t; break; }
+    if (!mime) { toast('No video encoder', true); return; }
+    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const wasPlaying = playing; if (playing) togglePlay();
+    _recording = true; closeExport(); toast('Recording ' + c.name + '…');
+    const stream = canvas.captureStream(30);
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      const blob = new Blob(chunks, { type: mime });
+      const url = URL.createObjectURL(blob);
+      downloadURL(url, 'cineosis-' + c.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '-' + stamp() + '.' + ext);
+      setTimeout(() => URL.revokeObjectURL(url), 6000);
+      _recording = false; toast('Saved ' + ext.toUpperCase());
+      if (wasPlaying && !playing) togglePlay();
+    };
+    const fcount = Math.max(c.frames.length, 1);
+    const loops = 2, frameMs = 1000 / fpsVal;
+    const totalMs = Math.min(Math.max(fcount * loops * frameMs, 1500), 12000);
+    rec.start(); const saved = c.curFrame; let f = 0; const startT = performance.now();
+    const step = () => {
+      if (!_recording) return;
+      c.curFrame = f % fcount; render(); f++;
+      if (performance.now() - startT >= totalMs) { c.curFrame = saved; render(); rec.stop(); return; }
+      setTimeout(() => requestAnimationFrame(step), frameMs);
+    };
+    requestAnimationFrame(step);
+  },
+
+  // ─── INTERNAL: Edge record ───
+  _edgeRecord(e, i, cellsArr) {
+    const from = cellsArr[e.from], to = cellsArr[e.to];
+    return {
+      edit_index: i,
+      from: e.from, from_name: from?.name || null,
+      to: e.to, to_name: to?.name || null,
+      op: e.op,
+      label: e.label || ((typeof OPS !== 'undefined' && OPS[e.op]) ? OPS[e.op].lbl : e.op) || e.op,
+      command: e.command || e.label || e.op,
+      branch_type: e.branchType || 'room',
+      source_frame: e.sourceFrame ?? null,
+      created_by: e.created_by || 'unknown'
+    };
+  }
+};
+
+// ─── HTML MOSAIC TEMPLATE (World Export) ───
+const MOSAIC_TPL = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CINEOSIS — Mosaic Storyboard</title><style>:root{--ink:#000;--paper:#fff;--bg:#f4f4f0;--a:#0033cc;--b:#c8a800;--g:#1a6b3a;--font:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:'Helvetica Neue',Arial,sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh}header{background:var(--ink);color:var(--paper);padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:3px solid #222}header h1{font:900 14px/1 var(--font);letter-spacing:.14em;text-transform:uppercase}header span{font:600 10px/1 var(--font);color:#888}.stats{margin-left:auto;display:flex;gap:16px}.stat{display:flex;flex-direction:column;align-items:center;gap:2px}.stat-lbl{font:900 6px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;color:#666}.stat-val{font:900 16px/1 var(--font);color:var(--b);font-variant-numeric:tabular-nums}#mosaic{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px;max-width:1600px;margin:0 auto}.card{border:3px solid var(--ink);background:var(--paper);box-shadow:4px 4px 0 #000;overflow:hidden;transition:transform .08s}.card:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}.card-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--ink);color:var(--paper);border-bottom:2px solid #222}.card-num{width:24px;height:24px;display:grid;place-items:center;font:900 10px/1 var(--font);border:2px solid var(--paper)}.card-name{font:900 10px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.card-frames{font:900 8px/1 var(--font);color:var(--b)}.card-cvs{width:100%;aspect-ratio:4/3;display:block;image-rendering:pixelated;background:#e0deda;cursor:pointer}.card-body{padding:10px 12px;display:flex;flex-direction:column;gap:6px}.card-desc{font:600 10px/1.5 var(--sans);color:#555;max-height:40px;overflow:hidden}.card-meta{display:flex;flex-wrap:wrap;gap:4px}.tag{font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;padding:3px 6px;border:1.5px solid var(--ink)}.tag.motif{background:var(--b);color:var(--ink);border-color:var(--b)}.tag.obj{background:var(--a);color:var(--paper);border-color:var(--a)}.exits{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.exit-btn{font:900 8px/1 var(--font);text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border:2px solid var(--ink);background:var(--paper);cursor:pointer;box-shadow:2px 2px 0 #000;transition:transform .05s,box-shadow .05s}.exit-btn:active{transform:translate(2px,2px);box-shadow:none}.exit-btn:hover{background:var(--g);color:var(--paper);border-color:var(--g)}#detail{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}#detail.on{display:flex}#detail-box{background:var(--paper);border:3px solid var(--ink);box-shadow:8px 8px 0 #000;max-width:720px;width:90%;max-height:90vh;overflow-y:auto}#detail-box header{padding:10px 14px}#detail-cvs{width:100%;image-rendering:pixelated;border-bottom:3px solid var(--ink)}#detail-info{padding:14px;font:600 11px/1.6 var(--sans)}#detail-info h3{font:900 12px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}#detail-code{background:var(--ink);color:#e0e0e0;font:11px/1.6 var(--font);padding:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}footer{background:var(--ink);color:#888;padding:10px 20px;font:900 7px/1 var(--font);text-transform:uppercase;letter-spacing:.1em;text-align:center;border-top:3px solid #222}</style></head><body><header><h1>CINEOSIS</h1><span>Mosaic Storyboard</span><div class="stats"><div class="stat"><span class="stat-lbl">Territories</span><span class="stat-val" id="s-terr">0</span></div><div class="stat"><span class="stat-lbl">Duration</span><span class="stat-val" id="s-dur">0s</span></div></div></header><div id="mosaic"></div><div id="detail"><div id="detail-box"><canvas id="detail-cvs" width="640" height="480"></canvas><div id="detail-info"></div><div id="detail-code"></div></div></div><footer>CINEOSIS MOSAIC STORYBOARD · EXPORTED <span id="ts"></span></footer><script>const D=/*__DATA__*/;const GC=D.GC,GR=D.GR,FPS=D.fps||12,MAX=120;const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));function parseBEFLIX(code){const lines=String(code).toUpperCase().split('\\n');const frames=[];let mat=new Uint8Array(GR*GC);for(const raw of lines){const line=raw.trim();if(!line||line[0]==='C'||line[0]===';')continue;const p=line.split(/\\s+/),cmd=p[0],a=p.slice(1).map(Number);try{if(cmd==='CLR')mat.fill(clamp(a[0]||0,0,7));else if(cmd==='PNT'){const[x,y,w,h,v]=a;const iv=clamp(v||0,0,7);for(let dy=y;dy<y+h;dy++)for(let dx=x;dx<x+w;dx++)if(dy>=0&&dy<GR&&dx>=0&&dx<GC)mat[dy*GC+dx]=iv;}else if(cmd==='LIN'){const[x1,y1,x2,y2,v]=a;const iv=clamp(v||0,0,7);let lx=x1,ly=y1;const dx=Math.abs(x2-lx),sx=lx<x2?1:-1,dy=-Math.abs(y2-ly),sy=ly<y2?1:-1;let le=dx+dy,lim=2000;while(lim-->0){if(lx>=0&&lx<GC&&ly>=0&&ly<GR)mat[ly*GC+lx]=iv;if(lx===x2&&ly===y2)break;const e2=2*le;if(e2>=dy){le+=dy;lx+=sx;}if(e2<=dx){le+=dx;ly+=sy;}}}else if(cmd==='REC'){const n=clamp(a[0]||1,1,MAX);for(let i=0;i<n&&frames.length<MAX;i++)frames.push(new Uint8Array(mat));}else if(cmd==='SHF'){const[sdx,sdy,sn]=a;const cnt=clamp(sn||1,1,MAX);for(let fi=0;fi<cnt&&frames.length<MAX;fi++){const nm=new Uint8Array(GR*GC);for(let y=0;y<GR;y++)for(let x=0;x<GC;x++){const nx=x-sdx,ny=y-sdy;if(nx>=0&&nx<GC&&ny>=0&&ny<GR)nm[y*GC+x]=mat[ny*GC+nx];}mat=nm;frames.push(new Uint8Array(mat));}}}catch(e){}}if(!frames.length)frames.push(new Uint8Array(mat));return frames;}D.territories.forEach(t=>{t.frames=parseBEFLIX(t.code);});document.getElementById('s-terr').textContent=D.territories.length;const totalDur=D.territories.reduce((s,t)=>s+t.frames.length/FPS,0);document.getElementById('s-dur').textContent=totalDur.toFixed(1)+'s';document.getElementById('ts').textContent=new Date().toISOString().slice(0,19);const mosaic=document.getElementById('mosaic');const animFrames=[];D.territories.forEach((t,idx)=>{const card=document.createElement('div');card.className='card';card.innerHTML='<div class="card-hd"><span class="card-num">'+(idx+1)+'</span><span class="card-name">'+t.name+'</span><span class="card-frames">'+t.frames.length+'f · '+t.duration+'s</span></div><canvas class="card-cvs" width="'+GC*4+'" height="'+GR*4+'"></canvas><div class="card-body">'+(t.desc?'<div class="card-desc">'+t.desc+'</div>':'')+'<div class="card-meta"><span class="tag motif">'+t.motif+'</span>'+(t.objects||[]).map(o=>'<span class="tag obj">'+o+'</span>').join('')+'</div>'+(t.exits.length?'<div class="exits">'+t.exits.map((ex,ei)=>'<button class="exit-btn" data-to="'+ei+'">'+ex.label+' → '+ex.target+'</button>').join('')+'</div>':'')+'</div>';mosaic.appendChild(card);const cvs=card.querySelector('.card-cvs');const ctx=cvs.getContext('2d');ctx.imageSmoothingEnabled=false;animFrames.push({cvs,ctx,frames:t.frames,f:0,idx});cvs.addEventListener('click',()=>openDetail(idx));card.querySelectorAll('.exit-btn').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const target=t.exits[+btn.dataset.to]?.target;if(target){const ti=D.territories.findIndex(tt=>tt.name===target);if(ti>=0){const el=mosaic.children[ti];el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='3px solid var(--b)';setTimeout(()=>el.style.outline='',1500);}}});});});function drawFrame(ctx,cvs,frame){const sx=cvs.width/GC,sy=cvs.height/GR;ctx.fillStyle='#fff';ctx.fillRect(0,0,cvs.width,cvs.height);for(let gy=0;gy<GR;gy++)for(let gx=0;gx<GC;gx++){const v=frame[gy*GC+gx];if(v>0){const b=Math.round(255-(v/7)*255);ctx.fillStyle='rgb('+b+','+b+','+b+')';ctx.fillRect(gx*sx,gy*sy,Math.ceil(sx),Math.ceil(sy));}}}let last=0;function tick(ts){if(ts-last>=1000/FPS){last=ts;animFrames.forEach(a=>{a.f=(a.f+1)%a.frames.length;drawFrame(a.ctx,a.cvs,a.frames[a.f]);});}requestAnimationFrame(tick);}requestAnimationFrame(tick);const detail=document.getElementById('detail');const detCvs=document.getElementById('detail-cvs');const detCtx=detCvs.getContext('2d');detCtx.imageSmoothingEnabled=false;let detAnim=null;function openDetail(idx){const t=D.territories[idx];detail.classList.add('on');detCvs.width=GC*5;detCvs.height=GR*5;document.getElementById('detail-info').innerHTML='<h3>'+t.name+'</h3>'+(t.desc?'<p>'+t.desc+'</p>':'')+'<p>'+t.frames.length+' frames · '+t.duration+'s · motif: '+t.motif+'</p>'+(t.objects.length?'<p>Objects: '+t.objects.join(', ')+'</p>':'');document.getElementById('detail-code').textContent=t.code;let f=0;if(detAnim)cancelAnimationFrame(detAnim);function step(){drawFrame(detCtx,detCvs,t.frames[f%t.frames.length]);f++;detAnim=setTimeout(()=>requestAnimationFrame(step),1000/FPS);}step();}detail.addEventListener('click',e=>{if(e.target===detail){detail.classList.remove('on');if(detAnim)clearTimeout(detAnim);}});<\\/script></body></html>`;
+
 
 // ═══════════════════════════════════════
 // RCC-MOS: PHYSICS & TIMELINE ENGINE
@@ -2267,12 +2800,18 @@ function runZorcCommand(input){
     return;
   }
   if(cmd.startsWith('EXPORT')){
-    if(cmd.includes('EDL'))exportZorcEDL();
-    else if(cmd.includes('TWEEL')||cmd.includes('JSON'))exportZorcTweel();
-    else if(cmd.includes('MAP')||cmd.includes('TERRITORY'))exportTerritoryMapBFX();
-    else if(cmd.includes('PATH'))exportPathBFX();
-    else if(cmd.includes('TWEE')||cmd.includes('TWINE'))exportZorcTwee();
-    else exportZorcTwee();
+    if(cmd.includes('OTIO'))ExportEngine.exportOTIO(cells,edges,zorc,24);
+    else if(cmd.includes('EDL')&&cmd.includes('ZORC'))ExportEngine.exportZorcEDL(cells,edges,zorc);
+    else if(cmd.includes('EDL'))ExportEngine.exportEDL(cells,edges,zorc,24);
+    else if(cmd.includes('TWEEL')||cmd.includes('JSON'))ExportEngine.exportTweel(cells,edges,zorc);
+    else if(cmd.includes('MAP')||cmd.includes('TERRITORY'))ExportEngine.exportTerritoryMapBFX();
+    else if(cmd.includes('PATH'))ExportEngine.exportPathBFX(cells,edges,zorc);
+    else if(cmd.includes('TWEE')||cmd.includes('TWINE'))ExportEngine.exportTwee(cells,edges);
+    else if(cmd.includes('MOSAIC')||cmd.includes('WORLD'))ExportEngine.exportMosaicHTML(cells,edges,fps);
+    else if(cmd.includes('BEFLIX'))ExportEngine.exportBEFLIX(cells,edges);
+    else if(cmd.includes('PLAYER'))ExportEngine.exportPlayer(cells,edges,fps);
+    else if(cmd.includes('SAVE'))ExportEngine.exportJSON(cells,edges,zorc);
+    else ExportEngine.exportTwee(cells,edges);
     return;
   }
   zorcLog('Unknown verb. Try LOOK, GO NEXT, EXCAVATE ROOM, CORRUPT ROOM, ILLUMINATE, FLOOD, SURFACE, TRANSMUTE.');
@@ -3042,18 +3581,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Export dropdown
   $('export-btn').addEventListener('click', e => { e.stopPropagation(); $('export-menu').classList.toggle('on'); });
-  ['em-png','ex-png'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{saveCanvas();closeExport();closeSheets();});});
-  ['em-player','ex-player'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportPlayer();closeSheets();});});
-  ['em-twee','ex-twee'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportTwee();closeSheets();});});
-  ['em-beflix','ex-beflix'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportBeflix();closeSheets();});});
-  ['em-video','ex-video'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{exportVideo();closeSheets();});});
-  // ZORC export buttons
-  $('ex-zorc-edl')?.addEventListener('click',()=>{exportZorcEDL();closeSheets();});
-  $('ex-zorc-tweel')?.addEventListener('click',()=>{exportZorcTweel();closeSheets();});
-  $('ex-zorc-map')?.addEventListener('click',()=>{exportTerritoryMapBFX();closeSheets();});
-  $('ex-zorc-path')?.addEventListener('click',()=>{exportPathBFX();closeSheets();});
+  // ─── EXPORT ENGINE WIRING ───
+  // Media
+  ['em-png','ex-png'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{ExportEngine.exportPNG(CVS);closeExport();closeSheets();});});
+  ['em-video','ex-video'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{ExportEngine.exportVideo(cells,active,CVS,fps);closeSheets();});});
+  // World
+  ['em-player','ex-player'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{ExportEngine.exportPlayer(cells,edges,fps);closeSheets();});});
+  $('ex-mosaic')?.addEventListener('click',()=>{ExportEngine.exportMosaicHTML(cells,edges,fps);closeSheets();});
+  // Story
+  ['em-twee','ex-twee'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{ExportEngine.exportTwee(cells,edges);closeSheets();});});
+  ['em-beflix','ex-beflix'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{ExportEngine.exportBEFLIX(cells,edges);closeSheets();});});
+  $('ex-zorc-edl')?.addEventListener('click',()=>{ExportEngine.exportZorcEDL(cells,edges,zorc);closeSheets();});
+  $('ex-zorc-tweel')?.addEventListener('click',()=>{ExportEngine.exportTweel(cells,edges,zorc);closeSheets();});
+  // Film
+  $('ex-edl')?.addEventListener('click',()=>{ExportEngine.exportEDL(cells,edges,zorc,24);closeSheets();});
+  $('ex-otio')?.addEventListener('click',()=>{ExportEngine.exportOTIO(cells,edges,zorc,24);closeSheets();});
+  // Source
+  $('ex-zorc-map')?.addEventListener('click',()=>{ExportEngine.exportTerritoryMapBFX();closeSheets();});
+  $('ex-zorc-path')?.addEventListener('click',()=>{ExportEngine.exportPathBFX(cells,edges,zorc);closeSheets();});
   // Save/Load project
-  $('ex-save-json')?.addEventListener('click',()=>{exportJSON();closeSheets();});
+  $('ex-save-json')?.addEventListener('click',()=>{ExportEngine.exportJSON(cells,edges,zorc);closeSheets();});
   $('load-file')?.addEventListener('change',e=>{if(e.target.files[0])loadJSON(e.target.files[0]);e.target.value='';});
   document.addEventListener('click', e => { const m=$('export-menu');if(m.classList.contains('on')&&!m.contains(e.target)&&e.target.id!=='export-btn')closeExport(); });
 

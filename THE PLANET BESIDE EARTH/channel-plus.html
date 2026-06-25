@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PLANET BESIDE EARTH — TV</title>
+    <meta name="description" content="24-channel TV guide with real video files and channel-change static">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin:0; overflow:hidden; background:#0f172a; color:#f8fafc; }
+
+        .guide-scroll::-webkit-scrollbar { width:6px; }
+        .guide-scroll::-webkit-scrollbar-track { background:#1e293b; }
+        .guide-scroll::-webkit-scrollbar-thumb { background:#475569; border-radius:10px; }
+        .guide-row { transition:all 0.2s ease; }
+
+        /* Video stack — all videos overlap, only .active is visible */
+        #video-stack { position:absolute; inset:0; }
+        #video-stack video {
+            position:absolute; inset:0;
+            width:100%; height:100%;
+            object-fit:contain;
+            display:none;
+            background:#000;
+        }
+        #video-stack video.active { display:block; }
+
+        /* Static canvas overlay */
+        #static-canvas {
+            position:absolute; inset:0;
+            width:100%; height:100%;
+            z-index:30;
+            display:none;
+        }
+        #static-canvas.show { display:block; }
+
+        /* Scanline CRT overlay */
+        .crt-lines {
+            position:absolute; inset:0; z-index:25;
+            pointer-events:none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+        }
+
+        /* Number pad grid */
+        .numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+        .num-btn {
+            font-family: ui-monospace, monospace;
+            font-weight:700; font-size:16px;
+            background:#1e293b; color:#94a3b8;
+            border:1px solid #334155;
+            border-radius:6px;
+            padding:8px 0;
+            cursor:pointer;
+            transition:all 0.1s;
+            text-align:center;
+        }
+        .num-btn:active { background:#334155; color:#fff; transform:scale(0.95); }
+    </style>
+</head>
+<body class="font-sans w-full h-[100dvh] flex flex-col md:flex-row overflow-hidden">
+
+    <!-- ═══ LEFT/TOP: THE TELEVISION ═══ -->
+    <div class="relative w-full h-[40vh] md:h-full md:w-3/5 lg:w-2/3 bg-black flex-shrink-0 z-20 shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-b-4 md:border-b-0 md:border-r-4 border-slate-900">
+
+        <!-- Power Off State -->
+        <div id="power-off-state" class="absolute inset-0 flex flex-col items-center justify-center bg-black z-20">
+            <div class="text-slate-800 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="15" x="2" y="7" rx="2" ry="2"/>
+                    <polyline points="17 2 12 7 7 2"/>
+                </svg>
+            </div>
+            <div class="w-3 h-3 bg-red-800 rounded-full animate-pulse shadow-[0_0_15px_red]"></div>
+        </div>
+
+        <!-- Screen Content -->
+        <div id="screen-content" class="absolute inset-0 w-full h-full bg-black overflow-hidden opacity-0 transition-opacity duration-300 z-10">
+            <!-- Video Stack -->
+            <div id="video-stack"></div>
+
+            <!-- Canvas Static -->
+            <canvas id="static-canvas"></canvas>
+
+            <!-- CRT Scanlines -->
+            <div class="crt-lines"></div>
+
+            <!-- OSD -->
+            <div id="osd-info" class="absolute top-4 left-4 sm:top-6 sm:left-6 text-left z-40 transition-opacity duration-300 pointer-events-none opacity-0">
+                <div id="osd-channel" class="text-green-400 font-mono text-4xl sm:text-6xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] font-bold">CH 00</div>
+                <div id="osd-title" class="text-white font-sans text-sm sm:text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,1)] mt-1 tracking-wide font-medium bg-black/50 px-2 py-1 rounded inline-block">ORIGINAL</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ RIGHT/BOTTOM: REMOTE + GUIDE ═══ -->
+    <div class="flex-1 flex flex-col h-[60vh] md:h-full bg-slate-950 z-30 flex-shrink-0">
+
+        <!-- Remote Control Bar -->
+        <div class="bg-slate-900 border-b border-slate-800 p-2 sm:p-3 flex items-center justify-between shadow-md gap-2">
+            <!-- Power -->
+            <div class="flex items-center gap-2">
+                <button id="btn-power" onclick="togglePower()"
+                    class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-red-600/20 text-red-500 border border-red-500/50 hover:bg-red-600 hover:text-white transition-all shadow-lg active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+                    </svg>
+                </button>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">System</span>
+                    <span id="system-status" class="text-[11px] text-slate-400 font-mono">STANDBY</span>
+                </div>
+            </div>
+
+            <!-- Number Pad (compact) -->
+            <div class="numpad" style="width:120px;">
+                <button class="num-btn" onclick="numInput(1)">1</button>
+                <button class="num-btn" onclick="numInput(2)">2</button>
+                <button class="num-btn" onclick="numInput(3)">3</button>
+                <button class="num-btn" onclick="numInput(4)">4</button>
+                <button class="num-btn" onclick="numInput(5)">5</button>
+                <button class="num-btn" onclick="numInput(6)">6</button>
+                <button class="num-btn" onclick="numInput(7)">7</button>
+                <button class="num-btn" onclick="numInput(8)">8</button>
+                <button class="num-btn" onclick="numInput(9)">9</button>
+                <button class="num-btn" style="visibility:hidden"></button>
+                <button class="num-btn" onclick="numInput(0)">0</button>
+                <button class="num-btn" style="font-size:10px;letter-spacing:1px" onclick="numEnter()">GO</button>
+            </div>
+
+            <!-- CH Rocker -->
+            <div class="flex items-center bg-slate-950 rounded-lg p-1 border border-slate-800 shadow-inner">
+                <button onclick="prevChannel()" id="btn-ch-down" disabled
+                    class="w-10 h-9 sm:w-12 sm:h-10 rounded-md flex items-center justify-center text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 hover:text-white active:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="px-1 flex flex-col items-center justify-center">
+                    <span class="text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-none">CH</span>
+                </div>
+                <button onclick="nextChannel()" id="btn-ch-up" disabled
+                    class="w-10 h-9 sm:w-12 sm:h-10 rounded-md flex items-center justify-center text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 hover:text-white active:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Guide Header -->
+        <div class="bg-blue-900/40 border-b border-blue-900/50 px-4 py-2 flex justify-between items-center text-xs font-bold text-blue-300 uppercase tracking-widest">
+            <span>📺 Channel Guide</span>
+            <span id="current-time">--:--</span>
+        </div>
+
+        <!-- Guide List -->
+        <div id="guide-container" class="flex-1 overflow-y-auto guide-scroll bg-slate-950 pb-20 md:pb-4 relative">
+            <div id="guide-overlay" class="absolute inset-0 bg-slate-950/80 z-10 cursor-not-allowed flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
+                <span class="text-slate-500 font-mono tracking-widest text-sm">PRESS POWER</span>
+            </div>
+            <div id="guide-list" class="flex flex-col"></div>
+        </div>
+    </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CHANNEL DATA — LOCAL VIDEO FILES
+// ═══════════════════════════════════════════════════════════════
+const CHANNELS = [
+  { ch:0,  label:"ORIGINAL",         file:"ORIGINAL_FRUSTRATED_OPERATOR_202606250441.mp4" },
+  { ch:1,  label:"CLAYMATION",       file:"3D_SIMULATED_CLAYMATION_style__stop-motion_202606250434.mp4" },
+  { ch:2,  label:"CARTOON NETWORK",  file:"Cartoon_Network_2D_animated_style_202606250435.mp4" },
+  { ch:3,  label:"CEL-SHADED 3D",    file:"Cel-shaded_NPR_3D_style_202606250434.mp4" },
+  { ch:4,  label:"DEMON SLAYER",     file:"Demon_Slayer_anime_style._202606250437.mp4" },
+  { ch:5,  label:"FRUSTRATED OP v1", file:"FRUSTRATED_OPERATOR_202606242345.mp4" },
+  { ch:6,  label:"FRUSTRATED OP v2", file:"FRUSTRATED_OPERATOR_202606242348.mp4" },
+  { ch:7,  label:"GLITCH ART",       file:"Glitch_art_datamoshing_visual_ae\u2026_202606250434.mp4" },
+  { ch:8,  label:"HISTORICAL DOC",   file:"Historical_documentary_ancient_c\u2026_202606250435.mp4" },
+  { ch:9,  label:"MTV MUSIC VIDEO",  file:"MTV_music_video_youth_culture_202606250435.mp4" },
+  { ch:10, label:"NPR PAINTERLY",    file:"NPR_PAINTERLY_style_offset_linework_202606250434.mp4" },
+  { ch:11, label:"NARUTO",           file:"Naruto_anime_style_bitrate_starv\u2026_202606250438.mp4" },
+  { ch:12, label:"ONE PIECE",        file:"One_Piece_anime_style._202606250437.mp4" },
+  { ch:13, label:"PIXAR CGI",        file:"Pixar_CGI_house_style_202606250433.mp4" },
+  { ch:14, label:"KIDS SHOW",        file:"Playful_children's_entertainment\u2026_202606250434.mp4" },
+  { ch:15, label:"POKEMON",          file:"Pok\u00e9mon_total_system_collapse_202606250437.mp4" },
+  { ch:16, label:"PSYCHEDELIC",      file:"Psychedelic_trails_corrupted_dat\u2026_202606250437.mp4" },
+  { ch:17, label:"ROTOSCOPE",        file:"Rotoscope_hyper-realistic_motion\u2026_202606250433.mp4" },
+  { ch:18, label:"SOUTH PARK",       file:"South_Park_cut-out_style_movement_202606250433.mp4" },
+  { ch:19, label:"SPIDER-VERSE",     file:"Spider-Verse_style_2D_3D_mashup_202606250433.mp4" },
+  { ch:20, label:"TCM CLASSIC",      file:"TCM_classic_cinema_aesthetic_202606250435.mp4" },
+  { ch:21, label:"INFOMERCIAL",      file:"Teleshopping_infomercial_theatre\u2026_202606250435.mp4" },
+  { ch:22, label:"TRUE CRIME DOC",   file:"True_crime_documentary_aesthetic_202606250435.mp4" },
+  { ch:23, label:"PLANET EARTH",     file:"Video_in_Planet_Earth_caves_202606250436.mp4" },
+];
+
+const TOTAL_CHANNELS = CHANNELS.length;
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let isOn = false;
+let currentChannel = 0;
+let isSwitching = false;
+let switchTimeout = null;
+let osdTimeout = null;
+let videos = [];
+let audioCtx = null;
+
+// ═══════════════════════════════════════════════════════════════
+// DOM
+// ═══════════════════════════════════════════════════════════════
+const powerOffState = document.getElementById('power-off-state');
+const screenContent = document.getElementById('screen-content');
+const osdInfo = document.getElementById('osd-info');
+const osdChannel = document.getElementById('osd-channel');
+const osdTitle = document.getElementById('osd-title');
+const btnPower = document.getElementById('btn-power');
+const btnChUp = document.getElementById('btn-ch-up');
+const btnChDown = document.getElementById('btn-ch-down');
+const systemStatus = document.getElementById('system-status');
+const guideOverlay = document.getElementById('guide-overlay');
+const guideList = document.getElementById('guide-list');
+const timeDisplay = document.getElementById('current-time');
+const videoStack = document.getElementById('video-stack');
+const staticCanvas = document.getElementById('static-canvas');
+const staticCtx = staticCanvas.getContext('2d');
+
+// ═══════════════════════════════════════════════════════════════
+// HAPTIC FEEDBACK
+// ═══════════════════════════════════════════════════════════════
+function haptic(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+function hapticClick()   { haptic(15); }
+function hapticSwitch()  { haptic([20, 30, 40]); }
+function hapticPower()   { haptic([30, 50, 30, 50, 60]); }
+
+// ═══════════════════════════════════════════════════════════════
+// TV STATIC (Canvas + White Noise Audio)
+// ═══════════════════════════════════════════════════════════════
+let staticAnim = null;
+let noiseNode = null;
+let noiseGain = null;
+
+function resizeStatic() {
+  staticCanvas.width = Math.min(window.innerWidth, 480);
+  staticCanvas.height = Math.min(window.innerHeight, 360);
+}
+resizeStatic();
+window.addEventListener('resize', resizeStatic);
+
+function drawStatic() {
+  const w = staticCanvas.width, h = staticCanvas.height;
+  const img = staticCtx.createImageData(w, h);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 255 | 0;
+    d[i] = d[i+1] = d[i+2] = v;
+    d[i+3] = 255;
+  }
+  staticCtx.putImageData(img, 0, 0);
+  staticAnim = requestAnimationFrame(drawStatic);
+}
+
+function startStatic() {
+  staticCanvas.classList.add('show');
+  drawStatic();
+  // White noise audio
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    noiseNode = audioCtx.createScriptProcessor(4096, 1, 1);
+    noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = 0.06;
+    noiseNode.onaudioprocess = (e) => {
+      const out = e.outputBuffer.getChannelData(0);
+      for (let i = 0; i < out.length; i++) out[i] = Math.random() * 2 - 1;
+    };
+    noiseNode.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+  } catch(e) {}
+}
+
+function stopStatic() {
+  staticCanvas.classList.remove('show');
+  if (staticAnim) { cancelAnimationFrame(staticAnim); staticAnim = null; }
+  try { if (noiseNode) { noiseNode.disconnect(); noiseNode = null; } } catch(e) {}
+  try { if (noiseGain) { noiseGain.disconnect(); noiseGain = null; } } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CREATE VIDEO ELEMENTS
+// ═══════════════════════════════════════════════════════════════
+function createVideos() {
+  CHANNELS.forEach((ch, i) => {
+    const v = document.createElement('video');
+    v.src = ch.file;
+    v.loop = true;
+    v.muted = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline','');
+    v.setAttribute('webkit-playsinline','');
+    v.preload = (i < 3) ? 'auto' : 'metadata';
+    v.dataset.ch = i;
+    videoStack.appendChild(v);
+    videos.push(v);
+  });
+}
+createVideos();
+
+// ═══════════════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  timeDisplay.innerText = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD GUIDE
+// ═══════════════════════════════════════════════════════════════
+function initializeGuide() {
+  CHANNELS.forEach((ch, i) => {
+    const chStr = String(ch.ch).padStart(2,'0');
+    const row = document.createElement('div');
+    row.id = `guide-row-${i}`;
+    row.className = 'guide-row flex items-stretch border-b border-slate-800/50 cursor-pointer group';
+    row.onclick = () => { hapticClick(); selectChannel(i); };
+    row.innerHTML = `
+      <div class="w-14 sm:w-16 flex flex-col items-center justify-center py-3 bg-slate-900 border-r border-slate-800 text-slate-400 group-hover:bg-slate-800 transition-colors ch-number-box">
+        <span class="text-[9px] uppercase font-bold tracking-widest opacity-50 mb-0.5">CH</span>
+        <span class="text-lg sm:text-xl font-bold font-mono text-slate-300 ch-number">${chStr}</span>
+      </div>
+      <div class="flex-1 px-3 sm:px-4 py-2 sm:py-3 flex flex-col justify-center hover:bg-slate-800/50 transition-colors ch-info-box">
+        <span class="text-white font-medium text-sm sm:text-lg ch-title">${ch.label}</span>
+        <span class="text-[10px] sm:text-xs text-slate-500 font-mono mt-0.5">LOOP • 10s • LOCAL</span>
+      </div>
+    `;
+    guideList.appendChild(row);
+  });
+}
+initializeGuide();
+
+// ═══════════════════════════════════════════════════════════════
+// POWER
+// ═══════════════════════════════════════════════════════════════
+function togglePower() {
+  isOn = !isOn;
+  hapticPower();
+
+  if (isOn) {
+    powerOffState.style.display = 'none';
+    screenContent.style.opacity = '1';
+    btnPower.classList.replace('bg-red-600/20','bg-red-600');
+    btnPower.classList.replace('text-red-500','text-white');
+    systemStatus.innerText = 'ONLINE';
+    systemStatus.classList.replace('text-slate-400','text-green-400');
+    guideOverlay.classList.add('opacity-0','pointer-events-none');
+    btnChUp.disabled = false; btnChDown.disabled = false;
+    btnChUp.classList.replace('text-slate-500','text-white');
+    btnChDown.classList.replace('text-slate-500','text-white');
+    triggerSwitch(true);
+  } else {
+    // Pause all videos
+    videos.forEach(v => { v.pause(); v.muted = true; v.classList.remove('active'); });
+    powerOffState.style.display = 'flex';
+    screenContent.style.opacity = '0';
+    btnPower.classList.replace('bg-red-600','bg-red-600/20');
+    btnPower.classList.replace('text-white','text-red-500');
+    systemStatus.innerText = 'STANDBY';
+    systemStatus.classList.replace('text-green-400','text-slate-400');
+    guideOverlay.classList.remove('opacity-0','pointer-events-none');
+    btnChUp.disabled = true; btnChDown.disabled = true;
+    btnChUp.classList.replace('text-white','text-slate-500');
+    btnChDown.classList.replace('text-white','text-slate-500');
+    stopStatic();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHANNEL SWITCH
+// ═══════════════════════════════════════════════════════════════
+async function triggerSwitch(isBooting = false) {
+  isSwitching = true;
+  osdInfo.style.opacity = '0';
+
+  // Pause old video
+  videos.forEach(v => { v.classList.remove('active'); v.muted = true; });
+
+  // Static burst
+  startStatic();
+  hapticSwitch();
+
+  if (switchTimeout) clearTimeout(switchTimeout);
+
+  const dur = isBooting ? 700 : 300 + Math.random() * 150;
+
+  switchTimeout = setTimeout(() => {
+    stopStatic();
+    isSwitching = false;
+
+    // Play new channel
+    const v = videos[currentChannel];
+    v.currentTime = 0;
+    v.classList.add('active');
+    v.muted = false;
+    if (v.preload === 'metadata') { v.preload = 'auto'; v.load(); }
+    v.play().catch(() => { v.muted = true; v.play(); });
+
+    showOSD();
+    preloadNeighbors(currentChannel);
+  }, dur);
+
+  updateGuideUI();
+}
+
+function preloadNeighbors(ch) {
+  const prev = (ch - 1 + TOTAL_CHANNELS) % TOTAL_CHANNELS;
+  const next = (ch + 1) % TOTAL_CHANNELS;
+  [prev, next].forEach(i => {
+    if (videos[i].preload === 'metadata') {
+      videos[i].preload = 'auto';
+      videos[i].load();
+    }
+  });
+}
+
+function showOSD() {
+  const ch = CHANNELS[currentChannel];
+  osdChannel.innerText = `CH ${String(ch.ch).padStart(2,'0')}`;
+  osdTitle.innerText = ch.label;
+  osdInfo.style.opacity = '1';
+  if (osdTimeout) clearTimeout(osdTimeout);
+  osdTimeout = setTimeout(() => { osdInfo.style.opacity = '0'; }, 3500);
+}
+
+function updateGuideUI() {
+  document.querySelectorAll('.guide-row').forEach(row => {
+    const numBox = row.querySelector('.ch-number-box');
+    const infoBox = row.querySelector('.ch-info-box');
+    const title = row.querySelector('.ch-title');
+    const num = row.querySelector('.ch-number');
+    numBox.className = 'w-14 sm:w-16 flex flex-col items-center justify-center py-3 bg-slate-900 border-r border-slate-800 text-slate-400 group-hover:bg-slate-800 transition-colors ch-number-box';
+    infoBox.className = 'flex-1 px-3 sm:px-4 py-2 sm:py-3 flex flex-col justify-center hover:bg-slate-800/50 transition-colors ch-info-box';
+    if (title) title.classList.replace('text-yellow-400','text-white');
+    if (num) num.classList.replace('text-yellow-400','text-slate-300');
+  });
+
+  const activeRow = document.getElementById(`guide-row-${currentChannel}`);
+  if (activeRow) {
+    const numBox = activeRow.querySelector('.ch-number-box');
+    const infoBox = activeRow.querySelector('.ch-info-box');
+    const title = activeRow.querySelector('.ch-title');
+    const num = activeRow.querySelector('.ch-number');
+    numBox.className = 'w-14 sm:w-16 flex flex-col items-center justify-center py-3 bg-blue-900 border-r border-blue-800 text-blue-200 ch-number-box';
+    infoBox.className = 'flex-1 px-3 sm:px-4 py-2 sm:py-3 flex flex-col justify-center bg-blue-950/80 ch-info-box border-y border-blue-900/50 shadow-inner';
+    if (title) title.classList.replace('text-white','text-yellow-400');
+    if (num) num.classList.replace('text-slate-300','text-yellow-400');
+    activeRow.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHANNEL NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function nextChannel() {
+  if (!isOn || isSwitching) return;
+  hapticClick();
+  currentChannel = (currentChannel + 1) % TOTAL_CHANNELS;
+  triggerSwitch();
+}
+function prevChannel() {
+  if (!isOn || isSwitching) return;
+  hapticClick();
+  currentChannel = (currentChannel - 1 + TOTAL_CHANNELS) % TOTAL_CHANNELS;
+  triggerSwitch();
+}
+function selectChannel(num) {
+  if (!isOn || isSwitching) return;
+  if (currentChannel === num) return;
+  currentChannel = num;
+  triggerSwitch();
+}
+
+// Number pad entry
+let digitBuf = '';
+let digitTimer = null;
+function numInput(n) {
+  if (!isOn) return;
+  hapticClick();
+  digitBuf += String(n);
+
+  // Show what user is typing in OSD
+  osdChannel.innerText = `CH ${digitBuf.padStart(2,'_')}`;
+  osdTitle.innerText = '...';
+  osdInfo.style.opacity = '1';
+  if (osdTimeout) clearTimeout(osdTimeout);
+
+  if (digitBuf.length >= 2) {
+    numEnter();
+  } else {
+    clearTimeout(digitTimer);
+    digitTimer = setTimeout(numEnter, 1200);
+  }
+}
+function numEnter() {
+  clearTimeout(digitTimer);
+  if (!digitBuf) return;
+  const num = parseInt(digitBuf);
+  digitBuf = '';
+  if (num >= 0 && num < TOTAL_CHANNELS) {
+    selectChannel(num);
+  } else {
+    // Invalid channel — flash
+    osdChannel.innerText = `CH ${String(num).padStart(2,'0')}`;
+    osdTitle.innerText = 'NO SIGNAL';
+    haptic([50, 50, 50]);
+    osdTimeout = setTimeout(() => { osdInfo.style.opacity = '0'; }, 2000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  switch(e.key) {
+    case 'ArrowUp': case 'w': case 'W': nextChannel(); break;
+    case 'ArrowDown': case 's': case 'S': prevChannel(); break;
+    case 'p': case 'P': togglePower(); break;
+    case 'm': case 'M':
+      if (isOn) { const v = videos[currentChannel]; v.muted = !v.muted; }
+      break;
+    default:
+      const n = parseInt(e.key);
+      if (!isNaN(n)) numInput(n);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TOUCH SWIPE (on the TV screen area)
+// ═══════════════════════════════════════════════════════════════
+let touchY = 0;
+const tvScreen = document.getElementById('screen-content');
+tvScreen.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, {passive:true});
+tvScreen.addEventListener('touchend', (e) => {
+  const dy = e.changedTouches[0].clientY - touchY;
+  if (Math.abs(dy) > 40) {
+    if (dy < 0) nextChannel(); else prevChannel();
+  }
+}, {passive:true});
+</script>
+</body>
+</html>
